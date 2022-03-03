@@ -1,7 +1,0 @@
-/**
- * rapidJS: Automatic serving, all-implicit-routing, pluggable fullstack scoped
- *          function modules, un-opinionated templating. 
- * 
- * Copyright (c) Thassilo Martin Schiepanski
- */
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.getNameByReference=exports.getNameByCall=exports.getPathByCall=void 0;const fs_1=require("fs"),path_1=require("path"),normalize_1=require("../../utilities/normalize"),registry_1=require("./registry");function getCallerPath(e){const t=new Error;for(Error.prepareStackTrace=(e,t)=>t;t.stack.length;)if(![e||"",__filename].includes(t.stack.shift().getFileName()))return t.stack.shift().getFileName();throw new ReferenceError("Failed to retrieve path to plugin caller module")}function getPathByCall(e){return(0,path_1.dirname)(getCallerPath(e))}function getNameByCall(e){const r=(0,normalize_1.truncateModuleExtension)(getCallerPath(e));try{registry_1.pluginRegistry.forEach((e,t)=>{if(registry_1.pluginRegistry.get(t).path===r)throw t})}catch(e){if("string"==typeof e)return String(e);throw e}}function getNameByReference(e){if(!/^((\.)?\.)?\//.test(e))return e.toLowerCase();/^[^/]/.test(e)&&(e=(0,path_1.join)((0,path_1.dirname)(require.main.filename),e));var t=(0,path_1.join)((0,path_1.dirname)(e),"package.json");const r=(0,fs_1.existsSync)(t)?require(t).name:null;return r?r.toLowerCase():(0,normalize_1.truncateModuleExtension)(e.match(/([^/]+\/)?[^/]+$/)[0])}exports.getPathByCall=getPathByCall,exports.getNameByCall=getNameByCall,exports.getNameByReference=getNameByReference;

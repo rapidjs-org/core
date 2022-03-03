@@ -1,7 +1,0 @@
-/**
- * rapidJS: Automatic serving, all-implicit-routing, pluggable fullstack scoped
- *          function modules, un-opinionated templating. 
- * 
- * Copyright (c) Thassilo Martin Schiepanski
- */
-"use strict";var __importDefault=this&&this.__importDefault||function(e){return e&&e.__esModule?e:{default:e}};Object.defineProperty(exports,"__esModule",{value:!0}),exports.error=exports.log=void 0;const config={appName:"rJS"},fs_1=require("fs"),path_1=require("path"),config_server_1=__importDefault(require("../config/evaluated")),is_dev_mode_1=__importDefault(require("../utilities/mode"));let logWriteErr=!1;function writeToFile(e){const r=new Date;var o=r.toISOString().split("T")[0],t=r.toLocaleTimeString();(0,fs_1.appendFile)((0,path_1.join)(config_server_1.default.directory.log,o+".log"),`[${t}]: ${e} `,e=>{e&&(logWriteErr||(logWriteErr=!0,error(e)))})}function log(e,r,o){var t=["string","number","boolean"].includes(typeof e);const i=[];i.push(`[${config.appName}]`),r&&i.push(`[${r}]`),i.push(" "+(t?e:"↓")),console.log.apply(null,[`[33m%s${r?"[34m%s":""}[${o||"0m"}%s[0m`].concat(i)),t||console.log(e),is_dev_mode_1.default&&config_server_1.default.directory.log&&writeToFile((r?`[${r}] `:"")+JSON.stringify(e))}function error(e,r=!1,o){log(e instanceof Error?e.name+": "+e.message:e,o,"31m"),console.error(Array.isArray(e.stack)?e.stack.map(e=>"at "+String(e)).join("\n"):e.stack),r&&process.exit()}exports.log=log,exports.error=error;

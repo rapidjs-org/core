@@ -1,11 +1,6 @@
 .DS_Store
-
 .np-config.json
-
 package-lock.json
 
 node_modules/
-
 debug/
-debug:app/
-performance/

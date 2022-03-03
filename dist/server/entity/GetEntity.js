@@ -1,7 +1,0 @@
-/**
- * rapidJS: Automatic serving, all-implicit-routing, pluggable fullstack scoped
- *          function modules, un-opinionated templating. 
- * 
- * Copyright (c) Thassilo Martin Schiepanski
- */
-"use strict";var __importDefault=this&&this.__importDefault||function(e){return e&&e.__esModule?e:{default:e}};Object.defineProperty(exports,"__esModule",{value:!0}),exports.GetEntity=void 0;const fs_1=require("fs"),zlib_1=require("zlib"),config_server_1=__importDefault(require("../../config/evaluated")),UrlCache_1=require("../cache/UrlCache"),Entity_1=require("./Entity");class GetEntity extends Entity_1.Entity{constructor(e,t){super(e,t)}read(){var e=this.localPath();if(GetEntity.cache.exists(e))return GetEntity.cache.read(e);e=(0,fs_1.existsSync)(e)?(0,fs_1.readFileSync)(e):null;return GetEntity.cache.write(this.localPath(),e),e}respond(e,t){var i=config_server_1.default.mimes[this.extension];i&&(this.setHeader("Content-Type",t?i:"text/plain"),this.setHeader("X-Content-Type-Options","nosniff")),t&&/(^|[, ])gzip($|[ ,])/.test(this.getHeader("Accept-Encoding")||"")&&config_server_1.default.gzipCompressList.includes(this.extension)&&(this.setHeader("Content-Encoding","gzip"),t=(0,zlib_1.gzipSync)(t)),super.respond(e,t)}process(){super.process()}}exports.GetEntity=GetEntity,GetEntity.cache=new UrlCache_1.UrlCache;
