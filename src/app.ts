@@ -1,4 +1,0 @@
-
-
-import "./instance/app";
-

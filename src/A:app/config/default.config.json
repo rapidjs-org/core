@@ -1,0 +1,12 @@
+{
+    "directory": {
+        "web": "web"
+    },
+    "mimes": {
+        "html": "text/html",
+        "js": "text/javascript"
+    },
+    "port": {
+        "http": 80
+    }
+}

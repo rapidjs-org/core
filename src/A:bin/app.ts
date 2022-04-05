@@ -3,7 +3,7 @@
 
 import { execFile } from "child_process";
 
-import "../instance/app";
+import "../A:app/app";
 
 
 /* execFile("../proxy/app", process.argv.slice(2)); */

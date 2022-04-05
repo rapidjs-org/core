@@ -1,2 +1,2 @@
 // Instanciate core environment
-const rapidJS = require("../debug/app");
+const rapidJS = require("../debug/A:app/app");

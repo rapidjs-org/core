@@ -6,7 +6,7 @@
 
 // TODO: RedirectError?
 
-export abstract class ResError extends Error {
+abstract class MutualError extends Error {
     public status: number;
 
     /**
@@ -27,4 +27,24 @@ export abstract class ResError extends Error {
 
     	this.status = status;
     }
+}
+
+export class MutualClientError extends MutualError {
+	/**
+	 * @param {number} status Status code (within client error code range (4**))
+	 * @param {string} message Optional description message
+	 */
+	constructor(status: number, message?: string) {
+		super(4, status, message);
+	}
+}
+
+export class MutualServerError extends MutualError {
+	/**
+     * @param {number} status Status code (within server error code range (5**))
+	 * @param {string} message Optional description message
+     */
+	constructor(status: number, message?: string) {
+		super(5, status, message);
+	}
 }

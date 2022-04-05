@@ -1,0 +1,6 @@
+{
+    "clusterSize": 1,
+    "port": {
+        "http": 7373
+    }
+}

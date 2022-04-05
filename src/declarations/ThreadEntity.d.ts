@@ -1,8 +1,11 @@
 declare interface ThreadReq {
+    ip: string,
     method: string,
     url: string
 }
 
 declare interface ThreadRes {
-    message: string
+    status: number,
+    
+    message?: string
 }

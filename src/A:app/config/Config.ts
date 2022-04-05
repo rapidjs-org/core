@@ -8,8 +8,9 @@ import { join } from "path";
 import { existsSync } from "fs";
 
 import { mergeObj } from "../utils";
-import { PROJECT_PATH } from "../path";
 import { MODE } from "../mode";
+
+import { PROJECT_PATH } from "./path";
 
 
 export class Config {
@@ -61,8 +62,8 @@ export class Config {
         }
 
         return {
-            string: String(value),
-            number: Number(value),
+            string: (value !== undefined) ? String(value) : undefined,
+            number: !isNaN(Number(value)) ? Number(value) : 0,
             boolean: (value === true || value === "true") ? true : false
         };
     }

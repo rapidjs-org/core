@@ -9,14 +9,17 @@ import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 
 
-import { normalizeExtension } from "../utils";
-import { PROJECT_PATH } from "../path";
+import { mergeObj, normalizeExtension } from "../utils";
+import { MODE } from "../mode";
 
-import { Config } from "./CConfig";
-import DEFAULT_CONFIG from "./config.default.json";
+import { Config } from "./Config";
+import { PROJECT_PATH } from "./path";
+import DEFAULT_CONFIG from "./default.config.json";
+import DEFAULT_CONFIG_PROD from "./default.config:prod.json";
+import DEFAULT_CONFIG_DEV from "./default.config:dev.json";
 
 
-export const PROJECT_CONFIG = new Config("config", DEFAULT_CONFIG);
+export const PROJECT_CONFIG = new Config("config", mergeObj(DEFAULT_CONFIG, MODE.PROD ? DEFAULT_CONFIG_PROD : DEFAULT_CONFIG_DEV));
 
 PROJECT_CONFIG.format((configObj: Record<string, any>) => {
     configObj.directory.log = validatePath("log", configObj.directory.log);
@@ -60,7 +63,7 @@ PROJECT_CONFIG.format((configObj: Record<string, any>) => {
     ? join(PROJECT_PATH, path)
     : path;
     
-    if(!existsSync(path)) {
+    if(!existsSync(path)) { // TODO: Create dir?
         try {
             mkdirSync(path, {
                 recursive: true

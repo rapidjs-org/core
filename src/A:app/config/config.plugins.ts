@@ -3,7 +3,7 @@
  */
 
 
-import { Config } from "./CConfig";
+import { Config } from "./Config";
 
 
 export const PLUGIN_CONFIG = new Config("plugins");

@@ -6,22 +6,16 @@ const input: string[] = process.argv.slice(2);
 const args: Record<string, string|boolean> = {};
 
 
-/**
- * Parse given CLI arguments against a name for value retrieval
- * (or evaluation).
- */
-function parse(name: string, shorthand?: string, requireBinary: boolean = false): string|boolean {
+function parseArgument(name: string, shorthand?: string) {
 	name = name.toLowerCase();
 
 	// Retrieve index in input array
 	const index: number = Math.max(input.indexOf(`--${name}`), shorthand
 		? input.indexOf(`-${shorthand.toUpperCase()}`)
 		: -1);
-	
-	if(!requireBinary) {
-		return (index !== -1)
-		? true
-		: false;
+
+	if(index == -1) {
+		return undefined;
 	}
 
 	// Read optionally given value (next word in input sequence)
@@ -29,43 +23,35 @@ function parse(name: string, shorthand?: string, requireBinary: boolean = false)
 	const consequtiveWord: string = input[index + 1];
 	return /^[^-]/.test(consequtiveWord || "")
 	? consequtiveWord
-	: undefined;
+	: true;
 }
 
+
 /**
- * Obtain unary CLI argument value (boolean; state of existence/provision).
+ * Retrieve value of an argument (only exists if is registered and given).
  * @param {string} name Argument name
  * @param {string} [shorthand] Argument shorthand (processed all uppercase)
- * @returns {boolean} Argument state
+ * @returns Resolved interface (unary or binary argument interpretation)
  */
-export function unaryArgument(name: string, shorthand?: string): boolean {
-	if(args[name] === undefined) {
-		args[name] = parse(name, shorthand);
-	}
+export function argument(name: string, shorthand?: string): {
+	unary: boolean,
+	binary: string,
+} {
+	// Retrieve possibly parse value
+	args[name] = args[name] || parseArgument(name, shorthand);
 	
-	return !!args[name];
-}
-
-/**
- * Obtain binary CLI argument value (string; succeeding sequence part).
- * @param {string} name Argument name
- * @param {string} [shorthand] Argument shorthand (processed all uppercase)
- * @returns {string} Argument value
- */
-export function binaryArgument(name: string, shorthand?: string): string {
-	if(args[name] === undefined) {
-		args[name] = parse(name, shorthand, true);
+	return {
+		/**
+		 * Obtain unary CLI argument value (boolean; 'state' of existence/provision).
+		 * @returns {boolean} Argument state
+		 */
+		unary: !!args[name],
+		/**
+		 * Obtain binary CLI argument value (string; consequtive, non-argument word).
+		 * @returns {string} Argument value
+		 */
+		binary: (args[name] !== undefined)
+			? String(args[name])
+			: undefined
 	}
-	
-	return args[name]
-	? String(args[name])
-	: undefined;
 }
-
-
-/**
- * Registered:
- * 
- * --dev, -D: 	 Activates DEV MODE
- * --wd, -W:     Sets project working directory (path relative to CWD or absolute)
- */

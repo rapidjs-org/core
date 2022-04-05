@@ -3,10 +3,10 @@
  */
 
 
-import { unaryArgument } from "../args";
+import { argument } from "../args";
 
 
-const isDevMode: boolean = unaryArgument("dev", "D");
+const isDevMode: boolean = argument("dev", "D").unary;
 
 
 export const MODE: Record<string, boolean> = {
