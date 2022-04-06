@@ -5,15 +5,13 @@
  */
 
 
-import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 
 
-import { mergeObj, normalizeExtension } from "../utils";
+import { mergeObj, normalizeExtension, normalizePath } from "../../util";
 import { MODE } from "../mode";
 
 import { Config } from "./Config";
-import { PROJECT_PATH } from "./path";
 import DEFAULT_CONFIG from "./default.config.json";
 import DEFAULT_CONFIG_PROD from "./default.config:prod.json";
 import DEFAULT_CONFIG_DEV from "./default.config:dev.json";
@@ -22,7 +20,6 @@ import DEFAULT_CONFIG_DEV from "./default.config:dev.json";
 export const PROJECT_CONFIG = new Config("config", mergeObj(DEFAULT_CONFIG, MODE.PROD ? DEFAULT_CONFIG_PROD : DEFAULT_CONFIG_DEV));
 
 PROJECT_CONFIG.format((configObj: Record<string, any>) => {
-    configObj.directory.log = validatePath("log", configObj.directory.log);
     configObj.directory.web = validatePath("web", configObj.directory.web);
     
     // Normalize extension arrays for future uniform usage
@@ -59,9 +56,7 @@ PROJECT_CONFIG.format((configObj: Record<string, any>) => {
         return undefined;
     }
 
-	path = (path.charAt(0) != "/")
-    ? join(PROJECT_PATH, path)
-    : path;
+	path = normalizePath(path);
     
     if(!existsSync(path)) { // TODO: Create dir?
         try {

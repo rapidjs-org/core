@@ -17,14 +17,14 @@ import { MODE } from "./mode";
 import { PROJECT_CONFIG } from "./config/config.project";
 
 
-print.log(`Running ${print.format(`${MODE.DEV ? "DEV" : "PROD"} MODE`, [MODE.DEV ? print.Format.RED : 0, print.Format.BOLD])}`);
+print.info(`Running ${print.format(`${MODE.DEV ? "DEV" : "PROD"} MODE`, [MODE.DEV ? print.Format.RED : 0, print.Format.BOLD])}`);
 
 
 // TODO: Add cluster size field in config
 // Do not create cluster if size is 1 (applies to DEV MODE, too)
 const clusterSize: number = PROJECT_CONFIG.read("clusterSize").number || cpus().length;
 
-print.log(`${(clusterSize === 1) ? "Server" : "Cluster"} listening on port ${PROJECT_CONFIG.read("port", "http").number}`);
+print.info(`${(clusterSize === 1) ? "Server" : "Cluster"} listening on port ${PROJECT_CONFIG.read("port", "http").number}`);
 
 if(clusterSize == 1) {
     // Create a single socket / server if cluster size is 1
@@ -36,7 +36,7 @@ if(clusterSize == 1) {
     cluster.settings.silent = true;
 
     // TODO: CPU strategy
-    for(let i = 0; i < (MODE.DEV ? 1 : cpus().length); i++) {
+    for(let i = 0; i < clusterSize; i++) {
         const workerProcess = cluster.fork({
             wd: dirname(process.argv[1])
         });
@@ -60,17 +60,17 @@ if(clusterSize == 1) {
 
             // TODO: Stop on recursive error eventually
             // Error restart / fill up
-            print.log("Socket process restarted due to an error");
+            print.info("Socket process restarted due to an error");
 
             cluster.fork();
         });
     }, config.autoRestartTimeout);
 
     cluster.on("listening", thread => {
-        print.log(`Thread ${thread.id} has set up server`);
+        print.info(`Thread ${thread.id} has set up server`);
     });
 
     cluster.on("message", (_, message) => {
-        print.log(message);
+        print.info(message);
     });
 }

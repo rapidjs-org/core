@@ -7,9 +7,5 @@
             "countries": ["GB", "DE"]
         }
     ],
-    "limit": {
-        "requestsPerMin": 25,
-        "requestTimeout": 10
-    },
     "www": "yes"
 }

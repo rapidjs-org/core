@@ -7,10 +7,10 @@ const config = {
 import { join } from "path";
 import { existsSync } from "fs";
 
-import { mergeObj } from "../utils";
+import { mergeObj } from "../../util";
 import { MODE } from "../mode";
 
-import { PROJECT_PATH } from "./path";
+import { PROJECT_PATH } from "../path";
 
 
 export class Config {

@@ -1,7 +1,7 @@
 
 import { dirname, join } from "path";
 
-import { argument } from "../../args";
+import { argument } from "../args";
 
 
 // Use directory at given path (argument)

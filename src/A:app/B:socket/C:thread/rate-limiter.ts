@@ -18,7 +18,7 @@ const limiter: {
     windowStart: 0
 };
 
-const requestLimit = PROJECT_CONFIG.read("limit", "requestsPerMin").number;
+const requestLimit = PROJECT_CONFIG.read("limit", "requestsPerMin").number || 0;
 
 
 /**
@@ -26,6 +26,7 @@ const requestLimit = PROJECT_CONFIG.read("limit", "requestsPerMin").number;
  * @returns {number} Current window weight
  */
 function updateWindow() {
+    // TODO: Check
     const now = Date.now();
     
     let timeIn = Math.abs(limiter.windowStart - now);
@@ -48,7 +49,7 @@ function updateWindow() {
  * @return {boolean} - Whether the request must be blocked due to 429 (Too many requests)
  */
 export function rateExceeded(ip: string) {
-    if(!requestLimit) {
+    if(requestLimit === 0) {
         return false;
     }
 

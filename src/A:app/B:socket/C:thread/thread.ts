@@ -41,12 +41,7 @@ function applyGenericGuards(tReq: ThreadReq): Status {
 
     // Check: Rate (request limit) exceeded
     if(rateExceeded(tReq.ip)) {
-        return Status.UNSUPPORTED_METHOD;
-    }
-    
-    // Check: URL length exceeded
-    if(rateExceeded(tReq.ip)) {
-        return Status.UNSUPPORTED_METHOD;
+        return Status.RATE_EXCEEDED;
     }
 
     return Status.SUCCESS;
