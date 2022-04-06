@@ -11,11 +11,17 @@ import http from "http";
 
 import { PROJECT_CONFIG } from "../config/config.project";
 
+import { Status } from "./Status";
+import { rateExceeded } from "./rate-limiter";
+
+
+const instanceProtocol: string = `http${PROJECT_CONFIG.read("port", "https").string ? "s" : ""}`;
+
 
 namespace ThreadPool {
     const idleThreads: Thread[] = [];
     const pendingReqs: {
-        eReq: http.IncomingMessage,
+        tReq: ThreadReq,
         eRes: http.ServerResponse
     }[] = [];
     const activeReqs: Map<number, http.ServerResponse> = new Map();
@@ -30,17 +36,17 @@ namespace ThreadPool {
         });
 
         // Success (message provision) listener
-        thread.on("message", threadRes => {
-            activeReqs.get(thread.threadId)
-            .end(threadRes.message ? Buffer.from(threadRes.message, "utf-8") : http.STATUS_CODES[threadRes.status]);
+        thread.on("message", tRes => {
+            respondIndividually(activeReqs.get(thread.threadId), tRes);
 
             deactivateThread(thread);
         });
         
         // Thread error listener
         thread.on("error", err => {
-            activeReqs.get(thread.threadId)
-            .end(err);  // TODO: Error response?
+            respondIndividually(activeReqs.get(thread.threadId), {
+                message: err.message
+            } as ThreadRes);  // TODO: Error response?
 
             console.log(err);
 
@@ -72,7 +78,7 @@ namespace ThreadPool {
     }
 
     export function activateThread(entity: {
-        eReq: http.IncomingMessage,
+        tReq: ThreadReq,
         eRes: http.ServerResponse
     }) {
         if(entity === undefined
@@ -87,17 +93,21 @@ namespace ThreadPool {
         activeReqs.set(thread.threadId, entity.eRes);
 
         // Filter HTTP request object for thread reduced request object
-        thread.postMessage({
-            ip: getHeader(entity.eReq, "X-Forwarded-For") || entity.eReq.connection.remoteAddress,
-            method: entity.eReq.method.toUpperCase(),
-            url: entity.eReq.url
-        } as ThreadReq);
+        thread.postMessage(entity.tReq);
     }
 }
 
 
-function getHeader(eReq: http.IncomingMessage, key: string) {
-    return eReq.headers[key] || eReq.headers[key.toLowerCase()];
+function respondGenerically(eRes: http.ServerResponse, status: number) {
+    respondIndividually(eRes, {
+        status: status
+    } as ThreadRes);
+}
+
+function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
+    eRes.statusCode = tRes.status || Status.SUCCESS;
+
+    eRes.end(tRes.message ? Buffer.from(tRes.message, "utf-8") : http.STATUS_CODES[tRes.status])
 }
 
 
@@ -106,9 +116,34 @@ function getHeader(eReq: http.IncomingMessage, key: string) {
 http.createServer({
     maxHeaderSize: PROJECT_CONFIG.read("limit", "headerSize").number
 }, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
+    // Check: Unsupported request method
+    if(!["GET", "HEAD", "POST"].includes(eReq.method)) {
+        return respondGenerically(eRes, Status.UNSUPPORTED_METHOD);
+    }
+
+    // Check: URL length exceeded
+    if(eReq.url.length > (PROJECT_CONFIG.read("limit", "urlLength") || Infinity)) {
+        return respondGenerically(eRes, Status.URL_EXCEEDED);
+    }
+    
+    // Construct thread request object related to the current response
+    const url: URL = new URL(`${instanceProtocol}://${eReq.headers["host"]}${eReq.url}`);
+    const tReq: ThreadReq = {
+        ip: String(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress,
+        method: eReq.method.toUpperCase(),
+        hostname: url.hostname,
+        pathname: url.pathname,
+        searchParams: url.searchParams
+    };
+
+    // Check: Rate (request limit) exceeded
+    if(rateExceeded(tReq.ip)) {
+        return respondGenerically(eRes, Status.RATE_EXCEEDED);
+    }
+    
     // Request handler
     ThreadPool.activateThread({
-        eReq, eRes
+        tReq, eRes
     });
 })
 .listen({

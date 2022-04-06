@@ -5,7 +5,7 @@ const config = {
 };
 
 
-import { PROJECT_CONFIG } from "../../config/config.project";
+import { PROJECT_CONFIG } from "../config/config.project";
 
 
 // Object
@@ -18,7 +18,7 @@ const limiter: {
     windowStart: 0
 };
 
-const requestLimit = PROJECT_CONFIG.read("limit", "requestsPerMin").number || 0;
+const requestLimit = PROJECT_CONFIG.read("limit", "requestsPerMin").number || 0;
 
 
 /**
@@ -26,7 +26,7 @@ const requestLimit = PROJECT_CONFIG.read("limit", "requestsPerMin").number || 0
  * @returns {number} Current window weight
  */
 function updateWindow() {
-    // TODO: Check
+    // TODO: Weak cluster size related amount weight?
     const now = Date.now();
     
     let timeIn = Math.abs(limiter.windowStart - now);

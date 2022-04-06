@@ -12,9 +12,9 @@ import { mergeObj, normalizeExtension, normalizePath } from "../../util";
 import { MODE } from "../mode";
 
 import { Config } from "./Config";
-import DEFAULT_CONFIG from "./default.config.json";
-import DEFAULT_CONFIG_PROD from "./default.config:prod.json";
-import DEFAULT_CONFIG_DEV from "./default.config:dev.json";
+import DEFAULT_CONFIG from "./default.project.config.json";
+import DEFAULT_CONFIG_PROD from "./default.project.config:prod.json";
+import DEFAULT_CONFIG_DEV from "./default.project.config:dev.json";
 
 
 export const PROJECT_CONFIG = new Config("config", mergeObj(DEFAULT_CONFIG, MODE.PROD ? DEFAULT_CONFIG_PROD : DEFAULT_CONFIG_DEV));

@@ -1,7 +1,9 @@
 declare interface ThreadReq {
     ip: string,
     method: string,
-    url: string
+    hostname: string,
+    pathname: string,
+    searchParams: URLSearchParams
 }
 
 declare interface ThreadRes {

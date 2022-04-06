@@ -3,7 +3,7 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 
-import { PROJECT_CONFIG } from "../../config/config.project";
+import { PROJECT_CONFIG } from "../../../config/config.project";
 
 
 const config = {
