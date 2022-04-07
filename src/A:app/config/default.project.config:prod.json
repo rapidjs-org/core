@@ -10,5 +10,9 @@
         "pendingRequests": 511,
         "requestsPerMin": 100,
         "urlLength": 100
+    },
+    "ssl": {
+        "cert": "./fullchain.pem",
+        "key": "./privkey.pem"
     }
 }

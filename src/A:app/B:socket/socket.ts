@@ -3,6 +3,7 @@
  * >> START OF SOCKET MEMORY (B LEVEL) <<
  */
 
+import { readFileSync } from "fs";
 import { cpus } from "os";
 import { Worker as Thread, SHARE_ENV } from "worker_threads";
 import { join } from "path";
@@ -11,11 +12,41 @@ import http from "http";
 
 import { PROJECT_CONFIG } from "../config/config.project";
 
+import { normalizePath } from "../../util";
+
 import { Status } from "./Status";
 import { rateExceeded } from "./rate-limiter";
 
 
-const instanceProtocol: string = `http${PROJECT_CONFIG.read("port", "https").string ? "s" : ""}`;
+const isSecure: boolean = !!PROJECT_CONFIG.read("port", "https").string;
+
+// Set SSL options if is secure environment
+const readSSLFile = (path: string) => {
+    // TODO: File exists check?
+    return path
+    ? readFileSync(normalizePath(path))
+    : null;
+};
+const sslOptions: {
+    cert?: Buffer,
+    key?: Buffer,
+    dhparam?: Buffer
+} = isSecure
+? {
+    cert: readSSLFile(PROJECT_CONFIG.read("ssl", "cert").string),
+	key: readSSLFile(PROJECT_CONFIG.read("ssl", "key").string),
+	dhparam: readSSLFile(PROJECT_CONFIG.read("ssl", "dhParam").string)
+}
+: {};
+// Set generic server options
+const serverOptions: Record<string, any> = {
+    maxHeaderSize: PROJECT_CONFIG.read("limit", "headerSize").number
+}
+// Set generic socket options
+const socketOptions: Record<string, any> = {
+    backlog: PROJECT_CONFIG.read("limit", "requestsPending").number,
+    host: PROJECT_CONFIG.read("hostname").string,
+}
 
 
 namespace ThreadPool {
@@ -114,10 +145,13 @@ function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
 }
 
 
-// Local HTTP instance (optional HTTPS and HTTP redirection in public proxy)
-// TODO: HTTPS
-http.createServer({
-    maxHeaderSize: PROJECT_CONFIG.read("limit", "headerSize").number
+/*
+ * ESSENTIAL APP SERVER SOCKET.
+ */
+(isSecure ? https : http)
+.createServer({
+    ...sslOptions,
+    ...serverOptions
 }, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
     // Check: Unsupported request method
     if(!["GET", "HEAD", "POST"].includes(eReq.method)) {
@@ -130,7 +164,7 @@ http.createServer({
     }
     
     // Construct thread request object related to the current response
-    const url: URL = new URL(`${instanceProtocol}://${eReq.headers["host"]}${eReq.url}`);
+    const url: URL = new URL(`http${isSecure ? "s" : ""}://${eReq.headers["host"]}${eReq.url}`);
     const tReq: ThreadReq = {
         ip: String(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress,
         method: eReq.method.toUpperCase(),
@@ -150,7 +184,21 @@ http.createServer({
     });
 })
 .listen({
-    backlog: PROJECT_CONFIG.read("limit", "requestsPending").number,
-    port: PROJECT_CONFIG.read("port", "http").number,
-    host: PROJECT_CONFIG.read("hostname").string,
+    ...socketOptions,
+
+    port: PROJECT_CONFIG.read("port", `http${isSecure ? "s" : ""}`).number
+});
+
+/*
+ * REDIRECTION SERVER (HTTP -> HTTPS).
+ * Only activates in secure mode (https configured).
+ */
+isSecure && http
+.createServer(serverOptions, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
+	// TODO: Redirect
+})
+.listen({
+    ...socketOptions,
+
+    port: PROJECT_CONFIG.read("port", "http").number || 80
 });
