@@ -4,38 +4,44 @@ import { extname } from "path";
 import { Status } from "../../Status";
 
 
-export default function(tReq: ThreadReq): ThreadRes {
+export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
+    // Retrieve type of asset request to apply respective sub-routine
     if(false) { // TODFO: Implement
         // Plug-in module request
-        return handlePlugin(tReq.pathname);
-    }
-
-    // TODO: Redirect explicit
-
-    // Retrieve type of asset request to apply respective sub-routine
-    if(extname(tReq.pathname).length > 0) {
+        tRes = handlePlugin(tRes, tReq.pathname);
+    } else if(extname(tReq.pathname).length > 0) {
         // Static file (any file that is not a .HTML file (system web page type))
-        return handleStatic();
+        tRes = handleStatic(tRes, tReq.pathname);
+    } else {
+        // Dynamic file
+
+        // TODO: Redirect explicit
+        tRes = handleDynamic(tRes, tReq);
     }
 
-    return handleDynamic();
+    if(!tRes.message) {
+        return tRes;
+    }
+
+    // ETag header
+    tRes.headers.set("ETag", "...");    // TODO: Implement
+
+    return tRes;
 }
 
 
-function handlePlugin(pathname: string): ThreadRes {
-    return {} as ThreadRes;
+function handlePlugin(tRes: ThreadRes, pathname: string): ThreadRes {
+    return tRes;
 }
 
-function handleStatic(): ThreadRes {
-    return {
-
-    } as ThreadRes;
+function handleStatic(tRes: ThreadRes, pathname: string): ThreadRes {
+    return tRes;
 }
 
-function handleDynamic(): ThreadRes {
-    return {
-        message: "ABC"
-    } as ThreadRes;
+function handleDynamic(tRes: ThreadRes, tReq: ThreadReq): ThreadRes {
+    tRes.message = "ABC";
+    
+    return tRes;
 }
 
 function handleDynamicError(): ThreadRes {

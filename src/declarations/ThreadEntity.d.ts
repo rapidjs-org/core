@@ -1,13 +1,13 @@
 declare interface ThreadReq {
+    hostname: string,
     ip: string,
     method: string,
-    hostname: string,
     pathname: string,
     searchParams: URLSearchParams
 }
 
 declare interface ThreadRes {
-    status: number,
-    
+    headers?: Map<string, string>,
     message?: string
+    status?: number,
 }

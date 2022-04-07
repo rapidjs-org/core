@@ -1,6 +1,6 @@
 
-export default function(tReq: ThreadReq): ThreadRes {
-    return {
-        message: "ABC"
-    } as ThreadRes;
+export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
+    tRes.message = "ABC";
+    
+    return tRes;
 }

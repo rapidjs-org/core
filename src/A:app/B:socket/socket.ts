@@ -45,7 +45,7 @@ namespace ThreadPool {
         // Thread error listener
         thread.on("error", err => {
             respondIndividually(activeReqs.get(thread.threadId), {
-                message: err.message
+                status: Status.INTERNAL
             } as ThreadRes);  // TODO: Error response?
 
             console.log(err);
@@ -59,11 +59,10 @@ namespace ThreadPool {
             if(code === 0) {
                 return;
             }
-
-            console.log(999);
-
-            activeReqs.get(thread.threadId)
-            .end(500);  // TODO: Error response?
+            
+            respondIndividually(activeReqs.get(thread.threadId), {
+                status: Status.INTERNAL
+            } as ThreadRes);  // TODO: Error response?  // TODO: Error response?
 
             createThread();
         });
@@ -105,6 +104,10 @@ function respondGenerically(eRes: http.ServerResponse, status: number) {
 }
 
 function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
+    if(!eRes) {
+        return;
+    }
+
     eRes.statusCode = tRes.status || Status.SUCCESS;
 
     eRes.end(tRes.message ? Buffer.from(tRes.message, "utf-8") : http.STATUS_CODES[tRes.status])
