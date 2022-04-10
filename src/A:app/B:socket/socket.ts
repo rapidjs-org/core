@@ -14,39 +14,10 @@ import { PROJECT_CONFIG } from "../config/config.project";
 
 import { normalizePath } from "../../util";
 
+import { IS_SECURE } from "../secure";
+
 import { Status } from "./Status";
 import { rateExceeded } from "./rate-limiter";
-
-
-const isSecure: boolean = !!PROJECT_CONFIG.read("port", "https").string;
-
-// Set SSL options if is secure environment
-const readSSLFile = (path: string) => {
-    // TODO: File exists check?
-    return path
-    ? readFileSync(normalizePath(path))
-    : null;
-};
-const sslOptions: {
-    cert?: Buffer,
-    key?: Buffer,
-    dhparam?: Buffer
-} = isSecure
-? {
-    cert: readSSLFile(PROJECT_CONFIG.read("ssl", "cert").string),
-	key: readSSLFile(PROJECT_CONFIG.read("ssl", "key").string),
-	dhparam: readSSLFile(PROJECT_CONFIG.read("ssl", "dhParam").string)
-}
-: {};
-// Set generic server options
-const serverOptions: Record<string, any> = {
-    maxHeaderSize: PROJECT_CONFIG.read("limit", "headerSize").number
-}
-// Set generic socket options
-const socketOptions: Record<string, any> = {
-    backlog: PROJECT_CONFIG.read("limit", "requestsPending").number,
-    host: PROJECT_CONFIG.read("hostname").string,
-}
 
 
 namespace ThreadPool {
@@ -145,10 +116,40 @@ function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
 }
 
 
+// Set SSL options if is secure environment
+const readSSLFile = (path: string) => {
+    // TODO: File exists check?
+    return path
+    ? readFileSync(normalizePath(path))
+    : null;
+};
+const sslOptions: {
+    /* cert?: Buffer,
+    key?: Buffer,
+    dhparam?: Buffer */
+} = IS_SECURE
+? {
+    cert: readSSLFile(PROJECT_CONFIG.read("ssl", "cert").string),
+	key: readSSLFile(PROJECT_CONFIG.read("ssl", "key").string),
+	dhparam: readSSLFile(PROJECT_CONFIG.read("ssl", "dhParam").string)
+}
+: {};
+
+// Set generic server options
+const serverOptions: Record<string, any> = {
+    maxHeaderSize: PROJECT_CONFIG.read("limit", "headerSize").number
+};
+
+// Set generic socket options
+const socketOptions: Record<string, any> = {
+    backlog: PROJECT_CONFIG.read("limit", "requestsPending").number,
+    host: PROJECT_CONFIG.read("hostname").string,
+};
+
 /*
  * ESSENTIAL APP SERVER SOCKET.
  */
-(isSecure ? https : http)
+(IS_SECURE ? https : http)
 .createServer({
     ...sslOptions,
     ...serverOptions
@@ -164,7 +165,7 @@ function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
     }
     
     // Construct thread request object related to the current response
-    const url: URL = new URL(`http${isSecure ? "s" : ""}://${eReq.headers["host"]}${eReq.url}`);
+    const url: URL = new URL(`http${IS_SECURE ? "s" : ""}://${eReq.headers["host"]}${eReq.url}`);
     const tReq: ThreadReq = {
         ip: String(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress,
         method: eReq.method.toUpperCase(),
@@ -186,19 +187,27 @@ function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
 .listen({
     ...socketOptions,
 
-    port: PROJECT_CONFIG.read("port", `http${isSecure ? "s" : ""}`).number
+    port: PROJECT_CONFIG.read("port", `http${IS_SECURE ? "s" : ""}`).number
 });
 
 /*
  * REDIRECTION SERVER (HTTP -> HTTPS).
  * Only activates in secure mode (https configured).
  */
-isSecure && http
+IS_SECURE && http
 .createServer(serverOptions, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
-	// TODO: Redirect
+    eRes.statusCode = Status.REDIRECT;
+
+    const securePort: number = PROJECT_CONFIG.read("port", "https").number;
+    const secureHost: string = eReq.headers["host"].replace(/(:[0-9]+)?$/i, (securePort !== 443) ? `:${securePort}` : "");
+	eRes.setHeader("Location", `https://${secureHost}${eReq.url}`);
+    
+    eRes.end();
+
+    // TODO: Handle dynamic file extension redirect here to eliminate possible additional redirect
 })
 .listen({
     ...socketOptions,
 
-    port: PROJECT_CONFIG.read("port", "http").number || 80
+    port: PROJECT_CONFIG.read("port", "http").number
 });

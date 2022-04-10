@@ -47,6 +47,12 @@ enum Event {
 
 
 function log(message: string, channel: Channel) {
+	// Highlight numbers (|n| > 1)
+	message = message
+	.replace(/(((?!\x1b)(.)){3})([0-9]{2,})/g, `$1${print.format("$4", [
+		print.Format.GREEN
+	])}`);
+
 	console[channel](print.format(`[${config.appName}]`, [
 		print.Format.YELLOW
 	]), message);
@@ -89,6 +95,7 @@ export namespace print {
 		BOLD = 1,
 		
 		RED = 31,
+		GREEN = 32,
 		YELLOW = 33
 	}
 

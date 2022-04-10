@@ -13,8 +13,9 @@ import { join, dirname } from "path";
 
 import { print } from "../print";
 
-import { MODE } from "./mode";
 import { PROJECT_CONFIG } from "./config/config.project";
+import { MODE } from "./mode";
+import { IS_SECURE } from "./secure";
 
 
 print.info(`Running ${print.format(`${MODE.DEV ? "DEV" : "PROD"} MODE`, [MODE.DEV ? print.Format.RED : 0, print.Format.BOLD])}`);
@@ -23,7 +24,8 @@ print.info(`Running ${print.format(`${MODE.DEV ? "DEV" : "PROD"} MODE`, [MODE.DE
 // Do not create cluster if size is 1 (applies to DEV MODE, too)
 const clusterSize: number = PROJECT_CONFIG.read("clusterSize").number || cpus().length;
 
-print.info(`${(clusterSize === 1) ? "Server" : "Cluster"} listening on port ${PROJECT_CONFIG.read("port", "http").number}`);
+print.info(`HTTP${IS_SECURE ? "S" : ""} ${(clusterSize === 1) ? "server" : "cluster"} started listening (:${PROJECT_CONFIG.read("port", `http${IS_SECURE ? "s" : ""}`).string})`);
+IS_SECURE && print.info(`HTTP (:${PROJECT_CONFIG.read("port", "http").string}) to HTTPS redirection enabled`);
 // TODO: Print additional info if HTTP to HTTPS redirection is enabled
 
 

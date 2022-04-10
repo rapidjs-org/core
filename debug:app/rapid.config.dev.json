@@ -1,7 +1,4 @@
 {
-    "port": {
-        "http": 7474
-    },
     "directory": {
         "log": "./log"
     }
