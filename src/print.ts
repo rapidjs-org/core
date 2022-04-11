@@ -1,6 +1,3 @@
-/**
- * Application formatted output interface for internal use.
- */
 
 const config = {
 	appName: "rJS"
@@ -47,14 +44,19 @@ enum Event {
 
 
 function log(message: string, channel: Channel) {
+	// TODO: Type based formatting
+	
 	// Highlight numbers (|n| > 1)
 	message = message
 	.replace(/(((?!\x1b)(.)){3})([0-9]{2,})/g, `$1${print.format("$4", [
-		print.Format.GREEN
+		print.Format.FG_CYAN
 	])}`);
 
-	console[channel](print.format(`[${config.appName}]`, [
-		print.Format.YELLOW
+	console[channel](print.format(` ${config.appName} `, [
+		print.Format.T_BOLD,
+		print.Format.T_DIM,
+		print.Format.T_ITALIC,
+		print.Format.BG_YELLOW
 	]), message);
 }
 
@@ -82,7 +84,7 @@ function write(message: string, channel: Channel, event: Event) {
 	const time: string = date.toLocaleTimeString();
 
 	appendFile(join(logDirPath, `${day}.log`),
-	`[${time}]: ${message.replace(/\x1b\[[0-9]{1,2}m/g, "")}\n`,
+	`[${time}]: ${message.replace(/\x1b\[(;?[0-9]{1,3})+m/g, "")}\n`,
 	err => {
 		err && log(err.message, Channel.ERROR);
 	});
@@ -90,13 +92,17 @@ function write(message: string, channel: Channel, event: Event) {
 
 
 export namespace print {
-	
+
 	export enum Format {
-		BOLD = 1,
+		T_BOLD = 1,
+		T_DIM = 2,
+		T_ITALIC = 3,
+
+		FG_RED = 91,
+		FG_YELLOW = "38;2;250;245;150",
+		FG_CYAN = 96,
 		
-		RED = 31,
-		GREEN = 32,
-		YELLOW = 33
+		BG_YELLOW = "48;2;250;245;150"
 	}
 
 	export function format(str: string, formatFlags: Format[]) {
@@ -112,7 +118,9 @@ export namespace print {
 	}
 
 	export function error(message: string) {
-		write(message, Channel.ERROR, Event.ERROR);
+		write(format(message, [
+			Format.FG_RED
+		]), Channel.ERROR, Event.ERROR);
 	}
 
 }

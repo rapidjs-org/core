@@ -20,7 +20,7 @@ import DEFAULT_CONFIG_DEV from "./default.project.config:dev.json";
 export const PROJECT_CONFIG = new Config("config", mergeObj(DEFAULT_CONFIG, MODE.PROD ? DEFAULT_CONFIG_PROD : DEFAULT_CONFIG_DEV));
 
 PROJECT_CONFIG.format((configObj: Record<string, any>) => {
-    configObj.directory.web = validatePath("web", configObj.directory.web);
+    configObj.webDirectory = validatePath("web", configObj.webDirectory);
     
     // Normalize extension arrays for future uniform usage
     configObj.extensionWhitelist = (configObj.extensionWhitelist || [])

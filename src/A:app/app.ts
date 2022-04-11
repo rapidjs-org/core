@@ -16,9 +16,9 @@ import { print } from "../print";
 import { PROJECT_CONFIG } from "./config/config.project";
 import { MODE } from "./mode";
 import { IS_SECURE } from "./secure";
+  
 
-
-print.info(`Running ${print.format(`${MODE.DEV ? "DEV" : "PROD"} MODE`, [MODE.DEV ? print.Format.RED : 0, print.Format.BOLD])}`);
+print.info(`Running ${print.format(`${MODE.DEV ? "DEV" : "PROD"} MODE`, [MODE.DEV ? print.Format.FG_RED : 0, print.Format.T_BOLD])}`);
 
 // TODO: Add cluster size field in config
 // Do not create cluster if size is 1 (applies to DEV MODE, too)
@@ -32,6 +32,8 @@ IS_SECURE && print.info(`HTTP (:${PROJECT_CONFIG.read("port", "http").string}) t
 if(clusterSize == 1) {
     // Create a single socket / server if cluster size is 1
     require("./B:socket/socket");
+
+    process.env.wd = dirname(process.argv[1]);
 } else {
     // Create cluster (min. 2 sockets / servers)
     cluster.settings.exec = join(__dirname, "./B:socket/socket"); // SCRIPT

@@ -3,10 +3,12 @@ import { extname } from "path";
 
 import { Status } from "../../Status";
 
+import * as vfs from "../vfs";
+
 
 export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
     // Retrieve type of asset request to apply respective sub-routine
-    if(false) { // TODFO: Implement
+    if(false) { // TODO: Implement
         // Plug-in module request
         tRes = handlePlugin(tRes, tReq.pathname);
     } else if(extname(tReq.pathname).length > 0) {
@@ -30,18 +32,25 @@ export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
 }
 
 
-function handlePlugin(tRes: ThreadRes, pathname: string): ThreadRes {
+function handlePlugin(tRes: ThreadRes, path: string): ThreadRes {
     return tRes;
 }
 
-function handleStatic(tRes: ThreadRes, pathname: string): ThreadRes {
+function handleStatic(tRes: ThreadRes, path: string): ThreadRes {
+    if(!vfs.exists(path)) {
+        tRes.status = Status.NOT_FOUND;
+
+        return tRes;
+    }
+
+    tRes.message = vfs.read(path);
+
     return tRes;
 }
 
 function handleDynamic(tRes: ThreadRes, tReq: ThreadReq): ThreadRes {
-    tRes.message = "ABC";
-    
-    return tRes;
+    console.log(tReq.pathname)
+    return handleStatic(tRes, tReq.pathname);
 }
 
 function handleDynamicError(): ThreadRes {

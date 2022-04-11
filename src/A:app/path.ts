@@ -1,4 +1,3 @@
-
 import { dirname, join } from "path";
 
 import { argument } from "../args";

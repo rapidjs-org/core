@@ -3,22 +3,29 @@
  * >> START OF SOCKET MEMORY (B LEVEL) <<
  */
 
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { cpus } from "os";
 import { Worker as Thread, SHARE_ENV } from "worker_threads";
 import { join } from "path";
 import https from "https";
 import http from "http";
 
-import { PROJECT_CONFIG } from "../config/config.project";
+import { print } from "./../../print";
 
 import { normalizePath } from "../../util";
 
+import { PROJECT_CONFIG } from "../config/config.project";
 import { IS_SECURE } from "../secure";
 
 import { Status } from "./Status";
 import { rateExceeded } from "./rate-limiter";
 
+
+// Error messaqge formatting (globally)
+// TODO: In all memory spaces?
+/* process.on("uncaughtException", err => {
+    print.error(err.message);
+}); */
 
 namespace ThreadPool {
     const idleThreads: Thread[] = [];
@@ -47,7 +54,7 @@ namespace ThreadPool {
         // Thread error listener
         thread.on("error", err => {
             respondIndividually(activeReqs.get(thread.threadId), {
-                status: Status.INTERNAL
+                status: Status.INTERNAL_ERROR
             } as ThreadRes);  // TODO: Error response?
 
             console.log(err);
@@ -63,7 +70,7 @@ namespace ThreadPool {
             }
             
             respondIndividually(activeReqs.get(thread.threadId), {
-                status: Status.INTERNAL
+                status: Status.INTERNAL_ERROR
             } as ThreadRes);  // TODO: Error response?  // TODO: Error response?
 
             createThread();
@@ -118,9 +125,14 @@ function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
 
 // Set SSL options if is secure environment
 const readSSLFile = (path: string) => {
-    // TODO: File exists check?
+    path = normalizePath(path);
+
+    if(!existsSync(path)) {
+        throw new ReferenceError(`SSL file does not exist '${path}'`);
+    }
+
     return path
-    ? readFileSync(normalizePath(path))
+    ? readFileSync(path)
     : null;
 };
 const sslOptions: {
