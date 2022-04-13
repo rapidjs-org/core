@@ -1,50 +1,29 @@
-// TODO Replicate state among parallel instances?
 
 import { MODE } from "../../mode";
 import { PROJECT_CONFIG } from "../../config/config.project";
 
+import { LimitedDictionary } from "./LimitedDictionary";
 
-export class Cache<T> {
-    private readonly storage: Map<string, {
-        timestamp: number,
-        data: T
-    }> = new Map();
-    private readonly duration: number;
-    private readonly normalizationCallback: (key: string) => string;
+
+export class Cache<D> extends LimitedDictionary<number, D> {
 
     constructor(duration?: number, normalizationCallback?: (key: string) => string) {
-        this.duration = MODE.PROD
+        super(MODE.PROD
         ? duration || PROJECT_CONFIG.read("cachingDuration", "server").number
-        : Infinity;
-
-        this.normalizationCallback = normalizationCallback || ((key: string) => key);
+        : Infinity
+        , normalizationCallback);
     }
 
-    public exists(key: string) {
-        key = this.normalizationCallback(key);
-
-        const entry = this.storage.get(key);
-        
-        if(entry === undefined
-        || (entry.timestamp + this.duration) < Date.now()) {
-    		this.storage.delete(key);
-            
-    		return false;
-    	}
-
-        return true;
+    protected validateLimitReference(timestamp: number) {
+        return ((timestamp + this.limit) > Date.now());
     }
 
-    public read(key: string) {
-        return this.exists(key)
-        ? this.storage.get(this.normalizationCallback(key))
-        : undefined;
+    public read(key: string): D {
+        return super.get(key);
     }
 
-    public write(key: string, data: T) {
-        this.storage.set(this.normalizationCallback(key), {
-            timestamp: Date.now(),
-            data: data
-        });
+    public write(key: string, data: D) {
+        super.set(key, Date.now(), data);
     }
+    
 }

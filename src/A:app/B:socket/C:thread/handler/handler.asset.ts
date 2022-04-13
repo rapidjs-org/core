@@ -3,7 +3,7 @@ import { extname } from "path";
 
 import { Status } from "../../Status";
 
-import * as vfs from "../vfs";
+import { VFS } from "../vfs";
 
 
 export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
@@ -37,19 +37,20 @@ function handlePlugin(tRes: ThreadRes, path: string): ThreadRes {
 }
 
 function handleStatic(tRes: ThreadRes, path: string): ThreadRes {
-    if(!vfs.exists(path)) {
+    tRes.message = VFS.read(path);
+    
+    if(tRes.message === undefined) {
         tRes.status = Status.NOT_FOUND;
 
         return tRes;
     }
-
-    tRes.message = vfs.read(path);
-
+    
     return tRes;
 }
 
 function handleDynamic(tRes: ThreadRes, tReq: ThreadReq): ThreadRes {
-    console.log(tReq.pathname)
+    // Parse subdomain
+    
     return handleStatic(tRes, tReq.pathname);
 }
 

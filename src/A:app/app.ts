@@ -30,10 +30,10 @@ IS_SECURE && print.info(`HTTP (:${PROJECT_CONFIG.read("port", "http").string}) t
 
 
 if(clusterSize == 1) {
+    process.env.wd = dirname(process.argv[1]);
+    
     // Create a single socket / server if cluster size is 1
     require("./B:socket/socket");
-
-    process.env.wd = dirname(process.argv[1]);
 } else {
     // Create cluster (min. 2 sockets / servers)
     cluster.settings.exec = join(__dirname, "./B:socket/socket"); // SCRIPT

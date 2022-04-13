@@ -117,9 +117,19 @@ function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
         return;
     }
 
-    eRes.statusCode = tRes.status || Status.SUCCESS;
+    const messageBuffer: Buffer = Buffer.from(tRes.message ? tRes.message : http.STATUS_CODES[tRes.status], "utf-8");
 
-    eRes.end(tRes.message ? Buffer.from(tRes.message, "utf-8") : http.STATUS_CODES[tRes.status])
+    // Common headers
+    eRes.setHeader("X-XSS-Protection", "1; mode=block");
+    eRes.setHeader("Referrer-Policy", "no-referrer-when-downgrade");
+    eRes.setHeader("Content-Length", Buffer.byteLength(messageBuffer, "utf-8"));
+    //eRes.setHeader("Server", "rapidJS");
+    IS_SECURE
+    && eRes.setHeader("Strict-Transport-Security", `max-age=${PROJECT_CONFIG.read("cachingDuration", "client")}; includeSubDomains`);
+
+    eRes.statusCode = tRes.status || Status.SUCCESS;    // TODO: Concealing error status
+
+    eRes.end(messageBuffer);
 }
 
 
@@ -170,12 +180,12 @@ const socketOptions: Record<string, any> = {
     if(!["GET", "HEAD", "POST"].includes(eReq.method)) {
         return respondGenerically(eRes, Status.UNSUPPORTED_METHOD);
     }
-
+    
     // Check: URL length exceeded
     if(eReq.url.length > (PROJECT_CONFIG.read("limit", "urlLength") || Infinity)) {
         return respondGenerically(eRes, Status.URL_EXCEEDED);
     }
-    
+        
     // Construct thread request object related to the current response
     const url: URL = new URL(`http${IS_SECURE ? "s" : ""}://${eReq.headers["host"]}${eReq.url}`);
     const tReq: ThreadReq = {

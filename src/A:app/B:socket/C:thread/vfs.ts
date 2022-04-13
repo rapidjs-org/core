@@ -1,23 +1,71 @@
 
 import { join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { statSync, existsSync, readFileSync } from "fs";
+import { createHash } from "crypto";
 
 import { normalizePath } from "../../../util";
 
 import { PROJECT_CONFIG } from "../../config/config.project";
 
+import { LimitedDictionary } from "./LimitedDictionary";
 
-function constructWebDirPath(path: string): string {
-    return join(PROJECT_CONFIG.read("webDirectory").string, normalizePath(path));
+
+// TODO: Examine effect of cache proxy (temporary limited storage) in front of vfs
+
+interface FileStamp {
+    contents: string,
+    eTag: string
 }
 
-// TODO: In-memory cache
+class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
 
-export function exists(path: string): boolean {
-    console.log(constructWebDirPath(path))
-    return existsSync(constructWebDirPath(path));
+    constructor() {
+        super(null, normalizePath);
+    }
+
+    private retrieveLocalPath(path: string): string {
+        return normalizePath(join(PROJECT_CONFIG.read("webDirectory").string, path));
+    }
+
+    protected validateLimitReference(mtimeMs: number, path: string) {
+        return (statSync(this.retrieveLocalPath(path)).mtimeMs == mtimeMs);
+    }
+
+    public read(path: string): string {
+        let data: FileStamp = super.get(path);
+        if(data === undefined) {
+            // Try to write if intially not found
+            this.write(path);
+
+            data = super.get(path);
+        }
+
+        return (super.get(path) || {}).contents;
+    }
+
+    public write(path: string) {
+        const localPath: string = this.retrieveLocalPath(path);
+
+        if(!existsSync(localPath)) {
+            return;
+        }
+
+        const fileContents: string = String(readFileSync(localPath));
+
+        const data: FileStamp = {
+            contents: fileContents,
+            eTag: computeETag(fileContents)
+        };
+
+        super.set(path, statSync(localPath).mtimeMs, data);
+    }
+
 }
 
-export function read(path: string): string {
-    return String(readFileSync(constructWebDirPath(path)));
+
+function computeETag(fileContents: string): string {
+    return createHash("md5").update(fileContents).digest("hex");
 }
+
+
+export const VFS = new VirtualFileSystem();
