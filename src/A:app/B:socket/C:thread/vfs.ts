@@ -1,13 +1,14 @@
 
 import { join } from "path";
 import { statSync, existsSync, readFileSync } from "fs";
-import { createHash } from "crypto";
 
 import { normalizePath } from "../../../util";
 
 import { PROJECT_CONFIG } from "../../config/config.project";
 
 import { LimitedDictionary } from "./LimitedDictionary";
+import { Cache } from "./Cache";
+import { computeETag } from "./util";
 
 
 // TODO: Examine effect of cache proxy (temporary limited storage) in front of vfs
@@ -18,6 +19,7 @@ interface FileStamp {
 }
 
 class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
+    private readonly cache: Cache<FileStamp> = new Cache(null, normalizePath);
 
     constructor() {
         super(null, normalizePath);
@@ -31,16 +33,19 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
         return (statSync(this.retrieveLocalPath(path)).mtimeMs == mtimeMs);
     }
 
-    public read(path: string): string {
-        let data: FileStamp = super.get(path);
-        if(data === undefined) {
+    public read(path: string): FileStamp {
+        let data: FileStamp;
+
+        if(data = this.cache.read(path)) {
+            return data;
+        }
+        
+        if(!(data = super.get(path))) {
             // Try to write if intially not found
             this.write(path);
-
-            data = super.get(path);
         }
 
-        return (super.get(path) || {}).contents;
+        return data || super.get(path);
     }
 
     public write(path: string) {
@@ -58,13 +63,10 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
         };
 
         super.set(path, statSync(localPath).mtimeMs, data);
+
+        this.cache.write(path, data);
     }
 
-}
-
-
-function computeETag(fileContents: string): string {
-    return createHash("md5").update(fileContents).digest("hex");
 }
 
 

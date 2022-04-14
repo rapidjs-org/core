@@ -1,4 +1,5 @@
 declare interface ThreadReq {
+    headers,
     hostname: string,
     ip: string,
     method: string,
@@ -7,7 +8,8 @@ declare interface ThreadReq {
 }
 
 declare interface ThreadRes {
-    headers?: Map<string, string>,
+    headers,
+    
     message?: string
     status?: number,
 }

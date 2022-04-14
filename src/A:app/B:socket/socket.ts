@@ -10,9 +10,8 @@ import { join } from "path";
 import https from "https";
 import http from "http";
 
-import { print } from "./../../print";
-
-import { normalizePath } from "../../util";
+import { print } from "../../print";
+import { normalizePath, mergeObj } from "../../util";
 
 import { PROJECT_CONFIG } from "../config/config.project";
 import { IS_SECURE } from "../secure";
@@ -27,10 +26,30 @@ import { rateExceeded } from "./rate-limiter";
     print.error(err.message);
 }); */
 
+class HeadersMap extends Map<string, string|number|boolean> {
+
+    constructor(dictionaryRec?: Record<string, string|number|boolean>) {
+        super(Object.entries(dictionaryRec || {}));
+    }
+
+    public get(name: string) {
+        return super.get(name.toLowerCase());
+    }
+
+    public set(name: string, value: string|number|boolean) {
+        super.set(name.toLowerCase(), value);
+
+        return null;
+    }
+
+}
+
+
 namespace ThreadPool {
     const idleThreads: Thread[] = [];
     const pendingReqs: {
         tReq: ThreadReq,
+        tRes: ThreadRes,
         eRes: http.ServerResponse
     }[] = [];
     const activeReqs: Map<number, http.ServerResponse> = new Map();
@@ -57,9 +76,10 @@ namespace ThreadPool {
                 status: Status.INTERNAL_ERROR
             } as ThreadRes);  // TODO: Error response?
 
-            console.log(err);
-
             deactivateThread(thread);
+
+            print.error(err.message);
+            console.log(err.stack);
         });
         
         // Erroneous thread close listener
@@ -87,6 +107,7 @@ namespace ThreadPool {
 
     export function activateThread(entity: {
         tReq: ThreadReq,
+        tRes: ThreadRes,
         eRes: http.ServerResponse
     }) {
         if(entity === undefined
@@ -101,7 +122,10 @@ namespace ThreadPool {
         activeReqs.set(thread.threadId, entity.eRes);
 
         // Filter HTTP request object for thread reduced request object
-        thread.postMessage(entity.tReq);
+        thread.postMessage({
+            tReq: entity.tReq,
+            tRes: entity.tRes
+        });
     }
 }
 
@@ -120,12 +144,21 @@ function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
     const messageBuffer: Buffer = Buffer.from(tRes.message ? tRes.message : http.STATUS_CODES[tRes.status], "utf-8");
 
     // Common headers
-    eRes.setHeader("X-XSS-Protection", "1; mode=block");
-    eRes.setHeader("Referrer-Policy", "no-referrer-when-downgrade");
-    eRes.setHeader("Content-Length", Buffer.byteLength(messageBuffer, "utf-8"));
-    //eRes.setHeader("Server", "rapidJS");
-    IS_SECURE
-    && eRes.setHeader("Strict-Transport-Security", `max-age=${PROJECT_CONFIG.read("cachingDuration", "client")}; includeSubDomains`);
+    tRes.headers.set("X-XSS-Protection", "1; mode=block");
+    tRes.headers.set("Referrer-Policy", "no-referrer-when-downgrade");
+    tRes.headers.set("Content-Length", Buffer.byteLength(messageBuffer, "utf-8"));
+    tRes.headers.set("Strict-Transport-Security", IS_SECURE ? `max-age=${PROJECT_CONFIG.read("cachingDuration", "client")}; includeSubDomains` : null);
+    tRes.headers.set("Cache-Control", PROJECT_CONFIG.read("cache", "client").object ? `public, max-age=${PROJECT_CONFIG.read("cache", "client").number}, must-revalidate` : null);
+
+    // Additional headers set from handler
+    tRes.headers
+    .forEach((value: string, header: string) => {
+        if(value === undefined || value === null) {
+            return;
+        }
+
+        eRes.setHeader(header, value);
+    });
 
     eRes.statusCode = tRes.status || Status.SUCCESS;    // TODO: Concealing error status
 
@@ -134,11 +167,15 @@ function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
 
 
 // Set SSL options if is secure environment
-const readSSLFile = (path: string) => {
-    path = normalizePath(path);
+const readSSLFile = (type: string) => {
+    let path: string = PROJECT_CONFIG.read("ssl", type).string;
+    if(!path) {
+        return null;
+    }
 
+    path = normalizePath(path);
     if(!existsSync(path)) {
-        throw new ReferenceError(`SSL file does not exist '${path}'`);
+        throw new ReferenceError(`SSL '${type}' file does not exist '${path}'`);
     }
 
     return path
@@ -146,14 +183,14 @@ const readSSLFile = (path: string) => {
     : null;
 };
 const sslOptions: {
-    /* cert?: Buffer,
+    cert?: Buffer,
     key?: Buffer,
-    dhparam?: Buffer */
+    dhparam?: Buffer
 } = IS_SECURE
 ? {
-    cert: readSSLFile(PROJECT_CONFIG.read("ssl", "cert").string),
-	key: readSSLFile(PROJECT_CONFIG.read("ssl", "key").string),
-	dhparam: readSSLFile(PROJECT_CONFIG.read("ssl", "dhParam").string)
+    cert: readSSLFile("cert"),
+	key: readSSLFile("key"),
+	dhparam: readSSLFile("dhParam")
 }
 : {};
 
@@ -180,7 +217,7 @@ const socketOptions: Record<string, any> = {
     if(!["GET", "HEAD", "POST"].includes(eReq.method)) {
         return respondGenerically(eRes, Status.UNSUPPORTED_METHOD);
     }
-    
+
     // Check: URL length exceeded
     if(eReq.url.length > (PROJECT_CONFIG.read("limit", "urlLength") || Infinity)) {
         return respondGenerically(eRes, Status.URL_EXCEEDED);
@@ -193,8 +230,21 @@ const socketOptions: Record<string, any> = {
         method: eReq.method.toUpperCase(),
         hostname: url.hostname,
         pathname: url.pathname,
-        searchParams: url.searchParams
+        searchParams: url.searchParams,
+
+        headers: new HeadersMap({
+            "If-None-Match": eReq.headers["if-none-match"]
+        })
     };
+    const tRes: ThreadRes = {
+        // Already set static headers with custom overrides
+        // Relevant headers to have overriding access throughout handler routine
+        headers: new HeadersMap(mergeObj({
+            "Server": "rapidJS"
+        }, (PROJECT_CONFIG.read("customHeaders").object || {})))
+    };
+
+    // TODO: Emit connection event for individual request logs
 
     // Check: Rate (request limit) exceeded
     if(rateExceeded(tReq.ip)) {
@@ -203,7 +253,8 @@ const socketOptions: Record<string, any> = {
     
     // Request handler
     ThreadPool.activateThread({
-        tReq, eRes
+        tReq, tRes,
+        eRes
     });
 })
 .listen({
@@ -219,7 +270,7 @@ const socketOptions: Record<string, any> = {
 IS_SECURE && http
 .createServer(serverOptions, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
     eRes.statusCode = Status.REDIRECT;
-
+    
     const securePort: number = PROJECT_CONFIG.read("port", "https").number;
     const secureHost: string = eReq.headers["host"].replace(/(:[0-9]+)?$/i, (securePort !== 443) ? `:${securePort}` : "");
 	eRes.setHeader("Location", `https://${secureHost}${eReq.url}`);

@@ -12,6 +12,7 @@ import { MODE } from "../mode";
 
 import { PROJECT_PATH } from "../path";
 
+// TODO: Reduce computation
 
 export class Config {
     private readonly name: string;
@@ -23,7 +24,6 @@ export class Config {
 
         // Default < Generic < Mode specific
         this.configObj = mergeObj(defaultConfig, this.readFile());
-        
         for(const mode in MODE) {
             this.configObj = (MODE[mode] === true)
             ? mergeObj(this.configObj, this.readFile(`.${mode.toLowerCase()}`))
@@ -49,7 +49,8 @@ export class Config {
     public read(...keys: string[]): {
         string: string,
         number: number,
-        boolean: boolean
+        boolean: boolean,
+        object: any
     } {
         let value: string|number|boolean;
 
@@ -64,7 +65,8 @@ export class Config {
         return {
             string: (value !== undefined) ? String(value) : undefined,
             number: !isNaN(Number(value)) ? Number(value) : 0,
-            boolean: (value === true || value === "true") ? true : false
+            boolean: (value === true || value === "true") ? true : false,
+            object: value
         };
     }
 

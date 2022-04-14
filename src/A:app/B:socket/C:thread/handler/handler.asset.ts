@@ -4,6 +4,7 @@ import { extname } from "path";
 import { Status } from "../../Status";
 
 import { VFS } from "../vfs";
+import { parseSubdomain, computeETag } from "../util";
 
 
 export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
@@ -21,12 +22,16 @@ export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
         tRes = handleDynamic(tRes, tReq);
     }
 
-    if(!tRes.message) {
+    if(tRes.status !== Status.NOT_FOUND) {
         return tRes;
     }
 
-    // ETag header
-    tRes.headers.set("ETag", "...");    // TODO: Implement
+    if(tRes.headers.get("ETag")
+    && tReq.headers.get("If-None-Match") == tRes.headers.get("ETag")) {
+        tRes.status = Status.USE_CACHE;
+
+        return tRes;    // TODO: Respond shorthand?
+    }
 
     return tRes;
 }
@@ -37,20 +42,34 @@ function handlePlugin(tRes: ThreadRes, path: string): ThreadRes {
 }
 
 function handleStatic(tRes: ThreadRes, path: string): ThreadRes {
-    tRes.message = VFS.read(path);
+    const fileStamp = VFS.read(path);
     
-    if(tRes.message === undefined) {
+    if(fileStamp === undefined) {
         tRes.status = Status.NOT_FOUND;
-
-        return tRes;
+    } else {
+        tRes.message = fileStamp.contents;
+        tRes.headers.set("ETag", fileStamp.eTag);
     }
-    
+
     return tRes;
 }
 
 function handleDynamic(tRes: ThreadRes, tReq: ThreadReq): ThreadRes {
-    // Parse subdomain
+    const subdomain = parseSubdomain(tReq.hostname);
     
+    // TODO: Use static ETag routine if plug-in do NOT server-side render markup
+
+    tRes.message = (VFS.read(tReq.pathname) || {}).contents;
+    
+    if(tRes.message === undefined) {
+        tRes.status = Status.NOT_FOUND;
+
+        // TODO: Error routine
+        // TODO: How to handle generic error routine?
+    }
+
+    tRes.headers.set("ETag", computeETag(tRes.message));
+
     return handleStatic(tRes, tReq.pathname);
 }
 

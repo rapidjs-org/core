@@ -17,19 +17,18 @@ function respond(tRes: ThreadRes, headerOnly: boolean = false) {
     parentPort.postMessage(tRes);
 }
 
-parentPort.on("message", (tReq: ThreadReq) => {
-    const tRes: ThreadRes = {
-        headers: new Map()
-    };
-
+parentPort.on("message", (post: {
+    tReq: ThreadReq,
+    tRes: ThreadRes
+}) => {
     // GET: File request (either a dynamic and static routine; based on filer type)
     // HEAD: Resembles a GET request, but without the transferral of content
-    if(["GET", "HEAD"].includes(tReq.method))  {
-        return respond(handleAsset(tReq, tRes), (tReq.method === "HEAD"));
+    if(["GET", "HEAD"].includes(post.tReq.method))  {
+        return respond(handleAsset(post.tReq, post.tRes), (post.tReq.method === "HEAD"));
     }
     
     // POST: Plug-in request
-    if(tReq.method === "POST") {
-        return respond(handlePlugin(tReq, tRes));
+    if(post.tReq.method === "POST") {
+        return respond(handlePlugin(post.tReq, post.tRes));
     }
 });
