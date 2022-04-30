@@ -1,3 +1,4 @@
 {
-    "dynamicFileExtension": "html"
+    "dynamicFileExtension": "html",
+    "threadsBroadcastChannelName": "bc"
 }

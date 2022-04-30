@@ -2,6 +2,7 @@
 
 
 export abstract class LimitedDictionary<L, D> {
+    
     private readonly storage: Map<string, {
         limitReference: L,
         data: D

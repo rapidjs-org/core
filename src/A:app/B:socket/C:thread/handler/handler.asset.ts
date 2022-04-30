@@ -7,7 +7,7 @@ import { VFS } from "../vfs";
 import { parseSubdomain, computeETag } from "../util";
 
 
-export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
+export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
     // Retrieve type of asset request to apply respective sub-routine
     if(false) { // TODO: Implement
         // Plug-in module request
@@ -37,11 +37,11 @@ export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
 }
 
 
-function handlePlugin(tRes: ThreadRes, path: string): ThreadRes {
+function handlePlugin(tRes: IThreadRes, path: string): IThreadRes {
     return tRes;
 }
 
-function handleStatic(tRes: ThreadRes, path: string): ThreadRes {
+function handleStatic(tRes: IThreadRes, path: string): IThreadRes {
     const fileStamp = VFS.read(path);
     
     if(fileStamp === undefined) {
@@ -54,7 +54,7 @@ function handleStatic(tRes: ThreadRes, path: string): ThreadRes {
     return tRes;
 }
 
-function handleDynamic(tRes: ThreadRes, tReq: ThreadReq): ThreadRes {
+function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
     const subdomain = parseSubdomain(tReq.hostname);
     
     // TODO: Use static ETag routine if plug-in do NOT server-side render markup
@@ -73,6 +73,6 @@ function handleDynamic(tRes: ThreadRes, tReq: ThreadReq): ThreadRes {
     return handleStatic(tRes, tReq.pathname);
 }
 
-function handleDynamicError(): ThreadRes {
-    return {} as ThreadRes;
+function handleDynamicError(): IThreadRes {
+    return {} as IThreadRes;
 }

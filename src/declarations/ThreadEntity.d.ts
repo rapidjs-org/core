@@ -1,5 +1,5 @@
-declare interface ThreadReq {
-    headers,
+declare interface IThreadReq {
+    headers: Map<string, any>,
     hostname: string,
     ip: string,
     method: string,
@@ -7,9 +7,9 @@ declare interface ThreadReq {
     searchParams: URLSearchParams
 }
 
-declare interface ThreadRes {
-    headers,
+declare interface IThreadRes {
+    headers: Map<string, any>,
     
     message?: string
-    status?: number,
+    status?: number
 }

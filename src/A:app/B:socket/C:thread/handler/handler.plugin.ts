@@ -1,5 +1,5 @@
 
-export default function(tReq: ThreadReq, tRes: ThreadRes): ThreadRes {
+export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
     tRes.message = "ABC";
     
     // Parse subdomain

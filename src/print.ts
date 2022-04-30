@@ -52,7 +52,7 @@ function log(message: string, channel: Channel) {
 		print.Format.FG_CYAN
 	])}`);
 
-	console[channel](print.format(` ${config.appName} `, [
+	console[channel](print.format(config.appName, [
 		print.Format.T_BOLD,
 		print.Format.T_DIM,
 		print.Format.T_ITALIC,

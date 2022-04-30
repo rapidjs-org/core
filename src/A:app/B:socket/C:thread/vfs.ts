@@ -19,6 +19,7 @@ interface FileStamp {
 }
 
 class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
+    
     private readonly cache: Cache<FileStamp> = new Cache(null, normalizePath);
 
     constructor() {

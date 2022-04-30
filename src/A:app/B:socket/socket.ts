@@ -5,16 +5,19 @@
 
 import { existsSync, readFileSync } from "fs";
 import { cpus } from "os";
-import { Worker as Thread, SHARE_ENV } from "worker_threads";
+import { Worker as Thread, SHARE_ENV, BroadcastChannel } from "worker_threads";
 import { join } from "path";
 import https from "https";
 import http from "http";
+
+import config from "../app.config.json";
 
 import { print } from "../../print";
 import { normalizePath, mergeObj } from "../../util";
 
 import { PROJECT_CONFIG } from "../config/config.project";
 import { IS_SECURE } from "../secure";
+import { IPCSignal } from "../IPCSignal";
 
 import { Status } from "./Status";
 import { rateExceeded } from "./rate-limiter";
@@ -47,16 +50,18 @@ class HeadersMap extends Map<string, string|number|boolean> {
 
 namespace ThreadPool {
     const idleThreads: Thread[] = [];
+    const activeReqs: Map<number, http.ServerResponse> = new Map();
     const pendingReqs: {
-        tReq: ThreadReq,
-        tRes: ThreadRes,
+        tReq: IThreadReq,
+        tRes: IThreadRes,
         eRes: http.ServerResponse
     }[] = [];
-    const activeReqs: Map<number, http.ServerResponse> = new Map();
+    const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
 
-    // Initially create fixed amount of reusable threads
+    // Create fixed amount of new, reusable threads
+    // TODO: Use config file parameter for size?
     Array.from({ length: --cpus().length }, createThread);
-    
+
     function createThread() {
         const thread = new Thread(join(__dirname, "./C:thread/thread.js"), {
             env: SHARE_ENV,
@@ -74,9 +79,11 @@ namespace ThreadPool {
         thread.on("error", err => {
             respondIndividually(activeReqs.get(thread.threadId), {
                 status: Status.INTERNAL_ERROR
-            } as ThreadRes);  // TODO: Error response?
+            } as IThreadRes);  // TODO: Error response?
 
             deactivateThread(thread);
+
+            // TODO: Error restart limit?
 
             print.error(err.message);
             console.log(err.stack);
@@ -91,7 +98,7 @@ namespace ThreadPool {
             
             respondIndividually(activeReqs.get(thread.threadId), {
                 status: Status.INTERNAL_ERROR
-            } as ThreadRes);  // TODO: Error response?  // TODO: Error response?
+            } as IThreadRes);  // TODO: Error response?  // TODO: Error response?
 
             createThread();
         });
@@ -106,8 +113,8 @@ namespace ThreadPool {
     }
 
     export function activateThread(entity: {
-        tReq: ThreadReq,
-        tRes: ThreadRes,
+        tReq: IThreadReq,
+        tRes: IThreadRes,
         eRes: http.ServerResponse
     }) {
         if(entity === undefined
@@ -127,16 +134,22 @@ namespace ThreadPool {
             tRes: entity.tRes
         });
     }
+
+    export function broadcast(message: Record<string, any>) {
+        broadcastChannel.postMessage(message);
+    }
+
 }
 
 
 function respondGenerically(eRes: http.ServerResponse, status: number) {
     respondIndividually(eRes, {
-        status: status
-    } as ThreadRes);
+        status: status,
+        headers: new HeadersMap()
+    } as IThreadRes);
 }
 
-function respondIndividually(eRes: http.ServerResponse, tRes: ThreadRes) {
+function respondIndividually(eRes: http.ServerResponse, tRes: IThreadRes) {
     if(!eRes) {
         return;
     }
@@ -225,18 +238,18 @@ const socketOptions: Record<string, any> = {
         
     // Construct thread request object related to the current response
     const url: URL = new URL(`http${IS_SECURE ? "s" : ""}://${eReq.headers["host"]}${eReq.url}`);
-    const tReq: ThreadReq = {
+    const tReq: IThreadReq = {
         ip: String(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress,
         method: eReq.method.toUpperCase(),
         hostname: url.hostname,
         pathname: url.pathname,
         searchParams: url.searchParams,
-
+        // Extract headers relevant for handler routine
         headers: new HeadersMap({
             "If-None-Match": eReq.headers["if-none-match"]
         })
     };
-    const tRes: ThreadRes = {
+    const tRes: IThreadRes = {
         // Already set static headers with custom overrides
         // Relevant headers to have overriding access throughout handler routine
         headers: new HeadersMap(mergeObj({
@@ -263,6 +276,7 @@ const socketOptions: Record<string, any> = {
     port: PROJECT_CONFIG.read("port", `http${IS_SECURE ? "s" : ""}`).number
 });
 
+
 /*
  * REDIRECTION SERVER (HTTP -> HTTPS).
  * Only activates in secure mode (https configured).
@@ -270,7 +284,7 @@ const socketOptions: Record<string, any> = {
 IS_SECURE && http
 .createServer(serverOptions, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
     eRes.statusCode = Status.REDIRECT;
-    
+    // TODO: Use generic response routine
     const securePort: number = PROJECT_CONFIG.read("port", "https").number;
     const secureHost: string = eReq.headers["host"].replace(/(:[0-9]+)?$/i, (securePort !== 443) ? `:${securePort}` : "");
 	eRes.setHeader("Location", `https://${secureHost}${eReq.url}`);
@@ -284,3 +298,24 @@ IS_SECURE && http
 
     port: PROJECT_CONFIG.read("port", "http").number
 });
+
+
+/*
+ * IPC interface (top-down).
+ */
+
+const passivePluginRegistry: IPassivePlugin[] = [];
+
+export function message(message: Record<string, any>) {
+    // TODO: IPC types
+    switch(message.type) {
+        case IPCSignal.PLUGIN:
+            ThreadPool.broadcast(message.data);
+
+            passivePluginRegistry.push(message.data);
+            
+            break;
+    }
+}
+
+process.on("message", message);
