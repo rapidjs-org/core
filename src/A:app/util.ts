@@ -10,8 +10,8 @@ import { PROJECT_PATH } from "./path";
  * @param {string} path Raw path
  * @returns {string} Normalized path
  */
- export function normalizePath(path: string): string {
+export function normalizePath(path: string): string {
 	return (path.charAt(0) != "/")
-    ? join(PROJECT_PATH, path)
-    : path;
+		? join(PROJECT_PATH, path)
+		: path;
 }

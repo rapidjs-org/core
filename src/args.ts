@@ -22,8 +22,8 @@ function parseArgument(name: string, shorthand?: string) {
 	// Check if consequitve word exists and is not an argument itself
 	const consequtiveWord: string = input[index + 1];
 	return /^[^-]/.test(consequtiveWord || "")
-	? consequtiveWord
-	: true;
+		? consequtiveWord
+		: true;
 }
 
 
@@ -53,5 +53,5 @@ export function argument(name: string, shorthand?: string): {
 		binary: (args[name] !== undefined)
 			? String(args[name])
 			: undefined
-	}
+	};
 }

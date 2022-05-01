@@ -16,24 +16,24 @@ import { registerActivePlugin } from "./plugin";
  * @param {IThreadRes} tRes Thread response object
  * @param {boolean} headerOnly Whether to only send headers
  */
-function respond(tRes: IThreadRes, headerOnly: boolean = false) {
-    parentPort.postMessage(tRes);
+function respond(tRes: IThreadRes, headerOnly = false) {
+	parentPort.postMessage(tRes);
 }
 
 parentPort.on("message", (post: {
     tReq: IThreadReq,
     tRes: IThreadRes
 }) => {
-    // GET: File request (either a dynamic and static routine; based on filer type)
-    // HEAD: Resembles a GET request, but without the transferral of content
-    if(["GET", "HEAD"].includes(post.tReq.method))  {
-        return respond(handleAsset(post.tReq, post.tRes), (post.tReq.method === "HEAD"));
-    }
+	// GET: File request (either a dynamic and static routine; based on filer type)
+	// HEAD: Resembles a GET request, but without the transferral of content
+	if(["GET", "HEAD"].includes(post.tReq.method))  {
+		return respond(handleAsset(post.tReq, post.tRes), (post.tReq.method === "HEAD"));
+	}
     
-    // POST: Plug-in request
-    if(post.tReq.method === "POST") {
-        return respond(handlePlugin(post.tReq, post.tRes));
-    }
+	// POST: Plug-in request
+	if(post.tReq.method === "POST") {
+		return respond(handlePlugin(post.tReq, post.tRes));
+	}
 });
 
 
@@ -41,7 +41,7 @@ parentPort.on("message", (post: {
  * Multiple (already registered) plug-in connection directive.
  */
 workerData.forEach(passivePlugin => {
-    registerActivePlugin(passivePlugin);
+	registerActivePlugin(passivePlugin);
 });
 
 
@@ -51,5 +51,5 @@ workerData.forEach(passivePlugin => {
  */
 const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
 broadcastChannel.onmessage = (message: Record<string, any>) => {
-    registerActivePlugin(message.data);
+	registerActivePlugin(message.data);
 };

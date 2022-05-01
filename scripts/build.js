@@ -13,7 +13,7 @@ buildDirPath = (buildDirPath.charAt(0) != "/")
 
 const CODE_SIGNATURE = readFileSync(join(__dirname, "./code-signature"));
 
-let count = {
+const count = {
     dir: 0,
     file: 0
 };

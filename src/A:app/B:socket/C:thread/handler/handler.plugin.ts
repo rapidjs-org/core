@@ -1,8 +1,8 @@
 
 export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
-    tRes.message = "ABC";
+	tRes.message = "ABC";
     
-    // Parse subdomain
+	// Parse subdomain
     
-    return tRes;
+	return tRes;
 }

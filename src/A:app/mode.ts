@@ -10,6 +10,6 @@ const isDevMode: boolean = argument("dev", "D").unary;
 
 
 export const MODE: Record<string, boolean> = {
-    DEV: isDevMode,
-    PROD: !isDevMode
+	DEV: isDevMode,
+	PROD: !isDevMode
 };

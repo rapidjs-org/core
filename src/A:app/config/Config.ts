@@ -20,15 +20,15 @@ export class Config {
     private configObj: Record<string, any>;
 
     constructor(name: string, defaultConfig: Record<string, any> = {}) {
-        this.name = name;
+    	this.name = name;
 
-        // Default < Generic < Mode specific
-        this.configObj = mergeObj(defaultConfig, this.readFile());
-        for(const mode in MODE) {
-            this.configObj = (MODE[mode] === true)
-            ? mergeObj(this.configObj, this.readFile(`.${mode.toLowerCase()}`))
-            : this.configObj;
-        }
+    	// Default < Generic < Mode specific
+    	this.configObj = mergeObj(defaultConfig, this.readFile());
+    	for(const mode in MODE) {
+    		this.configObj = (MODE[mode] === true)
+    			? mergeObj(this.configObj, this.readFile(`.${mode.toLowerCase()}`))
+    			: this.configObj;
+    	}
     }
 
     /**
@@ -37,13 +37,13 @@ export class Config {
      * @returns {Object} Configuration object
      */
     private readFile(suffix = "") {
-        // Retrieve custom config object (depending on mode)
-        const customConfigPath = join(PROJECT_PATH,
-            `${config.filePrefix}${this.name}${suffix}.json`);
+    	// Retrieve custom config object (depending on mode)
+    	const customConfigPath = join(PROJECT_PATH,
+    		`${config.filePrefix}${this.name}${suffix}.json`);
         
-        return existsSync(customConfigPath)
-        ? require(customConfigPath)
-        : {};
+    	return existsSync(customConfigPath)
+    		? require(customConfigPath)
+    		: {};
     }
 
     public read(...keys: string[]): {
@@ -52,29 +52,29 @@ export class Config {
         boolean: boolean,
         object: any
     } {
-        let value: string|number|boolean;
+    	let value: string|number|boolean;
 
-        try {
-            for(const key of keys) {
-                value = (value || this.configObj)[key];
-            }
-        } catch {
-            value = undefined;
-        }
+    	try {
+    		for(const key of keys) {
+    			value = (value || this.configObj)[key];
+    		}
+    	} catch {
+    		value = undefined;
+    	}
 
-        return {
-            string: (value !== undefined) ? String(value) : undefined,
-            number: !isNaN(Number(value)) ? Number(value) : 0,
-            boolean: (value === true || value === "true") ? true : false,
-            object: value
-        };
+    	return {
+    		string: (value !== undefined) ? String(value) : undefined,
+    		number: !isNaN(Number(value)) ? Number(value) : 0,
+    		boolean: (value === true || value === "true") ? true : false,
+    		object: value
+    	};
     }
 
     public format(callback: (configObj: Record<string, any>) => Record<string, any>) {
-        this.configObj = callback(this.configObj);
+    	this.configObj = callback(this.configObj);
     }
 
     public toObject() {
-        return this.configObj;
+    	return this.configObj;
     }
 }

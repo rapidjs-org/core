@@ -1,7 +1,7 @@
 
 // Parameter
 const config = {
-    periodLength: 60000
+	periodLength: 60000
 };
 
 
@@ -15,7 +15,7 @@ const limiter: {
     prevPeriod?: Map<string, number>
     curPeriod?: Map<string, number>
 } = {
-    windowStart: 0
+	windowStart: 0
 };
 
 const requestLimit = PROJECT_CONFIG.read("limit", "requestsPerMin").number || 0;
@@ -26,20 +26,20 @@ const requestLimit = PROJECT_CONFIG.read("limit", "requestsPerMin").number || 0;
  * @returns {number} Current window weight
  */
 function updateWindow() {
-    // TODO: Weak cluster size related amount weight?
-    const now = Date.now();
+	// TODO: Weak cluster size related amount weight?
+	const now = Date.now();
     
-    let timeIn = Math.abs(limiter.windowStart - now);
+	let timeIn = Math.abs(limiter.windowStart - now);
     
-    if(timeIn >= config.periodLength) {
-        limiter.prevPeriod = ((timeIn >= (2 * config.periodLength)) ? null : limiter.curPeriod) || new Map();
-        limiter.curPeriod = new Map();
+	if(timeIn >= config.periodLength) {
+		limiter.prevPeriod = ((timeIn >= (2 * config.periodLength)) ? null : limiter.curPeriod) || new Map();
+		limiter.curPeriod = new Map();
 
-        timeIn = timeIn % config.periodLength;
-        limiter.windowStart = now - timeIn;
-    }
+		timeIn = timeIn % config.periodLength;
+		limiter.windowStart = now - timeIn;
+	}
 
-    return (timeIn / config.periodLength);
+	return (timeIn / config.periodLength);
 }
 
 
@@ -49,20 +49,20 @@ function updateWindow() {
  * @return {boolean} - Whether the request must be blocked due to 429 (Too many requests)
  */
 export function rateExceeded(ip: string) {
-    if(requestLimit === 0) {
-        return false;
-    }
+	if(requestLimit === 0) {
+		return false;
+	}
 
-    const curWindowWeight = updateWindow();
-    const slideSum = Math.floor((curWindowWeight * (limiter.curPeriod.get(ip) || 0))
+	const curWindowWeight = updateWindow();
+	const slideSum = Math.floor((curWindowWeight * (limiter.curPeriod.get(ip) || 0))
                     + ((1 - curWindowWeight) * (limiter.prevPeriod.get(ip) || 0)));
-    if(slideSum >= requestLimit) {
-        // Deny request
-        return true;
-    }
+	if(slideSum >= requestLimit) {
+		// Deny request
+		return true;
+	}
 
-    limiter.curPeriod.set(ip, (limiter.curPeriod.get(ip) || 0) + 1);
+	limiter.curPeriod.set(ip, (limiter.curPeriod.get(ip) || 0) + 1);
     
-    // Allow request
-    return false;
+	// Allow request
+	return false;
 }

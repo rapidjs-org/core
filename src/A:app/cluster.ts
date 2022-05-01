@@ -1,5 +1,5 @@
 const config = {
-    autoRestartTimeout: 2500
+	autoRestartTimeout: 2500
 };
 
 
@@ -26,71 +26,71 @@ IS_SECURE && print.info(`HTTP (:${PROJECT_CONFIG.read("port", "http").string}) t
 // TODO: Print additional info if HTTP to HTTPS redirection is enabled
 
 if(clusterSize == 1) {
-    process.env.wd = dirname(process.argv[1]);
+	process.env.wd = dirname(process.argv[1]);
     
-    // Create a single socket / server if cluster size is 1
-    require("./B:socket/socket");
+	// Create a single socket / server if cluster size is 1
+	require("./B:socket/socket");
 } else {
-    // Create cluster (min. 2 sockets / servers)
-    cluster.settings.exec = join(__dirname, "./B:socket/socket"); // SCRIPT
-    cluster.settings.args = process.argv.slice(2); // ARGS
-    cluster.settings.silent = true;
+	// Create cluster (min. 2 sockets / servers)
+	cluster.settings.exec = join(__dirname, "./B:socket/socket"); // SCRIPT
+	cluster.settings.args = process.argv.slice(2); // ARGS
+	cluster.settings.silent = true;
 
-    // TODO: CPU strategy
-    for(let i = 0; i < clusterSize; i++) {
-        const workerProcess = cluster.fork({
-            wd: dirname(process.argv[1])
-        });
+	// TODO: CPU strategy
+	for(let i = 0; i < clusterSize; i++) {
+		const workerProcess = cluster.fork({
+			wd: dirname(process.argv[1])
+		});
 
-        // Pipe worker output to master (this context)
-        workerProcess.process.stdout.on("data", printData => {
-            console.log(String(printData));
-        });
-        workerProcess.process.stderr.on("data", printData => {
-            console.error(String(printData));
-        });
-    }
+		// Pipe worker output to master (this context)
+		workerProcess.process.stdout.on("data", printData => {
+			console.log(String(printData));
+		});
+		workerProcess.process.stderr.on("data", printData => {
+			console.error(String(printData));
+		});
+	}
 
-    // Automatic restart on error
-    // Starts after specified timeout in order to prevent endless restarts on start up errors
-    setTimeout(() => {
-        cluster.on("exit", (workerProcess, code) => {
-            if (code === 0 || workerProcess.exitedAfterDisconnect) {
-                return;
-            }
+	// Automatic restart on error
+	// Starts after specified timeout in order to prevent endless restarts on start up errors
+	setTimeout(() => {
+		cluster.on("exit", (workerProcess, code) => {
+			if (code === 0 || workerProcess.exitedAfterDisconnect) {
+				return;
+			}
 
-            // TODO: Stop on recursive error eventually
-            // Error restart / fill up
-            print.info("Socket process restarted due to an error");
-            print.error(`Error code: ${code}`);
+			// TODO: Stop on recursive error eventually
+			// Error restart / fill up
+			print.info("Socket process restarted due to an error");
+			print.error(`Error code: ${code}`);
             
-            cluster.fork();
-        });
-    }, config.autoRestartTimeout);
+			cluster.fork();
+		});
+	}, config.autoRestartTimeout);
 
-    cluster.on("listening", thread => {
-        print.info(`Thread ${thread.id} has set up server`);
-    });
+	cluster.on("listening", thread => {
+		print.info(`Thread ${thread.id} has set up server`);
+	});
 
-    cluster.on("message", (_, message) => {
-        print.info(message);
-    });
+	cluster.on("message", (_, message) => {
+		print.info(message);
+	});
 }
 
 
 export function ipcDown(type: IPCSignal , data: Record<string, any>) {
-    const message: Record<string, any> = {
-        type,
-        data
-    };
+	const message: Record<string, any> = {
+		type,
+		data
+	};
 
-    if(clusterSize == 1) {
-        require("./B:socket/socket").message(message);
+	if(clusterSize == 1) {
+		require("./B:socket/socket").message(message);
 
-        return;
-    }
+		return;
+	}
     
-    for(const worker of Object.values(cluster.workers)) {
-        worker.send(message);
-    }
+	for(const worker of Object.values(cluster.workers)) {
+		worker.send(message);
+	}
 }

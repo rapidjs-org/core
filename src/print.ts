@@ -17,8 +17,8 @@ import { argument } from "./args";
  */
 let logDirPath: string = argument("log", "L").binary;
 logDirPath = ((logDirPath.charAt(0) || "/") != "/")
-? join(require.main.filename, logDirPath)
-: logDirPath;
+	? join(require.main.filename, logDirPath)
+	: logDirPath;
 
 // TODO: Create error?
 logDirPath && mkdirSync(logDirPath, {
@@ -35,13 +35,13 @@ const eventEmitter = new EventEmitter();
 enum Channel {
 	LOG = "log",
 	ERROR = "error"
-};
+}
 
 enum Event {
 	INFO = "info",
 	DEBUG = "debug",
 	ERROR = "error"
-};
+}
 
 
 function log(message: string, channel: Channel) {
@@ -49,9 +49,9 @@ function log(message: string, channel: Channel) {
 	
 	// Highlight numbers (|n| > 1)
 	message = message
-	.replace(/(((?!\x1b)(.)){3})([0-9]{2,})/g, `$1${print.format("$4", [
-		print.Format.FG_CYAN
-	])}`);
+		.replace(/(((?!\x1b)(.)){3})([0-9]{2,})/g, `$1${print.format("$4", [
+			print.Format.FG_CYAN
+		])}`);
 
 	console[channel](print.format(config.appName, [
 		print.Format.T_BOLD,
@@ -85,10 +85,10 @@ function write(message: string, channel: Channel, event: Event) {
 	const time: string = date.toLocaleTimeString();
 
 	appendFile(join(logDirPath, `${day}.log`),
-	`[${time}]: ${message.replace(/\x1b\[(;?[0-9]{1,3})+m/g, "")}\n`,
-	err => {
-		err && log(err.message, Channel.ERROR);
-	});
+		`[${time}]: ${message.replace(/\x1b\[(;?[0-9]{1,3})+m/g, "")}\n`,
+		err => {
+			err && log(err.message, Channel.ERROR);
+		});
 }
 
 

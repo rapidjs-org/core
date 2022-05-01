@@ -24,37 +24,37 @@ import * as commonInterface from "../../interface.common";
 const interfaceModulePath: string = require.resolve("./interface.plugin");
 
 const activePluginRegistry = {
-    dict: new Map<string, {
+	dict: new Map<string, {
         clientModuleText?: string;
     }>(),
-    genericIntegrationList: new Set<string>()
+	genericIntegrationList: new Set<string>()
 };
 
 
 function evalPlugin(name: string, modulePath: string) {
-    // Empty module cache (for eventual re-evaluation; live behavior in DEV MODE)
-    if(require.cache[modulePath]) {
-        delete require.cache[modulePath];
-    }
+	// Empty module cache (for eventual re-evaluation; live behavior in DEV MODE)
+	if(require.cache[modulePath]) {
+		delete require.cache[modulePath];
+	}
 
-    const Module = require("module");   // for runtime dynamic module wrapping
+	const Module = require("module");   // for runtime dynamic module wrapping
     
-    // Temporarily manipulate wrapper in order to inject this assignment (representing the plugin interface)
-    const _wrap = Module.wrap;
+	// Temporarily manipulate wrapper in order to inject this assignment (representing the plugin interface)
+	const _wrap = Module.wrap;
 
-    // Require custom wrapped module (providing the plugin interface to the module context)
-    let pluginModule;
-    try {
-        // const console = {
-        //     log: message => {
-        //         require("${require.resolve("../../utilities/output")}").log(message, "${name}")
-        //     },
-        //     error: err => {
-        //         require("${require.resolve("../../utilities/output")}").error(err, false, "${name}");
-        //     }
-        // };
-        Module.wrap = ((_exports, _, __, __filename, __dirname) => {
-            return `${Module.wrapper[0]}
+	// Require custom wrapped module (providing the plugin interface to the module context)
+	let pluginModule;
+	try {
+		// const console = {
+		//     log: message => {
+		//         require("${require.resolve("../../utilities/output")}").log(message, "${name}")
+		//     },
+		//     error: err => {
+		//         require("${require.resolve("../../utilities/output")}").error(err, false, "${name}");
+		//     }
+		// };
+		Module.wrap = ((_exports, _, __, __filename, __dirname) => {
+			return `${Module.wrapper[0]}
                 for(const prop in require("${interfaceModulePath}")) {
                     this[prop] = require("${interfaceModulePath}")[prop];
                 }
@@ -62,50 +62,50 @@ function evalPlugin(name: string, modulePath: string) {
                 this.${config.pluginConfigIdentifier} = ${JSON.stringify(PLUGIN_CONFIG)};
                 const ${config.thisRetainerIdentifier} = this;
             ${_exports}${Module.wrapper[1]}`;
-        });
+		});
 
-        pluginModule = require.main.require(modulePath);	// Require using the modified module wrapper
-    } catch(err) {
-        Module.wrap = _wrap;
+		pluginModule = require.main.require(modulePath);	// Require using the modified module wrapper
+	} catch(err) {
+		Module.wrap = _wrap;
 
-        throw err;
-    }
+		throw err;
+	}
 
-    Module.wrap = _wrap;
+	Module.wrap = _wrap;
 
-    // TODO: Option for muting output of threads except one to remove duplicates (static context)?
+	// TODO: Option for muting output of threads except one to remove duplicates (static context)?
 
-    if(!(pluginModule instanceof Function)) {
-        // Static plugin module (not receiving the common interface object)
-        return;
-    }
+	if(!(pluginModule instanceof Function)) {
+		// Static plugin module (not receiving the common interface object)
+		return;
+	}
 
-    // Dynamic plugin module getting passed the common interface object
-    pluginModule(commonInterface);
+	// Dynamic plugin module getting passed the common interface object
+	pluginModule(commonInterface);
 }
 
 
 export function registerActivePlugin(plugin: IPassivePlugin) {
-    try {
-        evalPlugin(plugin.name, plugin.modulePath);
-    } catch(err) {
-        print.info(`An error occurred within the '${plugin.name}' plug-in module`);
-        print.error(err);
-    }
+	try {
+		evalPlugin(plugin.name, plugin.modulePath);
+	} catch(err) {
+		print.info(`An error occurred within the '${plugin.name}' plug-in module`);
+		print.error(err);
+	}
     
-    activePluginRegistry.dict.set(plugin.name, {
-        clientModuleText: ""
-    });
+	activePluginRegistry.dict.set(plugin.name, {
+		clientModuleText: ""
+	});
 
-    // Manipulate generic integration set according to integration option
-    activePluginRegistry.genericIntegrationList
-    [plugin.options.integrateManually ? "delete" : "add"](plugin.name);
+	// Manipulate generic integration set according to integration option
+	activePluginRegistry.genericIntegrationList
+		[plugin.options.integrateManually ? "delete" : "add"](plugin.name);
 }
 
 export function bindClientModule(relativePath: string, sharedProperties?: Record<string, any>, compoundOnly?: boolean) {
-    console.log(relativePath)
+	console.log(relativePath);
 
-    /* const pluginName: string = Plugin.getNameByCall(__filename);	// TODO: Wont work with main file implicit local referencing (file path comparison); Fix!
+	/* const pluginName: string = Plugin.getNameByCall(__filename);	// TODO: Wont work with main file implicit local referencing (file path comparison); Fix!
 
     // TODO: Swap shared and compound argument as of usage frequency (keep backwards compatibility with type check augmented overload)
 

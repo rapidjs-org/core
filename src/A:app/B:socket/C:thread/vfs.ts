@@ -23,49 +23,49 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
     private readonly cache: Cache<FileStamp> = new Cache(null, normalizePath);
 
     constructor() {
-        super(null, normalizePath);
+    	super(null, normalizePath);
     }
 
     private retrieveLocalPath(path: string): string {
-        return normalizePath(join(PROJECT_CONFIG.read("webDirectory").string, path));
+    	return normalizePath(join(PROJECT_CONFIG.read("webDirectory").string, path));
     }
 
     protected validateLimitReference(mtimeMs: number, path: string) {
-        return (statSync(this.retrieveLocalPath(path)).mtimeMs == mtimeMs);
+    	return (statSync(this.retrieveLocalPath(path)).mtimeMs == mtimeMs);
     }
 
     public read(path: string): FileStamp {
-        let data: FileStamp;
+    	let data: FileStamp;
 
-        if(data = this.cache.read(path)) {
-            return data;
-        }
+    	if(data = this.cache.read(path)) {
+    		return data;
+    	}
         
-        if(!(data = super.get(path))) {
-            // Try to write if intially not found
-            this.write(path);
-        }
+    	if(!(data = super.get(path))) {
+    		// Try to write if intially not found
+    		this.write(path);
+    	}
 
-        return data || super.get(path);
+    	return data || super.get(path);
     }
 
     public write(path: string) {
-        const localPath: string = this.retrieveLocalPath(path);
+    	const localPath: string = this.retrieveLocalPath(path);
 
-        if(!existsSync(localPath)) {
-            return;
-        }
+    	if(!existsSync(localPath)) {
+    		return;
+    	}
 
-        const fileContents: string = String(readFileSync(localPath));
+    	const fileContents = String(readFileSync(localPath));
 
-        const data: FileStamp = {
-            contents: fileContents,
-            eTag: computeETag(fileContents)
-        };
+    	const data: FileStamp = {
+    		contents: fileContents,
+    		eTag: computeETag(fileContents)
+    	};
 
-        super.set(path, statSync(localPath).mtimeMs, data);
+    	super.set(path, statSync(localPath).mtimeMs, data);
 
-        this.cache.write(path, data);
+    	this.cache.write(path, data);
     }
 
 }

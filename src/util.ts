@@ -5,7 +5,7 @@
  * @param {Record} source Object 2 (overriding)
  * @returns {Record} Merged object.
  */
- export function mergeObj(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+export function mergeObj(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
 	// Explicitly merge sub objects
 	for(const key of (Object.keys(target).concat(Object.keys(source)))) {
 		if((target[key] || "").constructor.name !== "Object"
