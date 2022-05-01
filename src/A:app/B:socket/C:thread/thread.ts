@@ -2,7 +2,7 @@
  * >> START OF INDEPENDANT MEMORY (C LEVEL) <<
  */
 
-import { parentPort, BroadcastChannel } from "worker_threads";
+import { parentPort, BroadcastChannel, workerData } from "worker_threads";
 
 import config from "../../app.config.json";
 
@@ -38,8 +38,18 @@ parentPort.on("message", (post: {
 
 
 /**
+ * Multiple (already registered) plug-in connection directive.
+ */
+workerData.forEach(passivePlugin => {
+    registerActivePlugin(passivePlugin);
+});
+
+
+/**
  * IPC:
- * Plug-in connection directive.
+ * Single (new) plug-in connection directive.
  */
 const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
-broadcastChannel.onmessage = (message: Record<string, any>) => registerActivePlugin(message.data);
+broadcastChannel.onmessage = (message: Record<string, any>) => {
+    registerActivePlugin(message.data);
+};

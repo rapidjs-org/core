@@ -8,8 +8,10 @@
 import { existsSync, mkdirSync } from "fs";
 
 
-import { mergeObj, normalizeExtension, normalizePath } from "../../util";
+import { mergeObj, normalizeExtension } from "../../util";
+
 import { MODE } from "../mode";
+import { normalizePath } from "../util";
 
 import { Config } from "./Config";
 import DEFAULT_CONFIG from "./default.project.config.json";

@@ -73,4 +73,8 @@ export class Config {
     public format(callback: (configObj: Record<string, any>) => Record<string, any>) {
         this.configObj = callback(this.configObj);
     }
+
+    public toObject() {
+        return this.configObj;
+    }
 }

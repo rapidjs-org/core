@@ -1,3 +1,3 @@
 
 
-export const isDevMode: boolean: true;
+export const isDevMode: boolean = true;

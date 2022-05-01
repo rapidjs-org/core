@@ -13,11 +13,13 @@ import http from "http";
 import config from "../app.config.json";
 
 import { print } from "../../print";
-import { normalizePath, mergeObj } from "../../util";
+import { mergeObj } from "../../util";
 
 import { PROJECT_CONFIG } from "../config/config.project";
+import { MODE } from "../mode";
 import { IS_SECURE } from "../secure";
 import { IPCSignal } from "../IPCSignal";
+import { normalizePath } from "../util";
 
 import { Status } from "./Status";
 import { rateExceeded } from "./rate-limiter";
@@ -48,6 +50,9 @@ class HeadersMap extends Map<string, string|number|boolean> {
 }
 
 
+const passivePluginRegistry: IPassivePlugin[] = [];
+
+
 namespace ThreadPool {
     const idleThreads: Thread[] = [];
     const activeReqs: Map<number, http.ServerResponse> = new Map();
@@ -57,15 +62,19 @@ namespace ThreadPool {
         eRes: http.ServerResponse
     }[] = [];
     const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
-
+    
     // Create fixed amount of new, reusable threads
-    // TODO: Use config file parameter for size?
-    Array.from({ length: --cpus().length }, createThread);
+    // Defer in order to read connected plug-ins first
+    setImmediate(_ => {
+        Array.from({ length: (MODE.DEV ? 1 : --cpus().length) }, createThread);
+        // TODO: Use config file parameter for size?
+    });
 
     function createThread() {
         const thread = new Thread(join(__dirname, "./C:thread/thread.js"), {
             env: SHARE_ENV,
-            argv: process.argv.slice(2)
+            argv: process.argv.slice(2),
+            workerData: passivePluginRegistry
         });
 
         // Success (message provision) listener
@@ -84,7 +93,6 @@ namespace ThreadPool {
             deactivateThread(thread);
 
             // TODO: Error restart limit?
-
             print.error(err.message);
             console.log(err.stack);
         });
@@ -102,6 +110,8 @@ namespace ThreadPool {
 
             createThread();
         });
+
+        // TODO: Send already connected plug-in list
 
         deactivateThread(thread);
     }
@@ -303,9 +313,6 @@ IS_SECURE && http
 /*
  * IPC interface (top-down).
  */
-
-const passivePluginRegistry: IPassivePlugin[] = [];
-
 export function message(message: Record<string, any>) {
     // TODO: IPC types
     switch(message.type) {

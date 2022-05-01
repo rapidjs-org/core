@@ -2,7 +2,7 @@
 import { join } from "path";
 import { statSync, existsSync, readFileSync } from "fs";
 
-import { normalizePath } from "../../../util";
+import { normalizePath } from "../../util";
 
 import { PROJECT_CONFIG } from "../../config/config.project";
 

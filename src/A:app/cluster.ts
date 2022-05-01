@@ -62,7 +62,8 @@ if(clusterSize == 1) {
             // TODO: Stop on recursive error eventually
             // Error restart / fill up
             print.info("Socket process restarted due to an error");
-
+            print.error(`Error code: ${code}`);
+            
             cluster.fork();
         });
     }, config.autoRestartTimeout);

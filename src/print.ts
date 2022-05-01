@@ -9,7 +9,6 @@ import { join } from "path";
 import { EventEmitter } from "events";
 
 import { argument } from "./args";
-import { normalizePath } from "./util";
 
 
 /*
@@ -17,7 +16,9 @@ import { normalizePath } from "./util";
  * Inherently create directory (path) if does not exist.
  */
 let logDirPath: string = argument("log", "L").binary;
-logDirPath = logDirPath ? normalizePath(logDirPath) : undefined;
+logDirPath = ((logDirPath.charAt(0) || "/") != "/")
+? join(require.main.filename, logDirPath)
+: logDirPath;
 
 // TODO: Create error?
 logDirPath && mkdirSync(logDirPath, {

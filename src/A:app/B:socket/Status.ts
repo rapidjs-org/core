@@ -19,6 +19,5 @@ export enum Status {
     RATE_EXCEEDED = 429,
 
     // Server error codes
-    INTERNAL_ERROR = 500,
-    SERVICE_UNAVAILABLE = 503
+    INTERNAL_ERROR = 500
 }

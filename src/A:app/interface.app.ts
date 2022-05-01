@@ -13,8 +13,8 @@ export function plugin(reference: string, options: IPluginOptions) {
     }
 
     // TODO: Derive name already
-    const name: string = "";
-
+    const name: string = "test";
+    
     ipcDown(IPCSignal.PLUGIN, {
         name,
         modulePath,
