@@ -20,7 +20,6 @@ const limiter: {
 
 const requestLimit = PROJECT_CONFIG.read("limit", "requestsPerMin").number || 0;
 
-
 /**
  * Update limiter window.
  * @returns {number} Current window weight

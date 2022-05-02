@@ -17,22 +17,7 @@ export abstract class LimitedDictionary<L, D> {
     	this.normalizationCallback = normalizationCallback || ((key: string) => key);
     }
 
-    protected get(key: string): D {
-    	return this.exists(key)
-    		? this.storage.get(this.normalizationCallback(key)).data
-    		: undefined;
-    }
-
-    protected set(key: string, limitReference: L, data: D) {
-    	this.storage.set(this.normalizationCallback(key), {
-    		limitReference: limitReference,
-    		data: data
-    	});
-    }
-
-    protected abstract validateLimitReference(limitReference: L, key?: string): boolean;
-    
-    public exists(key: string): boolean {
+    private entryExists(key: string): boolean {
     	// TODO: Hit ratio tracking interface?
         
     	const entry = this.storage.get(this.normalizationCallback(key));
@@ -47,6 +32,21 @@ export abstract class LimitedDictionary<L, D> {
         
     	return result;
     }
+
+    protected getEntry(key: string): D {
+    	return this.entryExists(key)
+    		? this.storage.get(this.normalizationCallback(key)).data
+    		: undefined;
+    }
+
+    protected setEntry(key: string, limitReference: L, data: D) {
+    	this.storage.set(this.normalizationCallback(key), {
+    		limitReference: limitReference,
+    		data: data
+    	});
+    }
+
+    protected abstract validateLimitReference(limitReference: L, key?: string): boolean;
 
     public abstract read(key: string): any;
     

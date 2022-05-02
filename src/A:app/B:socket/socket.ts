@@ -196,7 +196,9 @@ const readSSLFile = (type: string) => {
 		return null;
 	}
 
-	path = normalizePath(path);
+	path = (path.charAt(0) != "/")
+	? normalizePath(path)
+	: path;
 	if(!existsSync(path)) {
 		throw new ReferenceError(`SSL '${type}' file does not exist '${path}'`);
 	}

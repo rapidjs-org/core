@@ -1,0 +1,5 @@
+{
+    "limit": {
+        "requestsPerMin": 2
+    }
+}

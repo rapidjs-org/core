@@ -41,12 +41,12 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
     		return data;
     	}
         
-    	if(!(data = super.get(path))) {
+    	if(!(data = super.getEntry(path))) {
     		// Try to write if intially not found
     		this.write(path);
     	}
 
-    	return data || super.get(path);
+    	return data || super.getEntry(path);
     }
 
     public write(path: string) {
@@ -63,7 +63,7 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
     		eTag: computeETag(fileContents)
     	};
 
-    	super.set(path, statSync(localPath).mtimeMs, data);
+    	super.setEntry(path, statSync(localPath).mtimeMs, data);
 
     	this.cache.write(path, data);
     }

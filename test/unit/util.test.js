@@ -1,21 +1,25 @@
+const { join } = require("path");
 
-const util = require("../../debug/util");
 
+// MEM 0
 
-const mergeTest = new Test(util.mergeObj, "Object merge tests");
+const { mergeObj } = require("../../debug/util");
 
-mergeTest
-.conduct("Merge disjunctive objects")
+const mergeObjTest = new UnitTest("Object merge tests", mergeObj);
+
+mergeObjTest
+.conduct("Merge two disjunctive objects")
 .check({
     a: 1
 }, {
     b: 2
-}).for({
+})
+.for({
     a: 1,
     b: 2
 });
 
-mergeTest
+mergeObjTest
 .conduct("Merge two intersecting objects")
 .check({
     a: 1,
@@ -23,8 +27,48 @@ mergeTest
 }, {
     b: 2,
     c: 2
-}).for({
+})
+.for({
     a: 1,
     b: 2,
     c: 2
 });
+
+// MEM A
+
+const { normalizePath } = require("../../debug/A:app/util");
+
+const normalizePathTest = new UnitTest("Project normalize path tests", normalizePath);
+
+normalizePathTest
+.conduct("Project normalize relative path")
+.check("./test")
+.for(join(__dirname, "../../scripts/test"));
+
+normalizePathTest
+.conduct("Project normalize absolute path")
+.check("/test")
+.for(join(__dirname, "../../scripts/test"));
+
+// MEM C
+
+const { parseSubdomain, computeETag } = require("../../debug/A:app/B:socket/C:thread/util");
+
+const parseSubdomainTest = new UnitTest("Parse subdomain tests", parseSubdomain);
+
+parseSubdomainTest
+.conduct("Parse single subdomain from hostname")
+.check("www.example.com")
+.for(["www"]);
+
+parseSubdomainTest
+.conduct("Parse multiple subdomains from hostname")
+.check("www.de.example.com")
+.for(["www", "de"]);
+
+const computeETagTest = new UnitTest("Compute ETag tests", computeETag);
+
+computeETagTest
+.conduct("Compute ETag")
+.check("<html></html>")
+.for("c83301425b2ad1d496473a5ff3d9ecca");

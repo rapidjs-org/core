@@ -1,139 +1,75 @@
-
-const { join } = require("path");
-const { readdir } = require("fs");
+const { Test, log, formatStr } = require("./test-framework");
 
 
-let testDirPath = (process.argv.slice(2)[0] || "./test");
-testDirPath = (testDirPath.charAt(0) != "/")
-? join(process.cwd(), testDirPath)
-: testDirPath;
-
-
-const oLog = console.log;
-console.log = (...msg) => {
-    // TODO: Object log?
-    oLog(`\n===\n${formatStr(msg.join(" "), 90)}\n===\n`);
-}
-
-
-process.on("exit", _ => {
-    oLog("");
-
-    if(Test.hasError) {
-        oLog(formatStr("Test suite aborted due to an error", 31));
-
-        return 2;
+/**
+ * Unit test class to be used for method evaluation comparison.
+ * @class
+ */
+global.UnitTest = class extends Test {
+    constructor(purposeDescriptor, method) {
+        super(purposeDescriptor, method);
     }
 
-    const appendix = ` (${Test.resultCount.succeeded}/${Test.resultCount.succeeded + Test.resultCount.failed} successful)`;
-
-    if(Test.resultCount.failed > 0) {
-        oLog(`${formatStr("Test suite failed", 31)}${appendix}`);
-        
-        return 1;
+    call(...args) {
+        return this.callReference(...args);
     }
 
-    oLog(`${formatStr("Test suite succeeded", 32)}${appendix}`);
-
-    return 0;
-});
-
-
-/* global.test = function(sourceFilePath, options = {}) {
-    require(join(testDirPath, sourceFilePath).replace(/(\.js)?$/i, ".js"));
-} */
-
-global.Test = class {
-    static hasError = false;
-    static instanceCount = 0;
-    static lastActive;
-    static resultCount = {
-        succeeded: 0,
-        failed: 0
-    };
-
-    constructor(method, purposeDescriptor) {
-        this.curSection = 0;
-        this.id = Test.instanceCount++;
-
-        this.method = method;
-        this.purposeDescriptor = purposeDescriptor || `Test ${this.id}`;
-    }
-
-    conduct(purposeDescriptor) {
-        return {
-            check: (...args) => {
-                if(Test.lastActive != this.id) {
-                    oLog(`\n${formatStr(` ${this.purposeDescriptor}${(this.curSection++ > 0) ? ` (${this.curSection})`: ""} `, 93, 46)}\n`);
-                }
-                Test.lastActive = this.id;
-
-                const actualResult = this.method(...args);
-
-                return {
-                    for: expectedResult => {
-                        // TODO: Object equal
-                        if(expectedResult === actualResult) {
-                            oLog(`${formatStr("+", 32)} ${purposeDescriptor}`);
-                            
-                            Test.resultCount.succeeded++;
-
-                            return;
-                        }
-
-                        oLog(formatStr(`x ${purposeDescriptor}`, 31));
-                        oLog(`Expected result: ${expectedResult}. Actual result: ${actualResult}.`);
-                        (expectedResult == actualResult) && oLog(formatStr("Type mismatch", 39));
-                        // TODO: Object log?
-                        
-                        Test.resultCount.failed++;
-                    }
-                };
-            }
+    compare(expected, actual) {
+        const isObj = obj => {
+            return (!!obj) && (obj.constructor === Object);
         };
-    }
-}
-
-
-function formatStr(str, ...codes) {
-    return `${(codes || []).map(code => `\x1b[${code}m`).join("")}${str}\x1b[0m`;
-}
-
-function testDirectory(dirPath) {
-    readdir(dirPath, {
-        withFileTypes: true
-    }, (_, dirents) => {
-        (dirents || []).forEach(dirent => {
-            const curFilePath = join(dirPath, dirent.name);
-
-            if(dirent.isDirectory()) {
-                testDirectory(curFilePath);
-
-                return;
-            }
-
-            if(!/\.test\.js$/.test(dirent.name)) {
-                return;
-            }
-
-            conductTest(curFilePath);
-        });
-    });
-}
-
-function conductTest(testFilePath) {
-    oLog(`${formatStr(testFilePath.match(/[^/]+$/)[0], 97)}`);
     
-    try {
-        require(testFilePath);
-    } catch(err) {
-        oConsole.error(err);
-
-        Test.hasError = true;
-
-        process.exit(1);
+        if(!isObj(expected) && !Array.isArray(expected)) {
+            return (expected === actual)
+            ? Test.Equality.FULL
+            : (expected == actual)
+                ? Test.Equality.HALF
+                : Test.Equality.NONE;
+        }
+        
+        const arrayCheck = (arr1, arr2) => {
+            if(!Array.isArray(arr2)) {
+                return false;
+            }
+    
+            return (JSON.stringify(arr1.sort()) === JSON.stringify(arr2.sort()));
+        };
+    
+        if(Array.isArray(expected)) {
+            return arrayCheck(expected, actual)
+            ? Test.Equality.FULL
+            : Test.Equality.NONE;
+        }
+    
+        if(!isObj(actual)) {
+            return Equality.NONE;
+        }
+    
+        const objDeepCheck = (obj1, obj2) => {
+            if(!isObj(obj2)) {
+                return false;
+            }
+            
+            if(!arrayCheck(Object.keys(obj1), Object.keys(obj2))) {
+                return false;
+            }
+    
+            for(const key in obj1) {
+                if((isObj(obj1[key]) && !objDeepCheck(obj1[key], obj2[key]))
+                || (Array.isArray(obj1[key]) && !arrayCheck(obj1[key], obj2[key]))
+                || obj1[key] !== obj2[key]) {
+                    return false;
+                }
+            }
+    
+            return true;
+        };
+        
+        return objDeepCheck(expected, actual)
+        ? Test.Equality.FULL
+        : Test.Equality.NONE;
     }
 }
 
 
-testDirectory(testDirPath);
+log(formatStr(" UNIT TEST SUITE ", null, [253, 202, 64], 1));

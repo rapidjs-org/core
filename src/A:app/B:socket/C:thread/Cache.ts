@@ -19,11 +19,11 @@ export class Cache<D> extends LimitedDictionary<number, D> {
 	}
 
 	public read(key: string): D {
-		return super.get(key);
+		return super.getEntry(key);
 	}
 
 	public write(key: string, data: D) {
-		super.set(key, Date.now(), data);
+		super.setEntry(key, Date.now(), data);
 	}
     
 }

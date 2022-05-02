@@ -11,7 +11,5 @@ import { PROJECT_PATH } from "./path";
  * @returns {string} Normalized path
  */
 export function normalizePath(path: string): string {
-	return (path.charAt(0) != "/")
-		? join(PROJECT_PATH, path)
-		: path;
+	return join(PROJECT_PATH, path);
 }
