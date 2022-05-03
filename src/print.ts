@@ -5,7 +5,7 @@ const config = {
 
 
 import { mkdirSync, appendFile } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
 import { EventEmitter } from "events";
 
 import { argument } from "./args";
@@ -16,8 +16,8 @@ import { argument } from "./args";
  * Inherently create directory (path) if does not exist.
  */
 let logDirPath: string = argument("log", "L").binary;
-logDirPath = ((logDirPath.charAt(0) || "/") != "/")
-	? join(require.main.filename, logDirPath)
+logDirPath = ((logDirPath || "/").charAt(0) !== "/")
+	? join(dirname(require.main.filename), logDirPath)
 	: logDirPath;
 
 // TODO: Create error?

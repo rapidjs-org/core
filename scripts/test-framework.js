@@ -4,7 +4,7 @@ const { readdir } = require("fs");
 
 
 /*
- * Retrieve test file directory.
+ * Retrieve optional test file directory passed as CLI argument (first).
  */
 let testDirPath = (process.argv.slice(2)[0] || "./test");
 testDirPath = (testDirPath.charAt(0) != "/")
@@ -25,23 +25,36 @@ const Color = {
 /*
  * Console object overrides for formatted application output.
  */
+const _log = console.log;
+let lastOutFromApp = false;
+const wrapLog = method => {
+    return (...args) => {
+        if(lastOutFromApp) {
+            lastOutFromApp = false;
+
+            _log("");
+        }
+
+        method(...args);
+    }
+};
 const out = {
-    log: console.log,
-    error: console.error,
-    group: console.group,
-    groupEnd: console.groupEnd
+    log: wrapLog(console.log),
+    error: wrapLog(console.error),
+    group: wrapLog(console.group),
+    groupEnd: wrapLog(console.groupEnd)
 };
 console = {};
 console.log = (...msg) => {
     // TODO: Object log?
-    out.log(formatStr(`\n─── app log ───\n${msg.join(" ")}\n───────────────\n`, Color.GRAY, null, 2, 73));
+    
+    _log(formatStr(`${!lastOutFromApp ? "\n─── app log ───\n" : ""}${msg.join(" ")}`, Color.GRAY, null, 2, 73));
+    
+    lastOutFromApp = true;
 }
 console.info = console.log;
 console.warn = console.log;
-console.error = (err) => {
-    // TODO: Object log?
-    out.log(formatStr(`\n─── app error ───\n${err.message}\n──────────────────\n`, Color.RED, null, 2, 73));
-}
+console.error = console.log;
 
 
 // INITIATE TEST SUITE EXECUTION
@@ -69,7 +82,7 @@ function getStrFrame(str, char = "─") {
  */
 process.on("exit", _ => {
     const closingFrame = str => {
-        return `\n${getStrFrame(str, "━")}\n${str}\n`;
+        return `\n${getStrFrame(str)}\n${str}\n`;
     };
 
     // Error has occurred throughout test suite execution
@@ -140,7 +153,7 @@ class Test {
         return {
             check: (...args) => {
                 let actualResult = this.call(...args);
-                
+
                 return {
                     for: async expectedResult => {
                         (actualResult instanceof Promise)
@@ -224,6 +237,7 @@ function testDirectory(dirPath) {
  * Implementation interface.
  */
 module.exports = out;
+module.exports.testDirPath = testDirPath;
 module.exports.Color = Color;
 module.exports.formatStr = formatStr;
 module.exports.Test = Test;

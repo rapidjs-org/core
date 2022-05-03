@@ -1,10 +1,12 @@
 
-const getRequestTest = new NetworkTest("GET request tests", "https://www.werder.de", "GET");
+const getRequestTest = new NetworkTest("GET request tests", "localhost", "GET");
 
 getRequestTest
 .conduct("Fetch correct response to static asset")
-.check("/test")
+.check("/")
 .for({
     status: 200,
-    data: "ABC"
+    headers: {
+        server: "nginx"
+    }
 });

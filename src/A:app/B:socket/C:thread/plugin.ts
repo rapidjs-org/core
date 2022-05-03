@@ -32,6 +32,8 @@ const activePluginRegistry = {
 
 
 function evalPlugin(name: string, modulePath: string) {
+    return;
+    
 	// Empty module cache (for eventual re-evaluation; live behavior in DEV MODE)
 	if(require.cache[modulePath]) {
 		delete require.cache[modulePath];

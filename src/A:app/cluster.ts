@@ -26,7 +26,7 @@ IS_SECURE && print.info(`HTTP (:${PROJECT_CONFIG.read("port", "http").string}) t
 // TODO: Print additional info if HTTP to HTTPS redirection is enabled
 
 if(clusterSize == 1) {
-	process.env.wd = dirname(process.argv[1]);
+	process.env.wd = dirname(require.main.filename);
     
 	// Create a single socket / server if cluster size is 1
 	require("./B:socket/socket");
@@ -39,7 +39,7 @@ if(clusterSize == 1) {
 	// TODO: CPU strategy
 	for(let i = 0; i < clusterSize; i++) {
 		const workerProcess = cluster.fork({
-			wd: dirname(process.argv[1])
+			wd: dirname(require.main.filename)
 		});
 
 		// Pipe worker output to master (this context)

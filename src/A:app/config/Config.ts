@@ -4,15 +4,15 @@ const config = {
 };
 
 
-import { join } from "path";
 import { existsSync } from "fs";
 
 import { mergeObj } from "../../util";
 import { MODE } from "../mode";
 
-import { PROJECT_PATH } from "../path";
+import { normalizePath } from "../util";
 
-// TODO: Reduce computation
+
+// TODO: Reduce computation costs on runtime
 
 export class Config {
     private readonly name: string;
@@ -38,8 +38,7 @@ export class Config {
      */
     private readFile(suffix = "") {
     	// Retrieve custom config object (depending on mode)
-    	const customConfigPath = join(PROJECT_PATH,
-    		`${config.filePrefix}${this.name}${suffix}.json`);
+    	const customConfigPath = normalizePath(`${config.filePrefix}${this.name}${suffix}.json`);
         
     	return existsSync(customConfigPath)
     		? require(customConfigPath)
