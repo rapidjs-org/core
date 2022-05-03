@@ -1,6 +1,6 @@
 
 const { join } = require("path");
-const { readdir } = require("fs");
+const { existsSync, readdir } = require("fs");
 
 
 /*
@@ -21,6 +21,7 @@ const Color = {
     GREEN: [138, 249, 201],
     BLUE: [133, 169, 255]
 };
+
 
 /*
  * Console object overrides for formatted application output.
@@ -47,7 +48,7 @@ const out = {
 console = {};
 console.log = (...msg) => {
     // TODO: Object log?
-    
+
     _log(formatStr(`${!lastOutFromApp ? "\n─── app log ───\n" : ""}${msg.join(" ")}`, Color.GRAY, null, 2, 73));
     
     lastOutFromApp = true;
@@ -58,8 +59,25 @@ console.error = console.log;
 
 
 // INITIATE TEST SUITE EXECUTION
+performTestAction("setup");
 testDirectory(testDirPath);
 
+
+/**
+ * Perform test related action by evaluating an accordingly named file in the test directory (test.<name>.js) (top-level).
+ * @param {String} name Action name
+ */
+function performTestAction(name) {
+    const actionFilePath = join(testDirPath, `test.${name}.js`);
+
+    if(!existsSync(actionFilePath)) {
+        return;
+    }
+
+    out.log(`\n${formatStr(` TEST ${name.toUpperCase()} `, Color.WHITE, Color.GRAY, 1)}`);
+
+    require(actionFilePath);
+}
 
 /**
  * ANSI format a string.
@@ -81,6 +99,8 @@ function getStrFrame(str, char = "─") {
  * Close with message and code according to test results.
  */
 process.on("exit", _ => {
+    performTestAction("cleanup");
+
     const closingFrame = str => {
         return `\n${getStrFrame(str)}\n${str}\n`;
     };
@@ -237,7 +257,5 @@ function testDirectory(dirPath) {
  * Implementation interface.
  */
 module.exports = out;
-module.exports.testDirPath = testDirPath;
-module.exports.Color = Color;
 module.exports.formatStr = formatStr;
 module.exports.Test = Test;

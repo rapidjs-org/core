@@ -1,7 +1,4 @@
-const { join } = require("path");
-const { existsSync } = require("fs");
-
-const { testDirPath, Test, log, Color, formatStr } = require("./test-framework");
+const { Test, log, formatStr } = require("./test-framework");
 
 
 /*
@@ -11,17 +8,6 @@ let lastTestTimeout;
 const lastTestTimeoutLength = (parseInt(process.argv.slice(2)[1]) || 3000);
 if(isNaN(lastTestTimeoutLength)) {
     throw new SyntaxError("Last test case timeout argument must be instance of integer");
-}
-
-
-/*
- * Perform network setup if according file given in test file directory (top-level).
- */
-const setupFilePath = join(testDirPath, "network.setup.js");
-if(existsSync(setupFilePath)) {
-    log(`\n${formatStr(" NETWORK SETUP ", Color.WHITE, Color.GRAY, 1)}`);
-
-    require(setupFilePath);
 }
 
 

@@ -1,0 +1,19 @@
+{
+    "clusterSize": 3,
+    "customHeaders": {
+        "Server": null
+    },
+    "gzipCompressionList": ["html"],
+    "locale": [
+        "en",
+        {
+            "language": "de",
+            "countries": ["GB", "DE"]
+        }
+    ],
+    "limit": {
+        "requestsPerMin": 5,
+        "requestTimeout": 10
+    },
+    "www": "yes"
+}

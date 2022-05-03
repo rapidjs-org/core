@@ -37,14 +37,15 @@
         "prefer-arrow-callback": 2,
         "no-mixed-spaces-and-tabs": 0,
         "no-irregular-whitespace": 0,
+        "no-control-regex": 0,
 
         "@typescript-eslint/no-unused-vars": [
             2,
             {
-                "argsIgnorePattern": "_"
+                "argsIgnorePattern": "^_+$"
             }
         ],
         "@typescript-eslint/no-var-requires": 0,
-        "@typescript-eslint/ban-ts-comment": 0
+        "@typescript-eslint/no-namespace": 0
     }
 }
