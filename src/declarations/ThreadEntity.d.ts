@@ -1,5 +1,5 @@
 declare interface IThreadReq {
-    headers: Map<string, any>,
+    headers: Map<string, unknown>,
     hostname: string,
     ip: string,
     method: string,
@@ -8,7 +8,7 @@ declare interface IThreadReq {
 }
 
 declare interface IThreadRes {
-    headers: Map<string, any>,
+    headers: Map<string, unknown>,
     
     message?: string
     status?: number

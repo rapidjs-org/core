@@ -1,0 +1,1 @@
+declare type TObject = Record<string, unknown>;

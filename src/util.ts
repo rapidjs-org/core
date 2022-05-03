@@ -5,7 +5,7 @@
  * @param {Record} source Object 2 (overriding)
  * @returns {Record} Merged object.
  */
-export function mergeObj(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+export function mergeObj(target: TObject, source: TObject): TObject {
 	// Explicitly merge sub objects
 	for(const key of (Object.keys(target).concat(Object.keys(source)))) {
 		if((target[key] || "").constructor.name !== "Object"
@@ -18,8 +18,8 @@ export function mergeObj(target: Record<string, any>, source: Record<string, any
 		
 		// Recursive
 		source[key] = mergeObj(
-			target[key] as Record<string, unknown>,
-			source[key] as Record<string, unknown>
+			target[key] as TObject,
+			source[key] as TObject
 		);
 	}
 

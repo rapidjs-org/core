@@ -47,9 +47,9 @@ enum Event {
 function log(message: string, channel: Channel) {
 	// TODO: Type based formatting
 	
-	// Highlight numbers (|n| > 1)
+	// Highlight numbers
 	message = message
-		.replace(/(((?!\x1b)(.)){3})([0-9]{2,})/g, `$1${print.format("$4", [
+		.replace(/(^|((?!\x1b)(.)){3})([0-9]+)/g, `$1${print.format("$4", [
 			print.Format.FG_CYAN
 		])}`);
 
