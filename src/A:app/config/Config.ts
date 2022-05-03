@@ -17,9 +17,9 @@ import { normalizePath } from "../util";
 export class Config {
     private readonly name: string;
 
-    private configObj: Record<string, any>;
+    private configObj: TObject;
 
-    constructor(name: string, defaultConfig: Record<string, any> = {}) {
+    constructor(name: string, defaultConfig: TObject = {}) {
     	this.name = name;
 
     	// Default < Generic < Mode specific
@@ -49,10 +49,9 @@ export class Config {
         string: string,
         number: number,
         boolean: boolean,
-        object: any
+        object: unknown
     } {
-    	let value: string|number|boolean;
-
+    	let value;
     	try {
     		for(const key of keys) {
     			value = (value || this.configObj)[key];
@@ -69,7 +68,7 @@ export class Config {
     	};
     }
 
-    public format(callback: (configObj: Record<string, any>) => Record<string, any>) {
+    public format(callback: (configObj: unknown) => TObject) {
     	this.configObj = callback(this.configObj);
     }
 

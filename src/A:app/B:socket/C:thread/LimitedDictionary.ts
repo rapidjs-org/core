@@ -48,8 +48,8 @@ export abstract class LimitedDictionary<L, D> {
 
     protected abstract validateLimitReference(limitReference: L, key?: string): boolean;
 
-    public abstract read(key: string): any;
+    public abstract read(key: string): unknown;
     
-    public abstract write(key: string, data: any): void;
+    public abstract write(key: string, data: unknown): unknown;
     
 }

@@ -70,6 +70,7 @@ namespace ThreadPool {
     	// TODO: Use config file parameter for size?
     });
 
+	// TODO: Thread work timeout (to prevent deadlocks and iteration problems)
     function createThread() {
     	const thread = new Thread(join(__dirname, "./C:thread/thread.js"), {
     		env: SHARE_ENV,
@@ -86,11 +87,9 @@ namespace ThreadPool {
         
     	// Thread error listener
     	thread.on("error", err => {
-    		respondIndividually(activeReqs.get(thread.threadId), {
-    			status: Status.INTERNAL_ERROR
-    		} as IThreadRes);  // TODO: Error response?
-
-    		deactivateThread(thread);
+    		respondGenerically(activeReqs.get(thread.threadId), Status.INTERNAL_ERROR);  // TODO: Error response?
+			
+			createThread();
 
     		// TODO: Error restart limit?
     		print.error(err.message);
@@ -104,21 +103,17 @@ namespace ThreadPool {
     			return;
     		}
             
-    		respondIndividually(activeReqs.get(thread.threadId), {
-    			status: Status.INTERNAL_ERROR
-    		} as IThreadRes);  // TODO: Error response?  // TODO: Error response?
+    		respondGenerically(activeReqs.get(thread.threadId), Status.INTERNAL_ERROR);  // TODO: Error response?  // TODO: Error response?
 
     		createThread();
     	});
-
-    	// TODO: Send already connected plug-in list
 
     	deactivateThread(thread);
     }
 
     function deactivateThread(thread: Thread) {
     	idleThreads.push(thread);
-
+		
     	activateThread(pendingReqs.shift());
     }
 
@@ -127,8 +122,11 @@ namespace ThreadPool {
         tRes: IThreadRes,
         eRes: http.ServerResponse
     }) {
-    	if(entity === undefined
-        || idleThreads.length === 0) {
+    	if(entity === undefined) {
+    		return;
+    	}
+		
+    	if(idleThreads.length === 0) {
     		pendingReqs.push(entity);
             
     		return;
@@ -145,7 +143,7 @@ namespace ThreadPool {
     	});
     }
 
-    export function broadcast(message: Record<string, any>) {
+    export function broadcast(message: TObject) {
     	broadcastChannel.postMessage(message);
     }
 
@@ -197,8 +195,8 @@ const readSSLFile = (type: string) => {
 	}
 
 	path = (path.charAt(0) != "/")
-	? normalizePath(path)
-	: path;
+		? normalizePath(path)
+		: path;
 	if(!existsSync(path)) {
 		throw new ReferenceError(`SSL '${type}' file does not exist '${path}'`);
 	}
@@ -220,12 +218,12 @@ const sslOptions: {
 	: {};
 
 // Set generic server options
-const serverOptions: Record<string, any> = {
+const serverOptions: TObject = {
 	maxHeaderSize: PROJECT_CONFIG.read("limit", "headerSize").number
 };
 
 // Set generic socket options
-const socketOptions: Record<string, any> = {
+const socketOptions: TObject = {
 	backlog: PROJECT_CONFIG.read("limit", "requestsPending").number,
 	host: PROJECT_CONFIG.read("hostname").string,
 };
@@ -266,7 +264,7 @@ const socketOptions: Record<string, any> = {
 			// Relevant headers to have overriding access throughout handler routine
 			headers: new HeadersMap(mergeObj({
 				"Server": "rapidJS"
-			}, (PROJECT_CONFIG.read("customHeaders").object || {})))
+			}, (PROJECT_CONFIG.read("customHeaders").object || {}) as TObject) as Record<string, string|number|boolean>)
 		};
 
 		// TODO: Emit connection event for individual request logs
@@ -275,7 +273,7 @@ const socketOptions: Record<string, any> = {
 		if(rateExceeded(tReq.ip)) {
 			return respondGenerically(eRes, Status.RATE_EXCEEDED);
 		}
-    
+		
 		// Request handler
 		ThreadPool.activateThread({
 			tReq, tRes,
@@ -293,6 +291,7 @@ const socketOptions: Record<string, any> = {
  * REDIRECTION SERVER (HTTP -> HTTPS).
  * Only activates in secure mode (https configured).
  */
+// TODO: Necessary?
 IS_SECURE && http
 	.createServer(serverOptions, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
 		eRes.statusCode = Status.REDIRECT;
@@ -315,13 +314,13 @@ IS_SECURE && http
 /*
  * IPC interface (top-down).
  */
-export function message(message: Record<string, any>) {
+export function message(message: TObject) {
 	// TODO: IPC types
 	switch(message.type) {
 	case IPCSignal.PLUGIN:
-		ThreadPool.broadcast(message.data);
+		ThreadPool.broadcast(message.data as TObject);
 
-		passivePluginRegistry.push(message.data);
+		passivePluginRegistry.push(message.data as IPassivePlugin);
             
 		break;
 	}

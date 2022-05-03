@@ -5,6 +5,7 @@
 export enum Status {
     // Success codes
     SUCCESS = 200,
+    PARTIAL_INFORMATION = 203,
 
     // Redirection codes
     REDIRECT = 301,
@@ -14,6 +15,7 @@ export enum Status {
     FORBIDDEN = 403,
     NOT_FOUND = 404,
     UNSUPPORTED_METHOD = 405,
+    NOT_ACCEPTABLE  = 406,
     TIMEOUT = 408,
     URL_EXCEEDED = 414,
     RATE_EXCEEDED = 429,

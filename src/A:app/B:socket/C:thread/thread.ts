@@ -8,7 +8,7 @@ import config from "../../app.config.json";
 
 import handleAsset from "./handler/handler.asset";
 import handlePlugin from "./handler/handler.plugin";
-import { registerActivePlugin } from "./plugin";
+import { registerActivePlugin } from "./plugin/registry";
 
 
 /**
@@ -50,6 +50,6 @@ workerData.forEach(passivePlugin => {
  * Single (new) plug-in connection directive.
  */
 const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
-broadcastChannel.onmessage = (message: Record<string, any>) => {
-	registerActivePlugin(message.data);
+broadcastChannel.onmessage = (message: TObject) => {
+	registerActivePlugin(message.data as IPassivePlugin);
 };

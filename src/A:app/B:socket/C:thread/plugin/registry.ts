@@ -15,28 +15,36 @@ const config = {
 };
 
 
-import { print } from "../../../print";
+import { existsSync, readFileSync } from "fs";
+import { join, dirname } from "path";
 
-import { PLUGIN_CONFIG } from "../../config/config.plugins";
-import * as commonInterface from "../../interface.common";
+import { print } from "../../../../print";
+
+import { PLUGIN_CONFIG } from "../../../config/config.plugins";
+import * as commonInterface from "../../../interface.common";
 
 
 const interfaceModulePath: string = require.resolve("./interface.plugin");
 
 const activePluginRegistry = {
 	dict: new Map<string, {
+        integrateManually: boolean;
+        moduleDirPath: string;
+
         clientModuleText?: string;
+        compoundOnly?: boolean;
     }>(),
-	genericIntegrationList: new Set<string>()
+	genericIntegrationList: {
+        any: new Set<string>(),
+        compoundOnly: new Set<string>()
+    }
 };
 
 
-function evalPlugin(name: string, modulePath: string) {
-    return;
-    
+function evalPlugin(name: string, moduleDirPath: string) {
 	// Empty module cache (for eventual re-evaluation; live behavior in DEV MODE)
-	if(require.cache[modulePath]) {
-		delete require.cache[modulePath];
+	if(require.cache[moduleDirPath]) {
+		delete require.cache[moduleDirPath];
 	}
 
 	const Module = require("module");   // for runtime dynamic module wrapping
@@ -57,8 +65,11 @@ function evalPlugin(name: string, modulePath: string) {
 		// };
 		Module.wrap = ((_exports, _, __, __filename, __dirname) => {
 			return `${Module.wrapper[0]}
-                for(const prop in require("${interfaceModulePath}")) {
-                    this[prop] = require("${interfaceModulePath}")[prop];
+            const interface = require("${interfaceModulePath}");
+                for(const prop in interface) {
+                    this[prop] = (...args) => {
+                        interface[prop]("${name}", ...args);
+                    };
                 }
                 
                 this.${config.pluginConfigIdentifier} = ${JSON.stringify(PLUGIN_CONFIG)};
@@ -66,13 +77,13 @@ function evalPlugin(name: string, modulePath: string) {
             ${_exports}${Module.wrapper[1]}`;
 		});
 
-		pluginModule = require.main.require(modulePath);	// Require using the modified module wrapper
+		pluginModule = require.main.require(moduleDirPath);	// Require using the modified module wrapper
 	} catch(err) {
 		Module.wrap = _wrap;
 
 		throw err;
 	}
-
+    
 	Module.wrap = _wrap;
 
 	// TODO: Option for muting output of threads except one to remove duplicates (static context)?
@@ -88,71 +99,58 @@ function evalPlugin(name: string, modulePath: string) {
 
 
 export function registerActivePlugin(plugin: IPassivePlugin) {
+	activePluginRegistry.dict.set(plugin.name, {
+        integrateManually: plugin.options.integrateManually,
+        moduleDirPath: dirname(plugin.modulePath)
+	});
+    
 	try {
 		evalPlugin(plugin.name, plugin.modulePath);
 	} catch(err) {
 		print.info(`An error occurred within the '${plugin.name}' plug-in module`);
 		print.error(err);
 	}
-    
-	activePluginRegistry.dict.set(plugin.name, {
-		clientModuleText: ""
-	});
-
-	// Manipulate generic integration set according to integration option
-	activePluginRegistry.genericIntegrationList
-		[plugin.options.integrateManually ? "delete" : "add"](plugin.name);
 }
 
-export function bindClientModule(relativePath: string, sharedProperties?: Record<string, any>, compoundOnly?: boolean) {
-	console.log(relativePath);
+export function retireveClientModuleScript(pluginName: string): string {
+    return (activePluginRegistry.dict.get(pluginName) || {}).clientModuleText;
+}
 
-	/* const pluginName: string = Plugin.getNameByCall(__filename);	// TODO: Wont work with main file implicit local referencing (file path comparison); Fix!
+export function retrieveIntegrationPluginNames(isCompound: boolean) {
+    return Array.from(isCompound
+    ? activePluginRegistry.genericIntegrationList.compoundOnly
+    : new Set([...activePluginRegistry.genericIntegrationList.any, ...activePluginRegistry.genericIntegrationList.compoundOnly]))
+}
 
+
+// PLIUG-IN INTERFACE
+
+export function bindClientModule(associatedPluginName: string, relativePath: string, sharedProperties?: TObject, compoundOnly?: boolean) {
     // TODO: Swap shared and compound argument as of usage frequency (keep backwards compatibility with type check augmented overload)
 
-    if(/^\//.test(relativePath)) {
-        throw new SyntaxError(`Expecting relative path to plugin client module upon initialization, given absolute path '${relativePath}' for '${pluginName}'`);
-    }
+    const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
 
     // Construct path to plugin client script file
-    const pluginDirPath: string = dirname(Plugin.getCallerPath(__filename));
-    let clientFilePath: string = join(pluginDirPath, relativePath);
-    clientFilePath = (extname(clientFilePath).length == 0)
-        ? `${clientFilePath}.js`
-        : clientFilePath;
+    const clientModuleFilePath: string = join(pluginObj.moduleDirPath, relativePath).replace(/(\.js)?$/, ".js");
 
     // Read client module file
-    if(!existsSync(clientFilePath)) {
-        throw new ReferenceError(`Client module file for plugin '${pluginName}' not found at given path '${clientFilePath}'`);
+    if(!existsSync(clientModuleFilePath)) {
+        throw new ReferenceError(`Client module file of plugin '${associatedPluginName}' not found at  '${clientModuleFilePath}'`);
     }
-
-    const bareClientScript = String(readFileSync(clientFilePath));
+    const bareClientScript = String(readFileSync(clientModuleFilePath));
 
     // Construct individual script module
     const modularClientScript: string[] = [`
         ${config.clientModuleAppName} = {
             ... ${config.clientModuleAppName},
             ... {
-                "${pluginName}": (_ => {
-                    const console = {
-                        log: message => {
-                            const atomic = ["string", "number", "boolean"].includes(typeof(message));
-                            window.console.log(\`%c[rJS]%c[${pluginName}] %c\${atomic ? message : "\u2193"}\`, "color: gold;", "color: DarkTurquoise;", "color: auto;");
-                            !atomic && window.console.log(message);
-                        },
-                        error: err => {
-                            window.console.log(\`%c[rJS]%c[${pluginName}] %c\${err.message}\`, "color: gold;", "color: DarkTurquoise;", "color: red;");
-                            window.console.error(err);
-                        }
-                    };
-
+                "${associatedPluginName}": (_ => {
                     const endpoint = {
                         use: (body, progressHandler) => {
-                            return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${pluginName}", body, progressHandler);
+                            return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler);
                         },
                         useNamed: (name, body, progressHandler) => {
-                            return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${pluginName}", body, progressHandler, name);
+                            return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler, name);
                         }
                     };
                     
@@ -163,7 +161,7 @@ export function bindClientModule(relativePath: string, sharedProperties?: Record
                         useNamedEndpoint: endpoint.useNamed,
 
                         ${config.clientModuleReferenceName.public}: {},
-                        ${config.clientModuleReferenceName.shared}: ${JSON.stringify(sharedConfig)}
+                        ${config.clientModuleReferenceName.shared}: ${JSON.stringify(sharedProperties)}
                     };
 
                     for(const member in ${config.thisRetainerIdentifier}) {
@@ -178,17 +176,22 @@ export function bindClientModule(relativePath: string, sharedProperties?: Record
                 })()
             }
         }
-    `]
-        .map(part => {
-            // Minifiy wrapper
-            return part
-                .replace(/([{};,])\s+/g, "$1")
-                .trim();
-        });
+    `].map(part => {
+        // Minifiy wrapper
+        return part
+        .replace(/([{};,])\s+/g, "$1")
+        .trim();
+    });
 
-    // Register client module in order to be integrated into pages upon request// Write module and compound directive to registry
-    const registryEntry = Plugin.registry.get(pluginName);
+    // Register client module in order to be integrated into pages upon request
+    pluginObj.clientModuleText = `${modularClientScript[0]}${bareClientScript}${(bareClientScript.slice(-1) != ";") ? ";" : ""}${modularClientScript[1]}`;
+    pluginObj.compoundOnly = compoundOnly;
 
-    registryEntry.clientScript = Buffer.from(`${modularClientScript[0]}${bareClientScript}${(bareClientScript.slice(-1) != ";") ? ";" : ""}${modularClientScript[1]}`, "utf-8");
-    registryEntry.compoundOnly = compoundOnly; */
+    activePluginRegistry.dict.set(associatedPluginName, pluginObj);
+
+	// Manipulate generic integration set according to integration option
+	activePluginRegistry.genericIntegrationList
+    .compoundOnly[(!pluginObj.integrateManually && compoundOnly) ? "add" : "delete"](associatedPluginName);
+	activePluginRegistry.genericIntegrationList
+    .any[(!pluginObj.integrateManually && !compoundOnly) ? "add" : "delete"](associatedPluginName);
 }

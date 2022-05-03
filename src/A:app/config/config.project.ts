@@ -21,23 +21,33 @@ import { Config } from "./Config";
 
 export const PROJECT_CONFIG = new Config("config", mergeObj(DEFAULT_CONFIG, MODE.PROD ? DEFAULT_CONFIG_PROD : DEFAULT_CONFIG_DEV));
 
-PROJECT_CONFIG.format((configObj: Record<string, any>) => {
-	configObj.webDirectory = validatePath("web", configObj.webDirectory);
+
+interface IProjectConfig {
+	extensionWhitelist: string[],
+	webDirectory: string,
+	mimes: Record<string, string>
+}
+
+
+PROJECT_CONFIG.format((configObj: TObject) => {
+	const typedConfigObj = configObj as unknown as IProjectConfig;
+
+	validatePath("web", typedConfigObj.webDirectory);
     
 	// Normalize extension arrays for future uniform usage
-	configObj.extensionWhitelist = (configObj.extensionWhitelist || [])
+	typedConfigObj.extensionWhitelist = (typedConfigObj.extensionWhitelist || [])
 		.map(extension => {
 			return normalizeExtension(extension);
 		});
 
 	// Normalize MIMEs map object keys (representing file extensions)
 	const normalizedMimesMap: Record<string, string> = {};
-	for(const extension in (configObj.mimes as Record<string, string>)) {
-		normalizedMimesMap[normalizeExtension(extension)] = configObj.mimes[extension];
+	for(const extension in (typedConfigObj.mimes as Record<string, string>)) {
+		normalizedMimesMap[normalizeExtension(extension)] = typedConfigObj.mimes[extension];
 	}
-	configObj.mimes = normalizedMimesMap;
+	typedConfigObj.mimes = normalizedMimesMap;
 
-	return configObj;
+	return typedConfigObj as unknown as TObject;
 });
 
 
@@ -55,7 +65,7 @@ function validatePath(caption: string, path: string, require = false) {
 			throw new ReferenceError(`Missing required ${caption} directory path configuration`);
 		}
 
-		return undefined;
+		return;
 	}
 
 	path = normalizePath(path);
@@ -69,6 +79,4 @@ function validatePath(caption: string, path: string, require = false) {
 			throw new ReferenceError(`Given ${caption} directory configuration neither exist nor can be created '${path}'`);
 		}
 	}
-
-	return path;
 }

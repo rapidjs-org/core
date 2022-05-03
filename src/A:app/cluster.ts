@@ -31,6 +31,8 @@ if(clusterSize == 1) {
 	// Create a single socket / server if cluster size is 1
 	require("./B:socket/socket");
 } else {
+	let initClusterProcesses = 0;
+
 	// Create cluster (min. 2 sockets / servers)
 	cluster.settings.exec = join(__dirname, "./B:socket/socket"); // SCRIPT
 	cluster.settings.args = process.argv.slice(2); // ARGS
@@ -69,7 +71,8 @@ if(clusterSize == 1) {
 	}, config.autoRestartTimeout);
 
 	cluster.on("listening", thread => {
-		print.info(`Thread ${thread.id} has set up server`);
+		(++initClusterProcesses == clusterSize)
+		&& print.info(`${clusterSize} cluster sockets have been set up`);
 	});
 
 	cluster.on("message", (_, message) => {
@@ -78,8 +81,8 @@ if(clusterSize == 1) {
 }
 
 
-export function ipcDown(type: IPCSignal , data: Record<string, any>) {
-	const message: Record<string, any> = {
+export function ipcDown(type: IPCSignal , data: TObject) {
+	const message: TObject = {
 		type,
 		data
 	};
