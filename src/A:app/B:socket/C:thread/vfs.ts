@@ -36,9 +36,8 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
     }
 
     public read(path: string): FileStamp {
-    	let data: FileStamp;
-
-    	if(data = this.cache.read(path)) {
+    	let data: FileStamp = this.cache.read(path);
+    	if(data) {
     		return data;
     	}
 		

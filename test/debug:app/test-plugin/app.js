@@ -23,3 +23,7 @@ $this.clientModule("./client");
 $this.endpoint(_ => {
     return `${retrieveName(names.first)} ${retrieveName(names.last)}`;
 });
+
+$this.namedEndpoint("abc", _ => {
+    return "def";
+});

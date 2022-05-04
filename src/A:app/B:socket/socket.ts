@@ -89,7 +89,7 @@ namespace ThreadPool {
     	thread.on("error", err => {
     		respondGenerically(activeReqs.get(thread.threadId), Status.INTERNAL_ERROR);  // TODO: Error response?
 			
-			createThread();
+    		createThread();
 
     		// TODO: Error restart limit?
     		print.error(err.message);

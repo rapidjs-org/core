@@ -30,7 +30,7 @@ export function plugin(reference: string, options: IPluginOptions) {
 	
 	// Name safe guards
 	if(name === config.coreIdentifier) {
-		throw new SyntaxError(`Plug-in name illegally resolved to reserved name 'core'.`);
+		throw new SyntaxError("Plug-in name illegally resolved to reserved name 'core'.");
 	}
 	if(!pluginNameRegex.test(name)) {
 		throw new SyntaxError(`Resolved plug-in name '${name}' is not URL-safe.`);

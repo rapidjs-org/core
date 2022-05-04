@@ -35,9 +35,9 @@ const activePluginRegistry = {
         compoundOnly?: boolean;
     }>(),
 	genericIntegrationList: {
-        any: new Set<string>(),
-        compoundOnly: new Set<string>()
-    }
+		any: new Set<string>(),
+		compoundOnly: new Set<string>()
+	}
 };
 
 
@@ -63,7 +63,7 @@ function evalPlugin(name: string, moduleDirPath: string) {
 		//         require("${require.resolve("../../utilities/output")}").error(err, false, "${name}");
 		//     }
 		// };
-		Module.wrap = ((_exports, _, __, __filename, __dirname) => {
+		Module.wrap = (_exports => {
 			return `${Module.wrapper[0]}
             const interface = require("${interfaceModulePath}");
                 for(const prop in interface) {
@@ -100,8 +100,8 @@ function evalPlugin(name: string, moduleDirPath: string) {
 
 export function registerActivePlugin(plugin: IPassivePlugin) {
 	activePluginRegistry.dict.set(plugin.name, {
-        integrateManually: plugin.options.integrateManually,
-        moduleDirPath: dirname(plugin.modulePath)
+		integrateManually: plugin.options.integrateManually,
+		moduleDirPath: dirname(plugin.modulePath)
 	});
     
 	try {
@@ -113,85 +113,80 @@ export function registerActivePlugin(plugin: IPassivePlugin) {
 }
 
 export function retireveClientModuleScript(pluginName: string): string {
-    return (activePluginRegistry.dict.get(pluginName) || {}).clientModuleText;
+	return (activePluginRegistry.dict.get(pluginName) || {}).clientModuleText;
 }
 
-export function retrieveIntegrationPluginNames(isCompound: boolean) {
-    return Array.from(isCompound
-    ? activePluginRegistry.genericIntegrationList.compoundOnly
-    : new Set([...activePluginRegistry.genericIntegrationList.any, ...activePluginRegistry.genericIntegrationList.compoundOnly]))
+export function retrieveIntegrationPluginNames(isCompound: boolean): Set<string> {
+	return isCompound
+		? new Set([...activePluginRegistry.genericIntegrationList.any, ...activePluginRegistry.genericIntegrationList.compoundOnly])
+		: activePluginRegistry.genericIntegrationList.any;
 }
 
 
 // PLIUG-IN INTERFACE
 
 export function bindClientModule(associatedPluginName: string, relativePath: string, sharedProperties?: TObject, compoundOnly?: boolean) {
-    // TODO: Swap shared and compound argument as of usage frequency (keep backwards compatibility with type check augmented overload)
+	// TODO: Swap shared and compound argument as of usage frequency (keep backwards compatibility with type check augmented overload)
 
-    const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
+	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
 
-    // Construct path to plugin client script file
-    const clientModuleFilePath: string = join(pluginObj.moduleDirPath, relativePath).replace(/(\.js)?$/, ".js");
+	// Construct path to plugin client script file
+	const clientModuleFilePath: string = join(pluginObj.moduleDirPath, relativePath).replace(/(\.js)?$/, ".js");
 
-    // Read client module file
-    if(!existsSync(clientModuleFilePath)) {
-        throw new ReferenceError(`Client module file of plugin '${associatedPluginName}' not found at  '${clientModuleFilePath}'`);
-    }
-    const bareClientScript = String(readFileSync(clientModuleFilePath));
+	// Read client module file
+	if(!existsSync(clientModuleFilePath)) {
+		throw new ReferenceError(`Client module file of plugin '${associatedPluginName}' not found at  '${clientModuleFilePath}'`);
+	}
+	const bareClientScript = String(readFileSync(clientModuleFilePath));
 
-    // Construct individual script module
-    const modularClientScript: string[] = [`
-        ${config.clientModuleAppName} = {
-            ... ${config.clientModuleAppName},
-            ... {
-                "${associatedPluginName}": (_ => {
-                    const endpoint = {
-                        use: (body, progressHandler) => {
-                            return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler);
-                        },
-                        useNamed: (name, body, progressHandler) => {
-                            return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler, name);
-                        }
-                    };
-                    
-                    const ${config.thisRetainerIdentifier} = {
-                        endpoint: endpoint.use,
-                        useEndpoint: endpoint.use,
-                        namedEndpoint: endpoint.useNamed,
-                        useNamedEndpoint: endpoint.useNamed,
+	// Construct individual script module
+	const modularClientScript: string[] = [`
+        ${config.clientModuleAppName}["${associatedPluginName}"] = (_ => {
+            const endpoint = {
+                use: (body, progressHandler) => {
+                    return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler);
+                },
+                useNamed: (name, body, progressHandler) => {
+                    return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler, name);
+                }
+            };
+            
+            const ${config.thisRetainerIdentifier} = {
+                endpoint: endpoint.use,
+                useEndpoint: endpoint.use,
+                namedEndpoint: endpoint.useNamed,
+                useNamedEndpoint: endpoint.useNamed,
 
-                        ${config.clientModuleReferenceName.public}: {},
-                        ${config.clientModuleReferenceName.shared}: ${JSON.stringify(sharedProperties)}
-                    };
+                ${config.clientModuleReferenceName.public}: {},
+                ${config.clientModuleReferenceName.shared}: ${JSON.stringify(sharedProperties)}
+            };
 
-                    for(const member in ${config.thisRetainerIdentifier}) {
-                        this[member] = ${config.thisRetainerIdentifier}[member]
-                    }
-
-                    delete endpoint;
-                    
-                    `,`
-                    
-                    return ${config.thisRetainerIdentifier}.${config.clientModuleReferenceName.public};
-                })()
+            for(const member in ${config.thisRetainerIdentifier}) {
+                this[member] = ${config.thisRetainerIdentifier}[member]
             }
-        }
+
+            delete endpoint;
+            
+            `,`
+            
+            return ${config.thisRetainerIdentifier}.${config.clientModuleReferenceName.public};
+        })();
     `].map(part => {
-        // Minifiy wrapper
-        return part
-        .replace(/([{};,])\s+/g, "$1")
-        .trim();
-    });
+		// Minifiy wrapper
+		return part
+			.replace(/([{};,])\s+/g, "$1")
+			.trim();
+	});
 
-    // Register client module in order to be integrated into pages upon request
-    pluginObj.clientModuleText = `${modularClientScript[0]}${bareClientScript}${(bareClientScript.slice(-1) != ";") ? ";" : ""}${modularClientScript[1]}`;
-    pluginObj.compoundOnly = compoundOnly;
+	// Register client module in order to be integrated into pages upon request
+	pluginObj.clientModuleText = `${modularClientScript[0]}${bareClientScript}${(bareClientScript.slice(-1) != ";") ? ";" : ""}${modularClientScript[1]}`;
+	pluginObj.compoundOnly = compoundOnly;
 
-    activePluginRegistry.dict.set(associatedPluginName, pluginObj);
+	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
 
 	// Manipulate generic integration set according to integration option
 	activePluginRegistry.genericIntegrationList
-    .compoundOnly[(!pluginObj.integrateManually && compoundOnly) ? "add" : "delete"](associatedPluginName);
+		.compoundOnly[(!pluginObj.integrateManually && compoundOnly) ? "add" : "delete"](associatedPluginName);
 	activePluginRegistry.genericIntegrationList
-    .any[(!pluginObj.integrateManually && !compoundOnly) ? "add" : "delete"](associatedPluginName);
+		.any[(!pluginObj.integrateManually && !compoundOnly) ? "add" : "delete"](associatedPluginName);
 }

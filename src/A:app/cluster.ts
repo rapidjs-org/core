@@ -70,7 +70,7 @@ if(clusterSize == 1) {
 		});
 	}, config.autoRestartTimeout);
 
-	cluster.on("listening", thread => {
+	cluster.on("listening", _ => {
 		(++initClusterProcesses == clusterSize)
 		&& print.info(`${clusterSize} cluster sockets have been set up`);
 	});

@@ -6,11 +6,15 @@ export function clientModule(associatedPluginName: string, relativePathToModule:
 	bindClientModule(associatedPluginName, relativePathToModule, sharedProperties, compoundOnly);
 }
 
-export function endpoint(callback: (body: TObject, req: IRequestInfo) => unknown, useCache = false) {
+export function readSupportFile(associatedPluginName: string, name: string): string {
+	return "";
+}
+
+export function endpoint(associatedPluginName: string, callback: (body: TObject, req: IRequestInfo) => unknown, useCache = false) {
 
 }
 
-export function namedEndpoint(name: string, callback: (body: TObject, req: IRequestInfo) => unknown, useCache = false) {
+export function namedEndpoint(associatedPluginName: string, name: string, callback: (body: TObject, req: IRequestInfo) => unknown, useCache = false) {
 	if(name.length == 0) {
 		throw new SyntaxError("Endpoint name must not be empty");
 	}
