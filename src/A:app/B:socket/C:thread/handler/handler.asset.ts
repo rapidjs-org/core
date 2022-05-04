@@ -12,6 +12,7 @@ import { readFileSync } from "fs";
 import { join, extname } from "path";
 
 import { MODE } from "../../../mode";
+import { PROJECT_CONFIG } from "../../../config/config.project";
 
 import { Status } from "../../Status";
 
@@ -30,6 +31,8 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	if((new RegExp(`^${pluginReferenceSourceRegexStr}$`, "i")).test(tReq.pathname)) {
 		// Plug-in module request
 		tRes = handlePlugin(tRes, tReq.pathname);
+
+		tRes.headers.set("Content-Type", "text/javascript");
 
 		return tRes;
 	}
@@ -55,6 +58,12 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	
 	if(tRes.status !== Status.SUCCESS) {
 		return tRes;
+	}
+	
+	const mime: string = PROJECT_CONFIG.read("mimes", extension || config.dynamicFileExtension).string;
+	if(mime) {
+		tRes.headers.set("Content-Type", mime);
+		tRes.headers.set("X-Content-Type-Options", "nosniff");
 	}
 
 	if(!MODE.dev

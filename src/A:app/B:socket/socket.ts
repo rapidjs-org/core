@@ -92,8 +92,7 @@ namespace ThreadPool {
     		createThread();
 
     		// TODO: Error restart limit?
-    		print.error(err.message);
-    		console.log(err.stack);
+    		print.error(err);
     	});
         
     	// Erroneous thread close listener
@@ -135,7 +134,7 @@ namespace ThreadPool {
     	const thread = idleThreads.shift();  // FIFO
 
     	activeReqs.set(thread.threadId, entity.eRes);
-
+		
     	// Filter HTTP request object for thread reduced request object
     	thread.postMessage({
     		tReq: entity.tReq,
@@ -165,11 +164,11 @@ function respondIndividually(eRes: http.ServerResponse, tRes: IThreadRes) {
 	const messageBuffer: Buffer = Buffer.from(tRes.message ? tRes.message : http.STATUS_CODES[tRes.status], "utf-8");
 
 	// Common headers
-	tRes.headers.set("X-XSS-Protection", "1; mode=block");
-	tRes.headers.set("Referrer-Policy", "no-referrer-when-downgrade");
-	tRes.headers.set("Content-Length", Buffer.byteLength(messageBuffer, "utf-8"));
-	tRes.headers.set("Strict-Transport-Security", IS_SECURE ? `max-age=${PROJECT_CONFIG.read("cachingDuration", "client")}; includeSubDomains` : null);
 	tRes.headers.set("Cache-Control", PROJECT_CONFIG.read("cache", "client").object ? `public, max-age=${PROJECT_CONFIG.read("cache", "client").number}, must-revalidate` : null);
+	tRes.headers.set("Content-Length", Buffer.byteLength(messageBuffer, "utf-8"));
+	tRes.headers.set("Referrer-Policy", "no-referrer-when-downgrade");
+	tRes.headers.set("Strict-Transport-Security", IS_SECURE ? `max-age=${PROJECT_CONFIG.read("cachingDuration", "client")}; includeSubDomains` : null);
+	tRes.headers.set("X-XSS-Protection", "1; mode=block");
 
 	// Additional headers set from handler
 	tRes.headers
@@ -228,6 +227,54 @@ const socketOptions: TObject = {
 	host: PROJECT_CONFIG.read("hostname").string,
 };
 
+
+// HELPERS
+
+interface IBodyParseError {
+	status: Status,
+	
+	err?: Error
+}
+
+function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
+	return new Promise((resolve: (_: TObject) => void, reject: (_: IBodyParseError) => void) => {
+		const body: string[] = [];
+				
+		eReq.on("data", chunk => {
+			body.push(chunk);
+
+			if((body.length * 8) > (PROJECT_CONFIG.read("limit", "payloadSize").number || Infinity)) {
+				// Abort processing if body payload exceeds maximum size
+				reject({
+					status: Status.RATE_EXCEEDED
+				});
+			}
+		});
+
+		eReq.on("end", _ => {
+			// Parse payload
+			try {
+				resolve((body.length > 0) ? JSON.parse(body.toString()) : null);
+			} catch(err) {
+				reject({
+					status: Status.PRECONDITION_FAILED,
+
+					err: err
+				});
+			}
+		});
+
+		eReq.on("error", (err: Error) => {
+			reject({
+				status: Status.INTERNAL_ERROR,
+
+				err: err
+			});
+		});
+	});
+}
+
+
 /*
  * ESSENTIAL APP SERVER SOCKET.
  */
@@ -248,6 +295,7 @@ const socketOptions: TObject = {
         
 		// Construct thread request object related to the current response
 		const url: URL = new URL(`http${IS_SECURE ? "s" : ""}://${eReq.headers["host"]}${eReq.url}`);
+		
 		const tReq: IThreadReq = {
 			ip: String(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress,
 			method: eReq.method.toUpperCase(),
@@ -259,6 +307,7 @@ const socketOptions: TObject = {
 				"If-None-Match": eReq.headers["if-none-match"]
 			})
 		};
+
 		const tRes: IThreadRes = {
 			// Already set static headers with custom overrides
 			// Relevant headers to have overriding access throughout handler routine
@@ -275,10 +324,29 @@ const socketOptions: TObject = {
 		}
 		
 		// Request handler
-		ThreadPool.activateThread({
+		const threadInfo = {
 			tReq, tRes,
 			eRes
-		});
+		};
+
+		// Parse body first (async) if is plug-in (POST) request
+		if(tReq.method === "POST") {
+			parseRequestBody(eReq)
+			.then((body: TObject) => {
+				threadInfo.tReq.body = body;
+
+				ThreadPool.activateThread(threadInfo);
+			})
+			.catch((bodyParseError: IBodyParseError) => {
+				respondGenerically(eRes, bodyParseError.status);
+
+				bodyParseError.err && print.error(bodyParseError.err);
+			});
+			
+			return;
+		}
+		
+		ThreadPool.activateThread(threadInfo);
 	})
 	.listen({
 		...socketOptions,

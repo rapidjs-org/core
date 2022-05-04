@@ -55,7 +55,7 @@ if(clusterSize == 1) {
 
 	// Automatic restart on error
 	// Starts after specified timeout in order to prevent endless restarts on start up errors
-	setTimeout(() => {
+	setTimeout(_ => {
 		cluster.on("exit", (workerProcess, code) => {
 			if (code === 0 || workerProcess.exitedAfterDisconnect) {
 				return;

@@ -27,13 +27,13 @@ parentPort.on("message", (post: {
 	// GET: File request (either a dynamic and static routine; based on filer type)
 	// HEAD: Resembles a GET request, but without the transferral of content
 	if(["GET", "HEAD"].includes(post.tReq.method))  {
-		return respond(handleAsset(post.tReq, post.tRes), (post.tReq.method === "HEAD"));
+		respond(handleAsset(post.tReq, post.tRes), (post.tReq.method === "HEAD"));
+
+		return;
 	}
     
 	// POST: Plug-in request
-	if(post.tReq.method === "POST") {
-		return respond(handlePlugin(post.tReq, post.tRes));
-	}
+	respond(handlePlugin(post.tReq, post.tRes));
 });
 
 

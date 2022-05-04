@@ -118,10 +118,12 @@ export namespace print {
 		write(message, Channel.LOG, Event.DEBUG);
 	}
 
-	export function error(message: string) {
-		write(format(message, [
+	export function error(errEntity: Error|string|number|boolean) {
+		write(format((errEntity instanceof Error) ? errEntity.message : String(errEntity), [
 			Format.FG_RED
 		]), Channel.ERROR, Event.ERROR);
+		
+		(errEntity instanceof Error) && console.log(errEntity.stack);
 	}
 
 }

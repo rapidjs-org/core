@@ -8,10 +8,7 @@ import { LimitedDictionary } from "./LimitedDictionary";
 export class Cache<D> extends LimitedDictionary<number, D> {
 
 	constructor(duration?: number, normalizationCallback?: (key: string) => string) {
-		super(!MODE.DEV
-			? duration || PROJECT_CONFIG.read("cachingDuration", "server").number
-			: 0
-		, normalizationCallback);
+		super(duration || PROJECT_CONFIG.read("cachingDuration", "server").number, normalizationCallback);
 	}
 
 	protected validateLimitReference(timestamp: number) {

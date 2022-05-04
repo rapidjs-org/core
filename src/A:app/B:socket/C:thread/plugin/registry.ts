@@ -1,7 +1,7 @@
 
 const config = {
-	configFilePluginScopeName: "plugin",
-	coreModuleIdentifier: "core",
+	...require("../../../app.config.json"),
+
 	pluginConfigIdentifier: "pluginConfig",
 	clientModuleAppName: "rapidJS",
 	clientModuleReferenceName: {
@@ -144,10 +144,10 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
         ${config.clientModuleAppName}["${associatedPluginName}"] = (_ => {
             const endpoint = {
                 use: (body, progressHandler) => {
-                    return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler);
+                    return ${config.clientModuleAppName}.${config.coreIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler);
                 },
                 useNamed: (name, body, progressHandler) => {
-                    return ${config.clientModuleAppName}.${config.coreModuleIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler, name);
+                    return ${config.clientModuleAppName}.${config.coreIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler, name);
                 }
             };
             

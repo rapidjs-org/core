@@ -4,7 +4,9 @@ declare interface IThreadReq {
     ip: string,
     method: string,
     pathname: string,
-    searchParams: URLSearchParams
+    searchParams: URLSearchParams,
+
+    body?: TObject
 }
 
 declare interface IThreadRes {

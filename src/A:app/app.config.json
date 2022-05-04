@@ -1,5 +1,6 @@
 {
     "coreIdentifier": "core",
+    "defaultEndpointName": "::default",
     "dynamicFileExtension": "html",
     "threadsBroadcastChannelName": "bc"
 }

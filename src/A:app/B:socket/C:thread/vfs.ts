@@ -4,7 +4,6 @@ import { statSync, existsSync, readFileSync } from "fs";
 
 import { normalizePath } from "../../util";
 
-import { MODE } from "../../mode";
 import { PROJECT_CONFIG } from "../../config/config.project";
 
 import { LimitedDictionary } from "./LimitedDictionary";
@@ -41,8 +40,7 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
     		return data;
     	}
 		
-    	if(MODE.DEV
-		|| !(data = super.getEntry(path))) {
+    	if(!(data = super.getEntry(path))) {
     		// Try to write if intially not found
     		this.write(path);
     	}
