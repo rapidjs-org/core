@@ -10,3 +10,5 @@ declare interface IPassivePlugin {
     modulePath: string;
     options: IPluginOptions;
 }
+
+declare type TEndpointHandler = (body: TObject, req: IRequestInfo) => unknown;

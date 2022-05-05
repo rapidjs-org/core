@@ -92,6 +92,7 @@ namespace ThreadPool {
     		createThread();
 
     		// TODO: Error restart limit?
+    		// TODO: Do not print 'Unhandled error...'
     		print.error(err);
     	});
         
@@ -332,16 +333,16 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 		// Parse body first (async) if is plug-in (POST) request
 		if(tReq.method === "POST") {
 			parseRequestBody(eReq)
-			.then((body: TObject) => {
-				threadInfo.tReq.body = body;
+				.then((body: TObject) => {
+					threadInfo.tReq.body = body;
 
-				ThreadPool.activateThread(threadInfo);
-			})
-			.catch((bodyParseError: IBodyParseError) => {
-				respondGenerically(eRes, bodyParseError.status);
+					ThreadPool.activateThread(threadInfo);
+				})
+				.catch((bodyParseError: IBodyParseError) => {
+					respondGenerically(eRes, bodyParseError.status);
 
-				bodyParseError.err && print.error(bodyParseError.err);
-			});
+					bodyParseError.err && print.error(bodyParseError.err);
+				});
 			
 			return;
 		}
@@ -367,7 +368,7 @@ IS_SECURE && http
 		const securePort: number = PROJECT_CONFIG.read("port", "https").number;
 		const secureHost: string = eReq.headers["host"].replace(/(:[0-9]+)?$/i, (securePort !== 443) ? `:${securePort}` : "");
 		eRes.setHeader("Location", `https://${secureHost}${eReq.url}`);
-    
+		
 		eRes.end();
 
 		// TODO: Handle dynamic file extension redirect here to eliminate possible additional redirect

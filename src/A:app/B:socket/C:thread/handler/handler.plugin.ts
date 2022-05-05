@@ -1,11 +1,15 @@
 
+import { print } from "../../../../print";
+
 import { Status } from "../../Status";
+
+import { activateEndpoint } from "../plugin/registry";
 
 
 interface IPluginPayload {
 	pluginName: string;
 
-	body?: unknown;
+	body?: TObject;
 	endpointName?: string;
 }
 
@@ -20,12 +24,20 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	}
 
 	// TODO: Parse subdomain
-    tRes.headers.set("Content-Type", "application/json");
+	tRes.headers.set("Content-Type", "application/json");
 	tRes.headers.set("X-Content-Type-Options", "nosniff");
-
-	console.log(payload);
 	
-	tRes.message = "ABC";
+	const handlerResult: unknown = activateEndpoint(payload.pluginName, payload.body, payload.endpointName);
+
+	if(!handlerResult) {
+		print.debug(`Undefined ${payload.endpointName ? `'${payload.endpointName}'` : "default"} endpoint of plug-in '${payload.pluginName}' has been requested`);
+		
+		tRes.status = Status.NOT_FOUND;
+		
+		return tRes;
+	}
+
+	tRes.message = JSON.stringify(handlerResult);
 
 	return tRes;
 }

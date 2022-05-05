@@ -51,11 +51,11 @@ rapidJS.core = (_ => {
 	 * Perform request ro plugin related endpoint (id set up).
 	 * @param {String} pluginName Internal name of plugin to be addressed
 	 * @param {Object} [body] Body object to send along being passed to the endpoint callback
-	 * @param {Function} [progressHandler] Callback repeatedly getting passed the current loading progress [0, 1]
 	 * @param {String} [endpointName] Endpoint name if given
+	 * @param {Function} [progressHandler] Callback repeatedly getting passed the current loading progress [0, 1]
 	 * @returns {Promise} Request promise eventualy resolving to response message
 	 */
-	PUBLIC.toEndpoint = (pluginName, body, progressHandler, endpointName) => {
+	PUBLIC.mediateEndpoint = (pluginName, body, endpointName, progressHandler) => {
 		return new Promise((resolve, reject) => {
 			performRequest("POST", {
 				body: body,

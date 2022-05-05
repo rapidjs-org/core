@@ -24,6 +24,11 @@ $this.endpoint(_ => {
     return `${retrieveName(names.first)} ${retrieveName(names.last)}`;
 });
 
-$this.namedEndpoint("abc", _ => {
-    return "def";
+$this.endpoint(_ => {
+    return {
+        "def": 123
+    };
+}, {
+    name: "abc",
+    useCache: true
 });

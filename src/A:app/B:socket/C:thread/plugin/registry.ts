@@ -2,6 +2,7 @@
 const config = {
 	...require("../../../app.config.json"),
 
+	defaultEndpointName: "::default",
 	pluginConfigIdentifier: "pluginConfig",
 	clientModuleAppName: "rapidJS",
 	clientModuleReferenceName: {
@@ -23,6 +24,8 @@ import { print } from "../../../../print";
 import { PLUGIN_CONFIG } from "../../../config/config.plugins";
 import * as commonInterface from "../../../interface.common";
 
+import { retrieveRequestInfo } from "../request-info";
+
 
 const interfaceModulePath: string = require.resolve("./interface.plugin");
 
@@ -33,6 +36,7 @@ const activePluginRegistry = {
 
         clientModuleText?: string;
         compoundOnly?: boolean;
+		endpoints?: Map<string, TEndpointHandler>;
     }>(),
 	genericIntegrationList: {
 		any: new Set<string>(),
@@ -142,33 +146,21 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 	// Construct individual script module
 	const modularClientScript: string[] = [`
         ${config.clientModuleAppName}["${associatedPluginName}"] = (_ => {
-            const endpoint = {
-                use: (body, progressHandler) => {
-                    return ${config.clientModuleAppName}.${config.coreIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler);
-                },
-                useNamed: (name, body, progressHandler) => {
-                    return ${config.clientModuleAppName}.${config.coreIdentifier}.toEndpoint("${associatedPluginName}", body, progressHandler, name);
-                }
-            };
-            
             const ${config.thisRetainerIdentifier} = {
-                endpoint: endpoint.use,
-                useEndpoint: endpoint.use,
-                namedEndpoint: endpoint.useNamed,
-                useNamedEndpoint: endpoint.useNamed,
-
+                endpoint: (body, options = {}) => {
+                    return ${config.clientModuleAppName}.${config.coreIdentifier}.mediateEndpoint("${associatedPluginName}", body, options.name, options.progressHandler);
+				},
+				
                 ${config.clientModuleReferenceName.public}: {},
                 ${config.clientModuleReferenceName.shared}: ${JSON.stringify(sharedProperties)}
             };
-
+			
             for(const member in ${config.thisRetainerIdentifier}) {
                 this[member] = ${config.thisRetainerIdentifier}[member]
             }
+            
+			`,`
 
-            delete endpoint;
-            
-            `,`
-            
             return ${config.thisRetainerIdentifier}.${config.clientModuleReferenceName.public};
         })();
     `].map(part => {
@@ -181,7 +173,8 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 	// Register client module in order to be integrated into pages upon request
 	pluginObj.clientModuleText = `${modularClientScript[0]}${bareClientScript}${(bareClientScript.slice(-1) != ";") ? ";" : ""}${modularClientScript[1]}`;
 	pluginObj.compoundOnly = compoundOnly;
-
+	pluginObj.endpoints = new Map();
+	
 	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
 
 	// Manipulate generic integration set according to integration option
@@ -189,4 +182,24 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 		.compoundOnly[(!pluginObj.integrateManually && compoundOnly) ? "add" : "delete"](associatedPluginName);
 	activePluginRegistry.genericIntegrationList
 		.any[(!pluginObj.integrateManually && !compoundOnly) ? "add" : "delete"](associatedPluginName);
+}
+
+export function defineEndpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: TObject) {
+	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
+
+	pluginObj.endpoints.set(options.name || config.defaultEndpointName, endpointHandler);
+
+	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
+}
+
+export function activateEndpoint(associatedPluginName: string, requestBody?: TObject, endpointName?: string): unknown {
+	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
+
+	const endpointHandler: TEndpointHandler = pluginObj.endpoints.get(endpointName || config.defaultEndpointName);
+	
+	if(!endpointHandler) {
+		return null;
+	}
+	
+	return endpointHandler(requestBody, retrieveRequestInfo());
 }

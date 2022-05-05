@@ -1,5 +1,4 @@
 
-import { MODE } from "../../mode";
 import { PROJECT_CONFIG } from "../../config/config.project";
 
 import { LimitedDictionary } from "./LimitedDictionary";

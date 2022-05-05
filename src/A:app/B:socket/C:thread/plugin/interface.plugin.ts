@@ -1,5 +1,5 @@
 
-import { bindClientModule } from "./registry";
+import { bindClientModule, defineEndpoint } from "./registry";
 
 
 export function clientModule(associatedPluginName: string, relativePathToModule: string, sharedProperties: TObject = {}, compoundOnly = false) {
@@ -10,12 +10,9 @@ export function readSupportFile(associatedPluginName: string, name: string): str
 	return "";
 }
 
-export function endpoint(associatedPluginName: string, callback: (body: TObject, req: IRequestInfo) => unknown, useCache = false) {
-
-}
-
-export function namedEndpoint(associatedPluginName: string, name: string, callback: (body: TObject, req: IRequestInfo) => unknown, useCache = false) {
-	if(name.length == 0) {
-		throw new SyntaxError("Endpoint name must not be empty");
-	}
+export function endpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: {
+	name?: string;
+	useCache?: boolean;
+} = {}) {
+	defineEndpoint(associatedPluginName, endpointHandler, options);
 }
