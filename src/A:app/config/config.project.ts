@@ -23,9 +23,10 @@ export const PROJECT_CONFIG = new Config("config", mergeObj(DEFAULT_CONFIG, MODE
 
 
 interface IProjectConfig {
-	extensionWhitelist: string[],
-	webDirectory: string,
-	mimes: Record<string, string>
+	extensionWhitelist: string[];
+	limit: Record<string, number>;
+	mimes: Record<string, string>;
+	webDirectory: string;
 }
 
 
@@ -33,6 +34,13 @@ PROJECT_CONFIG.format((configObj: TObject) => {
 	const typedConfigObj = configObj as unknown as IProjectConfig;
 
 	validatePath("web", typedConfigObj.webDirectory);
+	
+	// Define NaN or zero limits as limitless (infinite size)
+	for(const key in typedConfigObj.limit) {
+		typedConfigObj.limit[key] = isNaN(typedConfigObj.limit[key])
+		? Infinity
+		: typedConfigObj.limit[key] || Infinity;
+	}
     
 	// Normalize extension arrays for future uniform usage
 	typedConfigObj.extensionWhitelist = (typedConfigObj.extensionWhitelist || [])

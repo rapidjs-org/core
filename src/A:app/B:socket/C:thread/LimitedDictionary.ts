@@ -13,11 +13,11 @@ export abstract class LimitedDictionary<L, D> {
 
     constructor(limit?: L, normalizationCallback?: (key: string) => string) {
     	this.limit = limit;
-        
+		
     	this.normalizationCallback = normalizationCallback || ((key: string) => key);
     }
-
-    private entryExists(key: string): boolean {
+	
+    protected hasEntry(key: string): boolean {
     	// TODO: Hit ratio tracking interface?
         
     	const entry = this.storage.get(this.normalizationCallback(key));
@@ -34,7 +34,7 @@ export abstract class LimitedDictionary<L, D> {
     }
 
     protected getEntry(key: string): D {
-    	return this.entryExists(key)
+    	return this.hasEntry(key)
     		? this.storage.get(this.normalizationCallback(key)).data
     		: undefined;
     }

@@ -219,7 +219,7 @@ const sslOptions: {
 
 // Set generic server options
 const serverOptions: TObject = {
-	maxHeaderSize: PROJECT_CONFIG.read("limit", "headerSize").number
+	maxHeaderSize: Math.min(PROJECT_CONFIG.read("limit", "headerSize").number, 64000)	// Header size limit 64KB
 };
 
 // Set generic socket options
@@ -244,7 +244,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 		eReq.on("data", chunk => {
 			body.push(chunk);
 
-			if((body.length * 8) > (PROJECT_CONFIG.read("limit", "payloadSize").number || Infinity)) {
+			if((body.length * 8) > (PROJECT_CONFIG.read("limit", "payloadSize").number)) {
 				// Abort processing if body payload exceeds maximum size
 				reject({
 					status: Status.RATE_EXCEEDED
@@ -290,7 +290,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 		}
 
 		// Check: URL length exceeded
-		if(eReq.url.length > (PROJECT_CONFIG.read("limit", "urlLength") || Infinity)) {
+		if(eReq.url.length > (PROJECT_CONFIG.read("limit", "urlLength")).number) {
 			return respondGenerically(eRes, Status.URL_EXCEEDED);
 		}
         

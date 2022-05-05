@@ -21,12 +21,12 @@ $this.clientModule("./client");
 // Define the default endpoint
 // Returns (responds with) generated name
 $this.endpoint(_ => {
-    return `${retrieveName(names.first)} ${retrieveName(names.last)}`;
+    return `${retrieveName(names.first)} ${retrieveName(names.last)} ${Math.round(Math.random() * 10)}`;
 });
 
 $this.endpoint(_ => {
     return {
-        "def": 123
+        "def": Math.round(Math.random() * 10)
     };
 }, {
     name: "abc",

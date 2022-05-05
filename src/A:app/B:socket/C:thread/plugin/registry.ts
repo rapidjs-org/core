@@ -25,6 +25,7 @@ import { PLUGIN_CONFIG } from "../../../config/config.plugins";
 import * as commonInterface from "../../../interface.common";
 
 import { retrieveRequestInfo } from "../request-info";
+import { Cache } from "../Cache";
 
 
 const interfaceModulePath: string = require.resolve("./interface.plugin");
@@ -36,8 +37,11 @@ const activePluginRegistry = {
 
         clientModuleText?: string;
         compoundOnly?: boolean;
-		endpoints?: Map<string, TEndpointHandler>;
-    }>(),
+		endpoints?: Map<string, {
+			handler: TEndpointHandler;
+			useCache: boolean;
+		}>;
+	}>(),
 	genericIntegrationList: {
 		any: new Set<string>(),
 		compoundOnly: new Set<string>()
@@ -77,6 +81,7 @@ function evalPlugin(name: string, moduleDirPath: string) {
                 }
                 
                 this.${config.pluginConfigIdentifier} = ${JSON.stringify(PLUGIN_CONFIG)};
+				
                 const ${config.thisRetainerIdentifier} = this;
             ${_exports}${Module.wrapper[1]}`;
 		});
@@ -128,6 +133,8 @@ export function retrieveIntegrationPluginNames(isCompound: boolean): Set<string>
 
 
 // PLIUG-IN INTERFACE
+
+const endpointCache: Cache<unknown> = new Cache();
 
 export function bindClientModule(associatedPluginName: string, relativePath: string, sharedProperties?: TObject, compoundOnly?: boolean) {
 	// TODO: Swap shared and compound argument as of usage frequency (keep backwards compatibility with type check augmented overload)
@@ -187,19 +194,43 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 export function defineEndpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: TObject) {
 	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
 
-	pluginObj.endpoints.set(options.name || config.defaultEndpointName, endpointHandler);
+	if(!(endpointHandler instanceof Function) && typeof(endpointHandler) !== "function") {
+		throw new SyntaxError(`Given endpoint handler argument of type ${typeof(endpointHandler)}, expecting Function`);
+	}
+
+	pluginObj.endpoints.set(options.name || config.defaultEndpointName, {
+		handler: endpointHandler,
+		useCache: !!options.useCache
+	});
 
 	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
 }
 
 export function activateEndpoint(associatedPluginName: string, requestBody?: TObject, endpointName?: string): unknown {
-	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
+	endpointName = endpointName || config.defaultEndpointName;
 
-	const endpointHandler: TEndpointHandler = pluginObj.endpoints.get(endpointName || config.defaultEndpointName);
-	
-	if(!endpointHandler) {
+	const endpoint = activePluginRegistry.dict.get(associatedPluginName).endpoints.get(endpointName);
+
+	if(!endpoint) {
 		return null;
 	}
+
+	const cacheKey: string = `${associatedPluginName}+${endpointName}`;	// Plug-in / endpoint unique key due to name distinctive concatenation symbol
+
+	let handlerResult: unknown;
 	
-	return endpointHandler(requestBody, retrieveRequestInfo());
+	if(endpoint.useCache
+	&& endpointCache.has(cacheKey)) {
+		handlerResult = endpointCache.read(cacheKey);
+
+		if(handlerResult) {
+			return handlerResult;
+		}
+	} else {
+		handlerResult = endpoint.handler(requestBody, retrieveRequestInfo());
+	}
+
+	endpoint.useCache && endpointCache.write(cacheKey, handlerResult);
+
+	return handlerResult;
 }

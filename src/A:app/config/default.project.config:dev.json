@@ -1,6 +1,17 @@
 {
+    "cache": {
+        "client": 0,
+        "server": 5000
+    },
     "clusterSize": 1,
     "port": {
         "http": 7373
+    },
+    "limit": {
+        "payloadSize": 0,
+        "headerSize": 0,
+        "pendingRequests": 0,
+        "requestsPerMin": 0,
+        "urlLength": 0
     }
 }

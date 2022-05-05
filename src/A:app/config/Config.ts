@@ -59,7 +59,7 @@ export class Config {
     	} catch {
     		value = undefined;
     	}
-
+		
     	return {
     		string: (value !== undefined) ? String(value) : undefined,
     		number: !isNaN(Number(value)) ? Number(value) : 0,
