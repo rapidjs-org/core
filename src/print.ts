@@ -44,7 +44,7 @@ enum Event {
 }
 
 
-function log(message: string, channel: Channel) {
+function log(message: string, channel: Channel, noPrefix: boolean = false) {
 	// TODO: Type based formatting
 	
 	// Highlight numbers
@@ -53,12 +53,14 @@ function log(message: string, channel: Channel) {
 			print.Format.FG_CYAN
 		])}`);
 
-	console[channel](print.format(config.appName, [
+	console[channel](`${!noPrefix
+	? `${print.format(config.appName, [
 		print.Format.T_BOLD,
 		print.Format.T_DIM,
 		print.Format.T_ITALIC,
 		print.Format.BG_YELLOW
-	]), message);
+	])} `
+	: ""}${message}`);
 }
 
 /**
@@ -69,8 +71,8 @@ function log(message: string, channel: Channel) {
  * @param {string} message Log message
  * @returns 
  */
-function write(message: string, channel: Channel, event: Event) {
-	log(message, channel);
+function write(message: string, channel: Channel, event: Event, noPrefix: boolean) {
+	log(message, channel, noPrefix);
 
 	// Emit respective log event
 	eventEmitter.emit(event, message);
@@ -110,18 +112,18 @@ export namespace print {
 		return `${formatFlags.map(flag => `\x1b[${flag}m`).join("")}${str}\x1b[0m`;
 	}
 	
-	export function info(message: string) {
-		write(message, Channel.LOG, Event.INFO);
+	export function info(message: string, noPrefix: boolean) {
+		write(message, Channel.LOG, Event.INFO, noPrefix);
 	}
 	
-	export function debug(message: string) {
-		write(message, Channel.LOG, Event.DEBUG);
+	export function debug(message: string, noPrefix: boolean) {
+		write(message, Channel.LOG, Event.DEBUG, noPrefix);
 	}
 
-	export function error(errEntity: Error|string|number|boolean) {
+	export function error(errEntity: Error|string|number|boolean, noPrefix: boolean) {
 		write(format((errEntity instanceof Error) ? errEntity.message : String(errEntity), [
 			Format.FG_RED
-		]), Channel.ERROR, Event.ERROR);
+		]), Channel.ERROR, Event.ERROR, noPrefix);
 		
 		(errEntity instanceof Error) && console.log(errEntity.stack);
 	}
