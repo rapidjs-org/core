@@ -9,7 +9,7 @@ $this.PUBLIC.testEndpoint = _ => {
 
 $this.PUBLIC.testNamedEndpoint = _ => {
     $this.endpoint({
-        abc: 456
+        abc: 123
     }, {
         name: "abc"
     })

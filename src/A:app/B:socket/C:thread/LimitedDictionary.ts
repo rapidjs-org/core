@@ -19,6 +19,7 @@ export abstract class LimitedDictionary<L, D> {
 	
     protected hasEntry(key: string): boolean {
     	// TODO: Hit ratio tracking interface?
+    	// TODO: Keep in storage for a while after successful check up as immediate expiration afterwards might cause undesired bahvior?
         
     	const entry = this.storage.get(this.normalizationCallback(key));
     	if(entry === undefined) {

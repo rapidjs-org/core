@@ -24,7 +24,10 @@ $this.endpoint(_ => {
     return `${retrieveName(names.first)} ${retrieveName(names.last)} ${Math.round(Math.random() * 10)}`;
 });
 
-$this.endpoint(_ => {
+$this.endpoint((body, req) => {
+    console.log(body);
+    console.log(req);
+
     return {
         "def": Math.round(Math.random() * 10)
     };

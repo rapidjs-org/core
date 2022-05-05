@@ -17,7 +17,7 @@ import { PROJECT_CONFIG } from "../../../config/config.project";
 import { Status } from "../../Status";
 
 import { VFS } from "../vfs";
-import { parseSubdomain, computeETag } from "../util";
+import { computeETag } from "../util";
 import { retireveClientModuleScript, retrieveIntegrationPluginNames } from "../plugin/registry";
 
 
@@ -137,10 +137,9 @@ function handleStatic(tRes: IThreadRes, path: string): IThreadRes {
 }
 
 function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
-	const subdomain = parseSubdomain(tReq.hostname);
-
 	tReq.pathname += `.${config.dynamicFileExtension}`;
-
+	
+	// TODO: extendRequestInfo()
 	// TODO: Error routine
 	// TODO: How to handle generic error routine?
 	
@@ -178,7 +177,7 @@ function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
 	// TODO: Write statically prepared dynamic file back to VFS for better performance?
 
 	// Rendering
-	
+
 	return tRes;
 }
 

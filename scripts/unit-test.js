@@ -1,6 +1,9 @@
 const { Test, log, formatStr } = require("./test-framework");
 
 
+// TODO: Extract private members
+// TODO: Create dummy environment?
+
 /**
  * Unit test class to be used for method evaluation comparison.
  * @class

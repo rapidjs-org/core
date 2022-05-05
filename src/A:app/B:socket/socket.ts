@@ -31,18 +31,18 @@ import { rateExceeded } from "./rate-limiter";
     print.error(err.message);
 }); */
 
-class HeadersMap extends Map<string, string|number|boolean> {
+class HeadersMap extends Map<string, string> {
 
-	constructor(dictionaryRec?: Record<string, string|number|boolean>) {
+	constructor(dictionaryRec?: Record<string, string>) {
 		super(Object.entries(dictionaryRec || {}));
 	}
 
-	public get(name: string) {
+	public get(name: string): string {
 		return super.get(name.toLowerCase());
 	}
 
 	public set(name: string, value: string|number|boolean) {
-		super.set(name.toLowerCase(), value);
+		super.set(name.toLowerCase(), String(value));
 
 		return null;
 	}
@@ -298,14 +298,15 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 		const url: URL = new URL(`http${IS_SECURE ? "s" : ""}://${eReq.headers["host"]}${eReq.url}`);
 		
 		const tReq: IThreadReq = {
-			ip: String(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress,
+			ip: (eReq.headers["x-forwarded-for"] || [])[0] || eReq.connection.remoteAddress,
 			method: eReq.method.toUpperCase(),
 			hostname: url.hostname,
 			pathname: url.pathname,
 			searchParams: url.searchParams,
 			// Extract headers relevant for handler routine
 			headers: new HeadersMap({
-				"If-None-Match": eReq.headers["if-none-match"]
+				"Authorization": eReq.headers["authorization"],
+				"If-None-Match": eReq.headers["if-none-match"],
 			})
 		};
 
@@ -314,7 +315,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 			// Relevant headers to have overriding access throughout handler routine
 			headers: new HeadersMap(mergeObj({
 				"Server": "rapidJS"
-			}, (PROJECT_CONFIG.read("customHeaders").object || {}) as TObject) as Record<string, string|number|boolean>)
+			}, (PROJECT_CONFIG.read("customHeaders").object || {}) as TObject) as Record<string, string>)
 		};
 
 		// TODO: Emit connection event for individual request logs

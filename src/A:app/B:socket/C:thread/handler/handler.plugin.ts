@@ -23,7 +23,6 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 		return tRes;
 	}
 
-	// TODO: Parse subdomain
 	tRes.headers.set("Content-Type", "application/json");
 	tRes.headers.set("X-Content-Type-Options", "nosniff");
 	

@@ -24,8 +24,9 @@ import { print } from "../../../../print";
 import { PLUGIN_CONFIG } from "../../../config/config.plugins";
 import * as commonInterface from "../../../interface.common";
 
-import { retrieveRequestInfo } from "../request-info";
 import { Cache } from "../Cache";
+
+import { retrieveRequestInfo } from "../request-info";
 
 
 const interfaceModulePath: string = require.resolve("./interface.plugin");

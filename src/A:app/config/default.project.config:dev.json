@@ -1,7 +1,7 @@
 {
     "cache": {
         "client": 0,
-        "server": 5000
+        "server": 0
     },
     "clusterSize": 1,
     "port": {

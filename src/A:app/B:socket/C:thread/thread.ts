@@ -8,6 +8,7 @@ import config from "../../app.config.json";
 
 import handleAsset from "./handler/handler.asset";
 import handlePlugin from "./handler/handler.plugin";
+import { defineRequestInfo } from "./request-info";
 import { registerActivePlugin } from "./plugin/registry";
 
 
@@ -24,6 +25,8 @@ parentPort.on("message", (post: {
     tReq: IThreadReq,
     tRes: IThreadRes
 }) => {
+	defineRequestInfo(post.tReq);
+
 	// GET: File request (either a dynamic and static routine; based on filer type)
 	// HEAD: Resembles a GET request, but without the transferral of content
 	if(["GET", "HEAD"].includes(post.tReq.method))  {
