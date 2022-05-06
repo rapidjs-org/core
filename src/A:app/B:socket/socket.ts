@@ -187,6 +187,15 @@ function respondIndividually(eRes: http.ServerResponse, tRes: IThreadRes) {
 	eRes.end(messageBuffer);
 }
 
+function redirect(eRes: http.ServerResponse, location: string) {
+	respondIndividually(eRes, {
+		status: Status.REDIRECT,
+		headers: new HeadersMap({
+			"Location": location
+		})
+	} as IThreadRes);
+}
+
 
 // Set SSL options if is secure environment
 const readSSLFile = (type: string) => {
@@ -310,12 +319,24 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 			return;
 		}
 		
+		// Permanently redirect dynamic extension (and possibly index name) explicit dynamic file requests to implicit variant
+		const invalidPathnameSuffixRegex: RegExp = new RegExp(`(/${config.indexPageName}|(/${config.indexPageName})?\\.${config.dynamicFileExtension})$`);
+		if(invalidPathnameSuffixRegex.test(url.pathname)) {
+			url.pathname = url.pathname.replace(invalidPathnameSuffixRegex, "");
+			
+			redirect(eRes, url.toString());
+			
+			return;
+		}
+		
 		const tReq: IThreadReq = {
 			ip: (eReq.headers["x-forwarded-for"] || [])[0] || eReq.connection.remoteAddress,
 			method: eReq.method.toUpperCase(),
+			hash: url.hash,
 			hostname: url.hostname,
 			pathname: url.pathname,
 			searchParams: url.searchParams,
+
 			// Extract headers relevant for handler routine
 			headers: new HeadersMap({
 				"Authorization": eReq.headers["authorization"],

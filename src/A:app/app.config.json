@@ -1,5 +1,6 @@
 {
     "coreIdentifier": "core",
     "dynamicFileExtension": "html",
+    "indexPageName": "index",
     "threadsBroadcastChannelName": "bc"
 }

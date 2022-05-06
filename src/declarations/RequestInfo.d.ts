@@ -8,5 +8,6 @@ declare interface IRequestInfo {
     ip: string;
     isCompound: boolean;
     pathname: string;
+    searchParams: URLSearchParams;
     subdomain: string|string[];
 }

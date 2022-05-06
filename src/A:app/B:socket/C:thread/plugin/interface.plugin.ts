@@ -16,3 +16,7 @@ export function endpoint(associatedPluginName: string, endpointHandler: TEndpoin
 } = {}) {
 	defineEndpoint(associatedPluginName, endpointHandler, options);
 }
+
+export function render(associatedPluginName: string) {
+	// TODO: Implement? Move to plug-in context?
+}

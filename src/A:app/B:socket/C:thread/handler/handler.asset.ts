@@ -38,25 +38,14 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 		return tRes;
 	}
 
+	// Private file request
 	if((new RegExp(`/${config.privateWebFilePrefix}`)).test(tReq.pathname)) {
 		tRes.status = Status.FORBIDDEN;	// TODO: Status conceal option?
 		
 		return tRes;
 	}
-	
+
 	const extension: string = extname(tReq.pathname).replace(/^\./, "");	// Case sensitivity for dynamic file extension?
-	
-	// Permanently redirect dynamic extension explicit dynamic file requests to implicit variant
-	if(extension === config.dynamicFileExtension) {
-		//tRes.status = Status.REDIRECT;
-
-		// tRes.headers.set("Location", "/");
-
-		// TODO: Redirect method to keep host and additional URL information
-		tRes.message = "To be redirected";
-
-		return tRes;
-	}
 
 	// Handle request accordingly
 	tRes = (extension.length > 0)
@@ -138,12 +127,12 @@ function handleStatic(tRes: IThreadRes, path: string): IThreadRes {
 
 function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
 	const compoundInfo: ICompoundInfo = retrieveCompoundInfo();
-	
+
 	// TODO: Error routine
 	// TODO: How to handle generic error routine?
 	
 	// TODO: Use static ETag routine if plug-in does NOT server-side render markup
-	const fileStamp = VFS.read(`${compoundInfo ? compoundInfo.base : tReq.pathname}.${config.dynamicFileExtension}`);
+	const fileStamp = VFS.read(`${compoundInfo ? compoundInfo.base : tReq.pathname.replace(/\/$/, `/${config.indexPageName}`)}.${config.dynamicFileExtension}`);
 	if(fileStamp === undefined) {
 		tRes.status = Status.NOT_FOUND;
 

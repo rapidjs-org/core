@@ -2,8 +2,7 @@
 const config = {
 	...require("../../app.config.json"),
 
-	compoundPageIndicator: "#",
-	indexPageName: "index"
+	compoundPageIndicator: "#"
 };
 
 
@@ -85,7 +84,6 @@ function parseCookies(): Map<string, string|number|boolean> {
 const validPagePaths: string[] = [];	// TODO: Implement (along cache?)
 
 function parseCompoundInfo(path: string): ICompoundInfo {
-	// TODO: Explicit index request redirect (to implicit)
 	const fileExists = (path: string) => {
 		return VFS.exists(`${path}.${config.dynamicFileExtension}`);
 	};
@@ -141,6 +139,7 @@ export function defineRequestInfo(tReq: IThreadReq) {
 		ip: tReq.ip,
 		isCompound: !!currentCompoundInfo,
 		pathname: tReq.pathname,
+		searchParams: tReq.searchParams,
 		subdomain: parseSubdomain(tReq.hostname)
 	};
 }

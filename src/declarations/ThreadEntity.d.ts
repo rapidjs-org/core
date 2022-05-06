@@ -1,4 +1,5 @@
 declare interface IThreadReq {
+    hash: string;
     headers: Map<string, string>;
     hostname: string;
     ip: string;
