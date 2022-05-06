@@ -139,12 +139,18 @@ function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
 		return tRes;
 	}
 
+	// Ensure head tag exists for following injections
+	tRes.message = embedHead(fileStamp.contents);
+
 	// Integrate plug-in reference accordingly	
 	const pluginIntegrationSequence = retrieveIntegrationPluginNames(!!compoundInfo);
-
 	// TODO: What about manually integrated compound only plug-ins? Allow for mutual usage?
+	tRes.message = injectPluginReferenceIntoMarkup(tRes.message, pluginIntegrationSequence);
 
-	tRes.message = injectPluginReferenceIntoMarkup(fileStamp.contents, pluginIntegrationSequence);
+	// Inject compound base tag (in order to keep relative references in markup alive)
+	tRes.message = compoundInfo
+	? injectCompoundBaseIntoMarkup(tRes.message, tReq.pathname.slice(0, -(compoundInfo.args.join("/").length)))
+	: tRes.message;
 
 	// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
 	// TODO: Write statically prepared dynamic file back to VFS for better performance?
@@ -157,33 +163,50 @@ function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
 	return tRes;
 }
 
+// TOD: Error page request association map?
 
-// TODO: Compound
-// • retrieve loc
-// • inject base tag (head bottom)
-
-function handleDynamicError(): IThreadRes {
+function handleDynamicError(tRes: IThreadRes, ): IThreadRes {
 	return {} as IThreadRes;
 }
 
 
 // HELPERS
 
-function injectPluginReferenceIntoMarkup(markup: string, effectivePluginNames: Set<string>) {
+function getHeadPosition(markup: string): {
+	open: number;
+	close: number;
+} {
 	const headMatch: Record<string, string[]> = {
-		open: markup.match(/<\s*head((?!>)(\s|.))*>/),
-		close: markup.match(/<\s*\/head((?!>)(\s|.))*>/)
+		open: markup.match(/<\s*head((?!>)(\s|[^>]))*>/),
+		close: markup.match(/<\s*\/head((?!>)(\s|[^>]))*>/)
 	};
 
 	if(!headMatch.open || !headMatch.close) {
-		// TODO: Create head tag?
-		return markup;
+		return null;
 	}
 
-	const headPos: Record<string, number> = {
+	return {
 		open: markup.indexOf(headMatch.open[0]) + headMatch.open[0].length,
 		close: markup.indexOf(headMatch.close[0])
 	};
+}
+
+function embedHead(markup: string): string {
+		return markup;
+		const headPos = getHeadPosition(markup);	// TODO: Improve retrievals?
+
+	if(headPos) {
+		return markup;
+	}
+
+	const htmlTagPos: string[] = markup.match(/<\s*html((?!>)(\s|[^>]))*>/);
+	const headInjectionPos: number = (htmlTagPos ? markup.indexOf(htmlTagPos[0]) : 0) + (htmlTagPos[0] || [""]).length;
+
+	return `${markup.slice(0, headInjectionPos)}\n<head></head>\n${markup.slice(headInjectionPos)}`;
+}
+
+function injectPluginReferenceIntoMarkup(markup: string, effectivePluginNames: Set<string>): string {
+	const headPos = getHeadPosition(markup);
 
 	const manuallyIntegratedPluginNames: string[] = markup
 		.slice(headPos.open, headPos.close)
@@ -211,4 +234,10 @@ function injectPluginReferenceIntoMarkup(markup: string, effectivePluginNames: S
 	const injectionSequence = `<script src="/${config.pluginRequestPrefix}${toBeIntegratedPluginNames.join(config.pluginRequestSeparator)}"></script>\n`;
 
 	return `${markup.slice(0, injectionIndex)}${injectionSequence}${markup.slice(injectionIndex)}`;
+}
+
+function injectCompoundBaseIntoMarkup(markup: string, basePath: string): string {
+	const headPos = getHeadPosition(markup);
+	
+	return `${markup.slice(0, headPos.open)}\n<base href="${basePath}">${markup.slice(headPos.open)}`;
 }

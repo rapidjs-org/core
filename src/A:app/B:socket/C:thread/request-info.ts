@@ -119,7 +119,7 @@ function parseCompoundInfo(path: string): ICompoundInfo {
 
 		const arg: string = (path.match(/[^/]+\/+$/i) || [""])[0];
 		path = path.slice(0, -arg.length);
-		args.unshift(arg.slice(1));
+		args.unshift(arg.slice(0, -1));
 	}
 
 	return undefined;
