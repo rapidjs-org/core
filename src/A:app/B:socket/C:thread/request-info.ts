@@ -9,20 +9,32 @@ const config = {
 
 import { extname } from "path";
 
+import { PROJECT_CONFIG } from "../../config/config.project";
+
 import { VFS } from "./vfs";
 import tlds from "./static/tlds.json";
 
+
+const registeredMostSignificantParts: string[] = [];
+const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
+registeredMostSignificantParts.push(`.${configuredHostname}`);
 
 let currentRequestInfo: IRequestInfo;
 let currentCompoundInfo: ICompoundInfo;
 
 
-function parseSubdomain(hostname: string): string|string[] {
+/**
+ * Parse top and second level domain from hostname.
+ * @param {string} hostname Full hostname
+ * @returns {string} Most significant part
+ */
+function parseMostSignificantHostnamePart(hostname: string): string {
+	// Only parse against TLDs at most once each hostname (time cost efficiency)
 	// Stripe TLD parts as long as right-to-left concatenation is valid
 	let tld = "";
 	let part: string[];
 	while(part = hostname.match(/\.[a-z0-9-]+$/i)) {
-		if(!tlds.includes(`${part[0].slice(1)}${tld}`)) {
+		if(!tlds.includes(`${part[0].slice(1)}${tld}`)) {	// TODO: Enhance approach (is time cost intensive)
 			break;
 		}
 
@@ -32,14 +44,37 @@ function parseSubdomain(hostname: string): string|string[] {
 	}
 
 	// Remove SLD name (or numerical host) to split actual subdomains
-	const subdomain: string[] = hostname
-	.replace(/(\.[a-z][a-z0-9_-]+|(\.[0-9]{2,3})+)$/i, "")
-	.replace(/^localhost$/, "")
-	.split(/\./g);
+	const sld: string = (hostname.match(/(^localhost|\.[a-z][a-z0-9_-]+|[0-9]{1,3}(\.[0-9]{1,3})+)$/i) || [""])[0]
 
-	return (subdomain.length === 1)
-	? subdomain[0] || undefined	// No empty string
-	: subdomain;
+	return sld + tld;
+}
+
+function parseSubdomain(hostname: string): string|string[] {
+	const matchAgainstMostSignificantPart = (mostSignificantPart: string) => {
+		const subdomain: string[] = hostname
+		.slice(0, -mostSignificantPart.length)
+		.split(/\./g);
+		
+		return (subdomain.length === 1)
+		? subdomain[0] || undefined	// No empty string
+		: subdomain;
+	};
+
+	// Match subdomains against registered most significant URL parts
+	registeredMostSignificantParts.forEach((part: string) => {
+		let applicableMostSignificantPart: string[] = hostname.match(new RegExp(`${part.replace(/\./g, "\\.")}$`, "i"));
+		if(applicableMostSignificantPart) {
+			return matchAgainstMostSignificantPart(applicableMostSignificantPart[0]);
+		}
+	});
+
+	// Parser current (not yet registered) most significant part from requested hostname
+	// Optional mandatory (configured) hostname filtering already happens before
+	const currentMostSignificantPart: string = parseMostSignificantHostnamePart(hostname);
+
+	registeredMostSignificantParts.push(currentMostSignificantPart);
+
+	return matchAgainstMostSignificantPart(currentMostSignificantPart);
 }
 
 function parseCookies(): Map<string, string|number|boolean> {

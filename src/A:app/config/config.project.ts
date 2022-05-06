@@ -27,7 +27,7 @@ interface IProjectConfig {
 	limit: Record<string, number>;
 	mimes: Record<string, string>;
 	webDirectory: string;
-}
+}	// Only displays formatting parameter
 
 
 PROJECT_CONFIG.format((configObj: TObject) => {

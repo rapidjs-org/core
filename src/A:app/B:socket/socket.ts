@@ -51,6 +51,7 @@ class HeadersMap extends Map<string, string> {
 
 
 const passivePluginRegistry: IPassivePlugin[] = [];
+const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
 
 
 namespace ThreadPool {
@@ -284,18 +285,30 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 		...sslOptions,
 		...serverOptions
 	}, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
-		// Check: Unsupported request method
+		// Unsupported request method
 		if(!["GET", "HEAD", "POST"].includes(eReq.method)) {
-			return respondGenerically(eRes, Status.UNSUPPORTED_METHOD);
+			respondGenerically(eRes, Status.UNSUPPORTED_METHOD);
+
+			return;
 		}
 
-		// Check: URL length exceeded
+		// URL length exceeded
 		if(eReq.url.length > (PROJECT_CONFIG.read("limit", "urlLength")).number) {
-			return respondGenerically(eRes, Status.URL_EXCEEDED);
+			respondGenerically(eRes, Status.URL_EXCEEDED);
+
+			return;
 		}
         
 		// Construct thread request object related to the current response
 		const url: URL = new URL(`http${IS_SECURE ? "s" : ""}://${eReq.headers["host"]}${eReq.url}`);
+
+		// Hostname mismatch (only if configured)
+		if(configuredHostname
+		&& configuredHostname !== url.hostname) {
+			respondGenerically(eRes, Status.UNSUPPORTED_METHOD);
+
+			return;
+		}
 		
 		const tReq: IThreadReq = {
 			ip: (eReq.headers["x-forwarded-for"] || [])[0] || eReq.connection.remoteAddress,
@@ -322,7 +335,9 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 
 		// Check: Rate (request limit) exceeded
 		if(rateExceeded(tReq.ip)) {
-			return respondGenerically(eRes, Status.RATE_EXCEEDED);
+			respondGenerically(eRes, Status.RATE_EXCEEDED);
+
+			return;
 		}
 		
 		// Request handler

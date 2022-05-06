@@ -16,7 +16,7 @@ export enum Status {
     NOT_FOUND = 404,
     UNSUPPORTED_METHOD = 405,
     NOT_ACCEPTABLE  = 406,
-    TIMEOUT = 408,
+    TIMEOUT = 408,  // TODO: Implement broadly
     PRECONDITION_FAILED = 412,
     URL_EXCEEDED = 414,
     RATE_EXCEEDED = 429,
