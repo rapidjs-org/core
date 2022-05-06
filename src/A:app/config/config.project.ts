@@ -38,8 +38,8 @@ PROJECT_CONFIG.format((configObj: TObject) => {
 	// Define NaN or zero limits as limitless (infinite size)
 	for(const key in typedConfigObj.limit) {
 		typedConfigObj.limit[key] = isNaN(typedConfigObj.limit[key])
-		? Infinity
-		: typedConfigObj.limit[key] || Infinity;
+			? Infinity
+			: typedConfigObj.limit[key] || Infinity;
 	}
     
 	// Normalize extension arrays for future uniform usage

@@ -35,13 +35,13 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
     }
 	
     public exists(path: string): boolean {
-		if(this.cache.has(path) || super.hasEntry(path)) {
-			return true;
-		}
+    	if(this.cache.has(path) || super.hasEntry(path)) {
+    		return true;
+    	}
 
-		this.write(path);
+    	this.write(path);
 		
-		return super.hasEntry(path);
+    	return super.hasEntry(path);
     }
 
     public read(path: string): FileStamp {

@@ -43,7 +43,7 @@ function parseMostSignificantHostnamePart(hostname: string): string {
 	}
 
 	// Remove SLD name (or numerical host) to split actual subdomains
-	const sld: string = (hostname.match(/(^localhost|\.[a-z][a-z0-9_-]+|[0-9]{1,3}(\.[0-9]{1,3})+)$/i) || [""])[0]
+	const sld: string = (hostname.match(/(^localhost|\.[a-z][a-z0-9_-]+|[0-9]{1,3}(\.[0-9]{1,3})+)$/i) || [""])[0];
 
 	return sld + tld;
 }
@@ -51,17 +51,17 @@ function parseMostSignificantHostnamePart(hostname: string): string {
 function parseSubdomain(hostname: string): string|string[] {
 	const matchAgainstMostSignificantPart = (mostSignificantPart: string) => {
 		const subdomain: string[] = hostname
-		.slice(0, -mostSignificantPart.length)
-		.split(/\./g);
+			.slice(0, -mostSignificantPart.length)
+			.split(/\./g);
 		
 		return (subdomain.length === 1)
-		? subdomain[0] || undefined	// No empty string
-		: subdomain;
+			? subdomain[0] || undefined	// No empty string
+			: subdomain;
 	};
 
 	// Match subdomains against registered most significant URL parts
 	registeredMostSignificantParts.forEach((part: string) => {
-		let applicableMostSignificantPart: string[] = hostname.match(new RegExp(`${part.replace(/\./g, "\\.")}$`, "i"));
+		const applicableMostSignificantPart: string[] = hostname.match(new RegExp(`${part.replace(/\./g, "\\.")}$`, "i"));
 		if(applicableMostSignificantPart) {
 			return matchAgainstMostSignificantPart(applicableMostSignificantPart[0]);
 		}
@@ -96,7 +96,7 @@ function parseCompoundInfo(path: string): ICompoundInfo {
 	const args: string[] = [];
 	while(path.length > 0) {
 		// Index page
-		let compoundPath: string = `${path}${config.compoundPageIndicator}${config.indexPageName}/${config.indexPageName}`
+		let compoundPath = `${path}${config.compoundPageIndicator}${config.indexPageName}/${config.indexPageName}`;
 		if(fileExists(compoundPath)) {
 			return {
 				base: compoundPath,

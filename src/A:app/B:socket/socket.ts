@@ -23,7 +23,7 @@ import { respond, redirect } from "./response";
 import * as ThreadPool from "./thread-pool";
 
 
-// Error messaqge formatting (globally)
+// TODO: Error messaqge formatting (globally)?
 // TODO: In all memory spaces?
 /* process.on("uncaughtException", err => {
     print.error(err.message);
@@ -122,6 +122,10 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 	});
 }
 
+function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO: Check
+	return Array.isArray(value) ? value[0] : value;
+}
+
 
 /*
  * ESSENTIAL APP SERVER SOCKET.
@@ -157,17 +161,17 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 		}
 		
 		// Permanently redirect dynamic extension (and possibly index name) explicit dynamic file requests to implicit variant
-		const invalidPathnameSuffixRegex: RegExp = new RegExp(`(/${config.indexPageName}|(/${config.indexPageName})?\\.${config.dynamicFileExtension})$`);
+		const invalidPathnameSuffixRegex = new RegExp(`((/)${config.indexPageName}|((/)${config.indexPageName})?\\.${config.dynamicFileExtension})$`);
 		if(invalidPathnameSuffixRegex.test(url.pathname)) {
-			url.pathname = url.pathname.replace(invalidPathnameSuffixRegex, "");
+			url.pathname = url.pathname.replace(invalidPathnameSuffixRegex, "$2$4");
 			
 			redirect(eRes, url.toString());
 			
 			return;
 		}
-		
+
 		const tReq: IThreadReq = {
-			ip: (eReq.headers["x-forwarded-for"] || [])[0] || eReq.connection.remoteAddress,
+			ip: retrieveAmbivalentHeaderValue(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress,
 			method: eReq.method.toUpperCase(),
 			hash: url.hash,
 			hostname: url.hostname,
@@ -176,8 +180,9 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 
 			// Extract headers relevant for handler routine
 			headers: new HeadersMap({
+				"Accept-Encoding": retrieveAmbivalentHeaderValue(eReq.headers["accept-encoding"]),
 				"Authorization": eReq.headers["authorization"],
-				"If-None-Match": eReq.headers["if-none-match"],
+				"If-None-Match": eReq.headers["if-none-match"]
 			})
 		};
 

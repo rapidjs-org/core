@@ -224,7 +224,7 @@ export function activateEndpoint(associatedPluginName: string, requestBody?: TOb
 		return null;
 	}
 
-	const cacheKey: string = `${associatedPluginName}+${endpointName}`;	// Plug-in / endpoint unique key due to name distinctive concatenation symbol
+	const cacheKey = `${associatedPluginName}+${endpointName}`;	// Plug-in / endpoint unique key due to name distinctive concatenation symbol
 
 	let handlerResult: unknown;
 	

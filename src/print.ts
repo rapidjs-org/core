@@ -44,7 +44,7 @@ enum Event {
 }
 
 
-function log(message: string, channel: Channel, noPrefix: boolean = false) {
+function log(message: string, channel: Channel, noPrefix = false) {
 	// TODO: Type based formatting
 	
 	// Highlight numbers
@@ -54,13 +54,13 @@ function log(message: string, channel: Channel, noPrefix: boolean = false) {
 		])}`);
 
 	console[channel](`${!noPrefix
-	? `${print.format(config.appName, [
-		print.Format.T_BOLD,
-		print.Format.T_DIM,
-		print.Format.T_ITALIC,
-		print.Format.BG_YELLOW
-	])} `
-	: ""}${message}`);
+		? `${print.format(config.appName, [
+			print.Format.T_BOLD,
+			print.Format.T_DIM,
+			print.Format.T_ITALIC,
+			print.Format.BG_YELLOW
+		])} `
+		: ""}${message}`);
 }
 
 /**

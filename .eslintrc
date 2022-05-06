@@ -37,6 +37,7 @@
         "prefer-arrow-callback": 2,
         "no-mixed-spaces-and-tabs": 0,
         "no-irregular-whitespace": 0,
+        "no-cond-assign": 0,
         "no-control-regex": 0,
         "no-inner-declarations": 0,
 

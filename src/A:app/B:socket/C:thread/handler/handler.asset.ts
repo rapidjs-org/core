@@ -10,8 +10,8 @@ const config = {
 
 import { readFileSync } from "fs";
 import { join, extname } from "path";
+import { gzipSync, deflateSync } from "zlib";
 
-import { MODE } from "../../../mode";
 import { PROJECT_CONFIG } from "../../../config/config.project";
 
 import { Status } from "../../Status";
@@ -51,8 +51,8 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	tRes = (extension.length > 0)
 		? handleStatic(tRes, tReq.pathname)	// Static file (any file that is not a .HTML file (system web page type))
 		: handleDynamic(tRes, tReq);		// Dynamic file
-	
-	if(tRes.status !== Status.SUCCESS) {
+
+	if(tRes.status && tRes.status !== Status.SUCCESS) {
 		return tRes;
 	}
 	
@@ -62,12 +62,30 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 		tRes.headers.set("X-Content-Type-Options", "nosniff");
 	}
 
-	if(!MODE.dev
-	&& tRes.headers.get("ETag")
+	// TODO: Fix headers interface scope transmission
+
+	// Compare match with ETag in order to communicate possible cache usage 
+	if(tRes.headers.get("ETag")
     && tReq.headers.get("If-None-Match") == tRes.headers.get("ETag")) {
 		tRes.status = Status.USE_CACHE;
 
 		return tRes;    // TODO: Respond shorthand?
+	}
+
+	// Apply compression if accepted
+	const checkCompressionAccepted = (compressionType: string) => {
+		return tReq.headers.get("Accept-Encoding").match(new RegExp(`(^|,[ ]*)${compressionType}($|[a-z0-9-])`, "i"));
+	};
+	if(tReq.headers.has("Accept-Encoding")) {
+		if(checkCompressionAccepted("gzip")) {
+			tRes.message = gzipSync(tRes.message);
+
+			tRes.headers.set("Content-Encoding", "gzip");
+		} else if(checkCompressionAccepted("deflate")) {
+			tRes.message = deflateSync(tRes.message);
+
+			tRes.headers.set("Content-Encoding", "deflate");
+		}	// TODO: Implement optional weight consideration?
 	}
 
 	return tRes;
@@ -149,8 +167,8 @@ function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
 
 	// Inject compound base tag (in order to keep relative references in markup alive)
 	tRes.message = compoundInfo
-	? injectCompoundBaseIntoMarkup(tRes.message, tReq.pathname.slice(0, -(compoundInfo.args.join("/").length)))
-	: tRes.message;
+		? injectCompoundBaseIntoMarkup(tRes.message, tReq.pathname.slice(0, -(compoundInfo.args.join("/").length)))
+		: tRes.message;
 
 	// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
 	// TODO: Write statically prepared dynamic file back to VFS for better performance?
@@ -192,8 +210,7 @@ function getHeadPosition(markup: string): {
 }
 
 function embedHead(markup: string): string {
-		return markup;
-		const headPos = getHeadPosition(markup);	// TODO: Improve retrievals?
+	const headPos = getHeadPosition(markup);	// TODO: Improve retrievals?
 
 	if(headPos) {
 		return markup;
@@ -238,6 +255,6 @@ function injectPluginReferenceIntoMarkup(markup: string, effectivePluginNames: S
 
 function injectCompoundBaseIntoMarkup(markup: string, basePath: string): string {
 	const headPos = getHeadPosition(markup);
-	
+
 	return `${markup.slice(0, headPos.open)}\n<base href="${basePath}">${markup.slice(headPos.open)}`;
 }

@@ -1,6 +1,14 @@
+
+interface HeadersMap {
+	has: (name: string) => boolean;
+	get: (name: string) => string;
+    set: (name: string, value: string|number|boolean) => this;
+    forEach: (callback: (value: string, key: string, map: Map<string, string>) => void) => void;
+}
+
 declare interface IThreadReq {
     hash: string;
-    headers: Map<string, string>;
+    headers: HeadersMap;
     hostname: string;
     ip: string;
     method: string;
@@ -11,8 +19,8 @@ declare interface IThreadReq {
 }
 
 declare interface IThreadRes {
-    headers: Map<string, unknown>;
+    headers: HeadersMap;
     
-    message?: string;
+    message?: string|Buffer;
     status?: number;
 }
