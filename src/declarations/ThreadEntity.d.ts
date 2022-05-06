@@ -6,12 +6,12 @@ declare interface IThreadReq {
     pathname: string;
     searchParams: URLSearchParams;
 
-    body?: TObject
+    body?: TObject;
 }
 
 declare interface IThreadRes {
     headers: Map<string, unknown>;
     
-    message?: string
-    status?: number
+    message?: string;
+    status?: number;
 }

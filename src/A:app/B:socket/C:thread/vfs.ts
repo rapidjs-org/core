@@ -33,6 +33,16 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
     protected validateLimitReference(mtimeMs: number, path: string) {
     	return (statSync(this.retrieveLocalPath(path)).mtimeMs == mtimeMs);
     }
+	
+    public exists(path: string): boolean {
+		if(this.cache.has(path) || super.hasEntry(path)) {
+			return true;
+		}
+
+		this.write(path);
+		
+		return super.hasEntry(path);
+    }
 
     public read(path: string): FileStamp {
     	let data: FileStamp = this.cache.read(path);

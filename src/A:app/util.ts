@@ -1,5 +1,5 @@
 
-import { join } from "path";
+import { normalize, join } from "path";
 
 import { PROJECT_PATH } from "./path";
 
@@ -11,5 +11,5 @@ import { PROJECT_PATH } from "./path";
  * @returns {string} Normalized path
  */
 export function normalizePath(path: string): string {
-	return join(PROJECT_PATH, path);
+	return normalize(join(PROJECT_PATH, path));
 }

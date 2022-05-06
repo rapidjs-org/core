@@ -18,6 +18,7 @@ import { Status } from "../../Status";
 
 import { VFS } from "../vfs";
 import { computeETag } from "../util";
+import { retrieveCompoundInfo } from "../request-info";
 import { retireveClientModuleScript, retrieveIntegrationPluginNames } from "../plugin/registry";
 
 
@@ -34,6 +35,12 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 
 		tRes.headers.set("Content-Type", "text/javascript");
 
+		return tRes;
+	}
+
+	if((new RegExp(`/${config.privateWebFilePrefix}`)).test(tReq.pathname)) {
+		tRes.status = Status.FORBIDDEN;	// TODO: Status conceal option?
+		
 		return tRes;
 	}
 	
@@ -117,14 +124,7 @@ function handlePlugin(tRes: IThreadRes, path: string): IThreadRes {
 }
 
 function handleStatic(tRes: IThreadRes, path: string): IThreadRes {
-	if((new RegExp(`/${config.privateWebFilePrefix}`)).test(path)) {
-		tRes.status = Status.NOT_FOUND;
-		
-		return tRes;
-	}
-
 	const fileStamp = VFS.read(path);
-
 	if(fileStamp === undefined) {
 		tRes.status = Status.NOT_FOUND;
 	} else {
@@ -137,47 +137,34 @@ function handleStatic(tRes: IThreadRes, path: string): IThreadRes {
 }
 
 function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
-	tReq.pathname += `.${config.dynamicFileExtension}`;
+	const compoundInfo: ICompoundInfo = retrieveCompoundInfo();
 	
-	// TODO: extendRequestInfo()
 	// TODO: Error routine
 	// TODO: How to handle generic error routine?
 	
-	if((new RegExp(`/${config.privateWebFilePrefix}`)).test(tReq.pathname)) {
-		tRes.status = Status.FORBIDDEN;	// TODO: tRes as class / object?
-		
-		return tRes;
-	}
-    
 	// TODO: Use static ETag routine if plug-in does NOT server-side render markup
-
-	tRes.message = (VFS.read(tReq.pathname) || {}).contents;
-    
-	if(tRes.message === undefined) {
+	const fileStamp = VFS.read(`${compoundInfo ? compoundInfo.base : tReq.pathname}.${config.dynamicFileExtension}`);
+	if(fileStamp === undefined) {
 		tRes.status = Status.NOT_FOUND;
 
 		return tRes;
 	}
 
-	tRes.headers.set("ETag", computeETag(tRes.message));
-	
-	// Apply static file routine for read
-	tRes = handleStatic(tRes, tReq.pathname);
-
-	// Integrate plug-in reference accordingly
-	const isCompound = false;
-
-	const pluginIntegrationSequence = retrieveIntegrationPluginNames(isCompound);
+	// Integrate plug-in reference accordingly	
+	const pluginIntegrationSequence = retrieveIntegrationPluginNames(!!compoundInfo);
 
 	// TODO: What about manually integrated compound only plug-ins? Allow for mutual usage?
 
-	tRes.message = injectPluginReferenceIntoMarkup(tRes.message, pluginIntegrationSequence);
+	tRes.message = injectPluginReferenceIntoMarkup(fileStamp.contents, pluginIntegrationSequence);
 
 	// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
 	// TODO: Write statically prepared dynamic file back to VFS for better performance?
 
 	// Rendering
+	// TODO: Implement
 
+	tRes.headers.set("ETag", computeETag(tRes.message));
+	
 	return tRes;
 }
 

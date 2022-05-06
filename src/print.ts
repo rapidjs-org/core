@@ -112,15 +112,15 @@ export namespace print {
 		return `${formatFlags.map(flag => `\x1b[${flag}m`).join("")}${str}\x1b[0m`;
 	}
 	
-	export function info(message: string, noPrefix: boolean) {
+	export function info(message: string, noPrefix?: boolean) {
 		write(message, Channel.LOG, Event.INFO, noPrefix);
 	}
 	
-	export function debug(message: string, noPrefix: boolean) {
+	export function debug(message: string, noPrefix?: boolean) {
 		write(message, Channel.LOG, Event.DEBUG, noPrefix);
 	}
 
-	export function error(errEntity: Error|string|number|boolean, noPrefix: boolean) {
+	export function error(errEntity: Error|string|number|boolean, noPrefix?: boolean) {
 		write(format((errEntity instanceof Error) ? errEntity.message : String(errEntity), [
 			Format.FG_RED
 		]), Channel.ERROR, Event.ERROR, noPrefix);

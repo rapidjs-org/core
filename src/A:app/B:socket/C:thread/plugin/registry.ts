@@ -35,6 +35,8 @@ const activePluginRegistry = {
 	dict: new Map<string, {
         integrateManually: boolean;
         moduleDirPath: string;
+		muteEndpoints: boolean;
+		muteRendering: boolean;
 
         clientModuleText?: string;
         compoundOnly?: boolean;
@@ -111,7 +113,9 @@ function evalPlugin(name: string, moduleDirPath: string) {
 export function registerActivePlugin(plugin: IPassivePlugin) {
 	activePluginRegistry.dict.set(plugin.name, {
 		integrateManually: plugin.options.integrateManually,
-		moduleDirPath: dirname(plugin.modulePath)
+		moduleDirPath: dirname(plugin.modulePath),
+		muteEndpoints: plugin.options.muteEndpoints,
+		muteRendering: plugin.options.muteRendering,
 	});
     
 	try {
@@ -194,6 +198,10 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 
 export function defineEndpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: TObject) {
 	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
+
+	if(pluginObj.muteEndpoints) {
+		return;
+	}
 
 	if(!(endpointHandler instanceof Function) && typeof(endpointHandler) !== "function") {
 		throw new SyntaxError(`Given endpoint handler argument of type ${typeof(endpointHandler)}, expecting Function`);
