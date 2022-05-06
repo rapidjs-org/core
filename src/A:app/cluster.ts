@@ -88,7 +88,7 @@ export function ipcDown(type: IPCSignal , data: TObject) {
 	};
 
 	if(clusterSize == 1) {
-		require("./B:socket/socket").message(message);
+		require("./B:socket/thread-pool").ipcDown(message);
 
 		return;
 	}

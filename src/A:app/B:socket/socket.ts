@@ -4,9 +4,6 @@
  */
 
 import { existsSync, readFileSync } from "fs";
-import { cpus } from "os";
-import { Worker as Thread, SHARE_ENV, BroadcastChannel } from "worker_threads";
-import { join } from "path";
 import https from "https";
 import http from "http";
 
@@ -16,13 +13,14 @@ import { print } from "../../print";
 import { mergeObj } from "../../util";
 
 import { PROJECT_CONFIG } from "../config/config.project";
-import { MODE } from "../mode";
 import { IS_SECURE } from "../secure";
-import { IPCSignal } from "../IPCSignal";
 import { normalizePath } from "../util";
 
 import { Status } from "./Status";
+import { HeadersMap } from"./HeadersMap";
 import { rateExceeded } from "./rate-limiter";
+import { respond, redirect } from "./response";
+import * as ThreadPool from "./thread-pool";
 
 
 // Error messaqge formatting (globally)
@@ -31,170 +29,9 @@ import { rateExceeded } from "./rate-limiter";
     print.error(err.message);
 }); */
 
-class HeadersMap extends Map<string, string> {
-
-	constructor(dictionaryRec?: Record<string, string>) {
-		super(Object.entries(dictionaryRec || {}));
-	}
-
-	public get(name: string): string {
-		return super.get(name.toLowerCase());
-	}
-
-	public set(name: string, value: string|number|boolean) {
-		super.set(name.toLowerCase(), String(value));
-
-		return null;
-	}
-
-}
 
 
-const passivePluginRegistry: IPassivePlugin[] = [];
 const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
-
-
-namespace ThreadPool {
-    const idleThreads: Thread[] = [];
-    const activeReqs: Map<number, http.ServerResponse> = new Map();
-    const pendingReqs: {
-        tReq: IThreadReq,
-        tRes: IThreadRes,
-        eRes: http.ServerResponse
-    }[] = [];
-    const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
-    
-    // Create fixed amount of new, reusable threads
-    // Defer in order to read connected plug-ins first
-    setImmediate(_ => {
-    	Array.from({ length: (MODE.DEV ? 1 : --cpus().length) }, createThread);
-    	// TODO: Use config file parameter for size?
-    });
-
-	// TODO: Thread work timeout (to prevent deadlocks and iteration problems)
-    function createThread() {
-    	const thread = new Thread(join(__dirname, "./C:thread/thread.js"), {
-    		env: SHARE_ENV,
-    		argv: process.argv.slice(2),
-    		workerData: passivePluginRegistry
-    	});
-
-    	// Success (message provision) listener
-    	thread.on("message", tRes => {
-    		respondIndividually(activeReqs.get(thread.threadId), tRes);
-
-    		deactivateThread(thread);
-    	});
-        
-    	// Thread error listener
-    	thread.on("error", err => {
-    		respondGenerically(activeReqs.get(thread.threadId), Status.INTERNAL_ERROR);  // TODO: Error response?
-			
-    		createThread();
-
-    		// TODO: Error restart limit?
-    		// TODO: Do not print 'Unhandled error...'
-    		print.error(err);
-    	});
-        
-    	// Erroneous thread close listener
-    	// Spawn new thread thread to replace despawned thread
-    	thread.on("exit", code => {
-    		if(code === 0) {
-    			return;
-    		}
-            
-    		respondGenerically(activeReqs.get(thread.threadId), Status.INTERNAL_ERROR);  // TODO: Error response?  // TODO: Error response?
-			
-    		createThread();
-    	});
-
-    	deactivateThread(thread);
-    }
-
-    function deactivateThread(thread: Thread) {
-    	idleThreads.push(thread);
-		
-    	activateThread(pendingReqs.shift());
-    }
-
-    export function activateThread(entity: {
-        tReq: IThreadReq,
-        tRes: IThreadRes,
-        eRes: http.ServerResponse
-    }) {
-    	if(entity === undefined) {
-    		return;
-    	}
-		
-    	if(idleThreads.length === 0) {
-    		pendingReqs.push(entity);
-            
-    		return;
-    	}
-
-    	const thread = idleThreads.shift();  // FIFO
-
-    	activeReqs.set(thread.threadId, entity.eRes);
-		
-    	// Filter HTTP request object for thread reduced request object
-    	thread.postMessage({
-    		tReq: entity.tReq,
-    		tRes: entity.tRes
-    	});
-    }
-
-    export function broadcast(message: TObject) {
-    	broadcastChannel.postMessage(message);
-    }
-
-}
-
-
-function respondGenerically(eRes: http.ServerResponse, status: number) {
-	respondIndividually(eRes, {
-		status: status,
-		headers: new HeadersMap()
-	} as IThreadRes);
-}
-
-function respondIndividually(eRes: http.ServerResponse, tRes: IThreadRes) {
-	if(!eRes) {
-		return;
-	}
-
-	const messageBuffer: Buffer = Buffer.from(tRes.message ? tRes.message : http.STATUS_CODES[tRes.status], "utf-8");
-
-	// Common headers
-	tRes.headers.set("Cache-Control", PROJECT_CONFIG.read("cache", "client").object ? `public, max-age=${PROJECT_CONFIG.read("cache", "client").number}, must-revalidate` : null);
-	tRes.headers.set("Content-Length", Buffer.byteLength(messageBuffer, "utf-8"));
-	tRes.headers.set("Referrer-Policy", "no-referrer-when-downgrade");
-	tRes.headers.set("Strict-Transport-Security", IS_SECURE ? `max-age=${PROJECT_CONFIG.read("cachingDuration", "client")}; includeSubDomains` : null);
-	tRes.headers.set("X-XSS-Protection", "1; mode=block");
-
-	// Additional headers set from handler
-	tRes.headers
-		.forEach((value: string, header: string) => {
-			if(value === undefined || value === null) {
-				return;
-			}
-
-			eRes.setHeader(header, value);
-		});
-
-	eRes.statusCode = tRes.status || Status.SUCCESS;    // TODO: Concealing error status
-
-	eRes.end(messageBuffer);
-}
-
-function redirect(eRes: http.ServerResponse, location: string) {
-	respondIndividually(eRes, {
-		status: Status.REDIRECT,
-		headers: new HeadersMap({
-			"Location": location
-		})
-	} as IThreadRes);
-}
 
 
 // Set SSL options if is secure environment
@@ -296,14 +133,14 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 	}, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
 		// Unsupported request method
 		if(!["GET", "HEAD", "POST"].includes(eReq.method)) {
-			respondGenerically(eRes, Status.UNSUPPORTED_METHOD);
+			respond(eRes, Status.UNSUPPORTED_METHOD);
 
 			return;
 		}
 
 		// URL length exceeded
 		if(eReq.url.length > (PROJECT_CONFIG.read("limit", "urlLength")).number) {
-			respondGenerically(eRes, Status.URL_EXCEEDED);
+			respond(eRes, Status.URL_EXCEEDED);
 
 			return;
 		}
@@ -314,7 +151,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 		// Hostname mismatch (only if configured)
 		if(configuredHostname
 		&& configuredHostname !== url.hostname) {
-			respondGenerically(eRes, Status.UNSUPPORTED_METHOD);
+			respond(eRes, Status.UNSUPPORTED_METHOD);
 
 			return;
 		}
@@ -356,7 +193,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 
 		// Check: Rate (request limit) exceeded
 		if(rateExceeded(tReq.ip)) {
-			respondGenerically(eRes, Status.RATE_EXCEEDED);
+			respond(eRes, Status.RATE_EXCEEDED);
 
 			return;
 		}
@@ -376,7 +213,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 					ThreadPool.activateThread(threadInfo);
 				})
 				.catch((bodyParseError: IBodyParseError) => {
-					respondGenerically(eRes, bodyParseError.status);
+					respond(eRes, bodyParseError.status);
 
 					bodyParseError.err && print.error(bodyParseError.err);
 				});
@@ -415,21 +252,3 @@ IS_SECURE && http
 
 		port: PROJECT_CONFIG.read("port", "http").number
 	});
-
-
-/*
- * IPC interface (top-down).
- */
-export function message(message: TObject) {
-	// TODO: IPC types
-	switch(message.type) {
-	case IPCSignal.PLUGIN:
-		ThreadPool.broadcast(message.data as TObject);
-
-		passivePluginRegistry.push(message.data as IPassivePlugin);
-            
-		break;
-	}
-}
-
-process.on("message", message);
