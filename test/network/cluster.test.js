@@ -59,16 +59,6 @@ getRequestTest
     }
 });
 
-getRequestTest
-.conduct("Redirect compound trailing slash")
-.check("/compound/")
-.for({
-    status: 301,
-    headers: {
-        "location": "http://localhost/compound"
-    }
-});
-
 // Errors
 
 getRequestTest

@@ -19,14 +19,9 @@ export function respond(eRes: http.ServerResponse, param: number|IThreadRes) {
 			headers: new HeadersMap()
 		} as unknown as IThreadRes	// Status code overload
 		: param;					// Response object overload
-
-	const messageBuffer: Buffer = !Buffer.isBuffer(tRes.message)
-	? Buffer.from(tRes.message ? tRes.message : http.STATUS_CODES[tRes.status], "utf-8")
-	: tRes.message;
-
+	
 	// Common headers
 	tRes.headers.set("Cache-Control", PROJECT_CONFIG.read("cache", "client").object ? `public, max-age=${PROJECT_CONFIG.read("cache", "client").number}, must-revalidate` : null);
-	tRes.headers.set("Content-Length", Buffer.byteLength(messageBuffer, "utf-8"));
 	tRes.headers.set("Referrer-Policy", "no-referrer-when-downgrade");
 	tRes.headers.set("Strict-Transport-Security", IS_SECURE ? `max-age=${PROJECT_CONFIG.read("cachingDuration", "client")}; includeSubDomains` : null);
 	tRes.headers.set("X-XSS-Protection", "1; mode=block");
@@ -43,7 +38,7 @@ export function respond(eRes: http.ServerResponse, param: number|IThreadRes) {
 
 	eRes.statusCode = tRes.status || Status.SUCCESS;    // TODO: Concealing error status
 
-	eRes.end(messageBuffer);
+	eRes.end(tRes.message);
 }
 
 export function redirect(eRes: http.ServerResponse, location: string) {

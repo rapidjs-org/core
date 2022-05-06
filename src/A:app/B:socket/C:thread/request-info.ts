@@ -92,11 +92,26 @@ function parseCompoundInfo(path: string): ICompoundInfo {
 		return undefined;
 	}
 
-	path = path.replace(/(\/)?$/, "/");
+	let compoundPath: string;
 	const args: string[] = [];
+	// TODO: Enhance retrieval routine?
+	if(/\/$/.test(path)) {
+		// No trailing slash on arguments 
+		compoundPath = `${path}${config.compoundPageIndicator}${config.indexPageName}/${config.indexPageName}`;
+		if(fileExists(compoundPath)) {
+			return {
+				base: compoundPath,
+				args: args
+			};
+		}
+
+		return undefined;
+	}
+
+	path = `${path}/`;
 	while(path.length > 0) {
 		// Index page
-		let compoundPath = `${path}${config.compoundPageIndicator}${config.indexPageName}/${config.indexPageName}`;
+		compoundPath = `${path}${config.compoundPageIndicator}${config.indexPageName}/${config.indexPageName}`;
 		if(fileExists(compoundPath)) {
 			return {
 				base: compoundPath,

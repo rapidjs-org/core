@@ -4,6 +4,8 @@
 
 import { parentPort, BroadcastChannel, workerData } from "worker_threads";
 
+import http from "http";
+
 import config from "../../app.config.json";
 
 import handleAsset from "./handler/handler.asset";
@@ -17,7 +19,17 @@ import { registerActivePlugin } from "./plugin/registry";
  * @param {IThreadRes} tRes Thread response object
  * @param {boolean} headerOnly Whether to only send headers
  */
-function respond(tRes: IThreadRes, headerOnly = false) {
+function respond(tRes: IThreadRes, headerOnly: boolean = false) {
+	tRes.message = !Buffer.isBuffer(tRes.message)
+	? Buffer.from(tRes.message ? tRes.message : http.STATUS_CODES[tRes.status], "utf-8")
+	: tRes.message;
+
+	tRes.headers.set("Content-Length", Buffer.byteLength(tRes.message, "utf-8"));
+	
+	tRes.message = headerOnly
+	? null
+	: tRes.message;
+
 	parentPort.postMessage(tRes);
 }
 
