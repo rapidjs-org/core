@@ -1,3 +1,8 @@
 
+import { MODE } from "./mode";
 
-export const isDevMode = true;
+
+export const isDevMode = MODE.DEV;
+
+
+export { MutualClientError, MutualServerError } from "./MutualError";

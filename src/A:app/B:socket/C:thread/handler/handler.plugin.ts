@@ -26,17 +26,23 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	tRes.headers.set("Content-Type", "application/json");
 	tRes.headers.set("X-Content-Type-Options", "nosniff");
 	
-	const handlerResult: unknown = activateEndpoint(payload.pluginName, payload.body, payload.endpointName);
-
-	if(!handlerResult) {
-		print.debug(`Undefined ${payload.endpointName ? `'${payload.endpointName}'` : "default"} endpoint of plug-in '${payload.pluginName}' has been requested`);
-		
-		tRes.status = Status.NOT_FOUND;
-		
-		return tRes;
+	let handlerResult: IEndpointHandlerResult
+	try {
+		handlerResult = activateEndpoint(payload.pluginName, payload.body, payload.endpointName);
+	} catch(err) {
+		print.info(`An error occurred activating the ${payload.endpointName ? `'${payload.endpointName}'` : "default"} endpoint of plug-in '${payload.pluginName}'`);
+		print.error(err);
 	}
 
-	tRes.message = JSON.stringify(handlerResult);
+	switch(handlerResult.status) {
+		case Status.NOT_FOUND:
+			print.debug(`Request of undefined ${payload.endpointName ? `'${payload.endpointName}'` : "default"} endpoint of plug-in '${payload.pluginName}'`);
+			
+			break;
+	}
 
+	tRes.status = handlerResult.status;
+	tRes.message = handlerResult.data ? JSON.stringify(handlerResult.data) : null;
+	
 	return tRes;
 }

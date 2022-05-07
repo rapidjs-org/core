@@ -6,7 +6,7 @@
 
 // TODO: RedirectError?
 
-abstract class MutualError extends Error {
+export abstract class MutualError extends Error {
 
     public status: number;
 

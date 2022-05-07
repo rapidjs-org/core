@@ -2,7 +2,8 @@ $this.PUBLIC.testEndpoint = _ => {
     $this.endpoint()
     .then(message => {
         console.log(message);
-    }).catch(_ => {
+    }).catch(msg => {
+        console.log(msg);
         console.log("Try again later");
     });
 };

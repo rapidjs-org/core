@@ -15,14 +15,7 @@ const retrieveName = list => {
     return list[Math.round(Math.random() * (list.length - 1))];
 };
 
-// Initialize frontend module with relative path to file
 $this.clientModule("./client");
-
-// Define the default endpoint
-// Returns (responds with) generated name
-$this.endpoint(_ => {
-    return `${retrieveName(names.first)} ${retrieveName(names.last)} ${Math.round(Math.random() * 10)}`;
-});
 
 $this.endpoint((body, req) => {
     console.log(body);
@@ -35,3 +28,13 @@ $this.endpoint((body, req) => {
     name: "abc",
     useCache: true
 });
+
+module.exports = rJS => {
+
+    $this.endpoint(_ => {
+        //throw new rJS.MutualClientError(406, "Test error");
+        
+        return `${retrieveName(names.first)} ${retrieveName(names.last)} ${Math.round(Math.random() * 10)}`;
+    });
+    
+};

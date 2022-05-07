@@ -11,4 +11,9 @@ declare interface IPassivePlugin {
     options: IPluginOptions;
 }
 
+declare interface IEndpointHandlerResult {
+	status: number;
+	data?: unknown;
+}
+
 declare type TEndpointHandler = (body: TObject, req: IRequestInfo) => unknown;

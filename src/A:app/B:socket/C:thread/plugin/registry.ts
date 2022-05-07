@@ -24,7 +24,10 @@ import { print } from "../../../../print";
 import { PLUGIN_CONFIG } from "../../../config/config.plugins";
 import * as commonInterface from "../../../interface.common";
 
+import { Status } from "../../Status";
+
 import { Cache } from "../Cache";
+import { MutualError } from "../../../MutualError";
 
 import { retrieveRequestInfo } from "../request-info";
 
@@ -215,9 +218,9 @@ export function defineEndpoint(associatedPluginName: string, endpointHandler: TE
 	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
 }
 
-export function activateEndpoint(associatedPluginName: string, requestBody?: TObject, endpointName?: string): unknown {
+export function activateEndpoint(associatedPluginName: string, requestBody?: TObject, endpointName?: string): IEndpointHandlerResult {
 	endpointName = endpointName || config.defaultEndpointName;
-
+	
 	const endpoint = activePluginRegistry.dict.get(associatedPluginName).endpoints.get(endpointName);
 
 	if(!endpoint) {
@@ -226,20 +229,32 @@ export function activateEndpoint(associatedPluginName: string, requestBody?: TOb
 
 	const cacheKey = `${associatedPluginName}+${endpointName}`;	// Plug-in / endpoint unique key due to name distinctive concatenation symbol
 
-	let handlerResult: unknown;
-	
+	let handlerData: unknown;
 	if(endpoint.useCache
 	&& endpointCache.has(cacheKey)) {
-		handlerResult = endpointCache.read(cacheKey);
-
-		if(handlerResult) {
-			return handlerResult;
-		}
+		return {
+			status: Status.SUCCESS,
+			data: endpointCache.read(cacheKey)
+		};
 	} else {
-		handlerResult = endpoint.handler(requestBody, retrieveRequestInfo());
+		try {
+			handlerData = endpoint.handler(requestBody, retrieveRequestInfo());
+		} catch(err) {
+			if(err instanceof MutualError) {
+				return {
+					status: err.status,
+					data: err.message
+				};
+			}
+
+			throw err;
+		}
 	}
 
-	endpoint.useCache && endpointCache.write(cacheKey, handlerResult);
+	endpoint.useCache && endpointCache.write(cacheKey, handlerData);
 
-	return handlerResult;
+	return {
+		status: Status.SUCCESS,
+		data: handlerData
+	};
 }
