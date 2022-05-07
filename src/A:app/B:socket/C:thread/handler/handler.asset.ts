@@ -63,7 +63,7 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	}
 
 	// TODO: Fix headers interface scope transmission
-	
+
 	// Compare match with ETag in order to communicate possible cache usage 
 	if(tRes.headers.get("ETag")
     && tReq.headers.get("If-None-Match") == tRes.headers.get("ETag")) {

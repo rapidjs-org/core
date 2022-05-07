@@ -16,7 +16,7 @@ import tlds from "./static/tlds.json";
 
 const registeredMostSignificantParts: string[] = [];
 const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
-registeredMostSignificantParts.push(`.${configuredHostname}`);
+registeredMostSignificantParts.push(configuredHostname ? `.${configuredHostname}` : "localhost");
 
 let currentRequestInfo: IRequestInfo;
 let currentCompoundInfo: ICompoundInfo;
@@ -48,17 +48,31 @@ function parseMostSignificantHostnamePart(hostname: string): string {
 	return sld + tld;
 }
 
+// Known subdomain patterns for instant look up
+const knownSubdomainPatterns: Map<string, string|string[]> = new Map();
+
+// TODO: Improve runtime
 function parseSubdomain(hostname: string): string|string[] {
+	if(knownSubdomainPatterns.has(hostname)) {
+		return knownSubdomainPatterns.get(hostname);
+	}
+
+	const resolve = (result: string|string[]) => {
+		knownSubdomainPatterns.set(hostname, result);
+
+		return result;
+	};
+
 	const matchAgainstMostSignificantPart = (mostSignificantPart: string) => {
 		const subdomain: string[] = hostname
 			.slice(0, -mostSignificantPart.length)
 			.split(/\./g);
 		
-		return (subdomain.length === 1)
+		return resolve((subdomain.length === 1)
 			? subdomain[0] || undefined	// No empty string
-			: subdomain;
+			: subdomain);
 	};
-
+	
 	// Match subdomains against registered most significant URL parts
 	registeredMostSignificantParts.forEach((part: string) => {
 		const applicableMostSignificantPart: string[] = hostname.match(new RegExp(`${part.replace(/\./g, "\\.")}$`, "i"));
