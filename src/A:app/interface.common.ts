@@ -2,7 +2,9 @@
 import { MODE } from "./mode";
 
 
-export const isDevMode = MODE.DEV;
-
+export { Cache } from "./Cache";
 
 export { MutualClientError, MutualServerError } from "./MutualError";
+
+
+export const isDevMode = MODE.DEV;

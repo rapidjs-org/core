@@ -16,4 +16,5 @@ declare interface IEndpointHandlerResult {
 	data?: unknown;
 }
 
+
 declare type TEndpointHandler = (body: TObject, req: IRequestInfo) => unknown;

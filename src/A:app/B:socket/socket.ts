@@ -10,7 +10,6 @@ import http from "http";
 import config from "../app.config.json";
 
 import { print } from "../../print";
-import { mergeObj } from "../../util";
 
 import { PROJECT_CONFIG } from "../config/config.project";
 import { IS_SECURE } from "../secure";
@@ -28,7 +27,6 @@ import * as ThreadPool from "./thread-pool";
 /* process.on("uncaughtException", err => {
     print.error(err.message);
 }); */
-
 
 
 const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
@@ -135,8 +133,10 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 		...sslOptions,
 		...serverOptions
 	}, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
+		const method: string = eReq.method.toUpperCase();
+
 		// Unsupported request method
-		if(!["GET", "HEAD", "POST"].includes(eReq.method)) {
+		if(!["GET", "HEAD", "POST"].includes(method)) {
 			respond(eRes, Status.UNSUPPORTED_METHOD);
 
 			return;
@@ -148,11 +148,21 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 
 			return;
 		}
+
+		const clientIP: string = retrieveAmbivalentHeaderValue(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress;
+
+		// Rate (request limit) exceeded
+		if(rateExceeded(clientIP)) {
+			respond(eRes, Status.RATE_EXCEEDED);
+
+			return;
+		}
         
 		// Construct thread request object related to the current response
 		const url: URL = new URL(`http${IS_SECURE ? "s" : ""}://${eReq.headers["host"]}${eReq.url}`);
 
 		// Hostname mismatch (only if configured)
+		// TODO: Reconsider
 		if(configuredHostname
 		&& configuredHostname !== url.hostname) {
 			respond(eRes, Status.UNSUPPORTED_METHOD);
@@ -171,8 +181,8 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 		}
 
 		const tReq: IThreadReq = {
-			ip: retrieveAmbivalentHeaderValue(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress,
-			method: eReq.method.toUpperCase(),
+			ip: clientIP,
+			method: method,
 			hash: url.hash,
 			hostname: url.hostname,
 			pathname: url.pathname,
@@ -182,31 +192,17 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 			headers: new HeadersMap({
 				"Accept-Encoding": retrieveAmbivalentHeaderValue(eReq.headers["accept-encoding"]),
 				"Authorization": eReq.headers["authorization"],
+				"Cookie": eReq.headers["cookie"],
 				"If-None-Match": eReq.headers["if-none-match"]
 			})
 		};
 
-		const tRes: IThreadRes = {
-			// Already set static headers with custom overrides
-			// Relevant headers to have overriding access throughout handler routine
-			headers: new HeadersMap(mergeObj({
-				"Server": "rapidJS"
-			}, (PROJECT_CONFIG.read("customHeaders").object || {}) as TObject) as Record<string, string>)
-		};
-
 		// TODO: Emit connection event for individual request logs
-
-		// Check: Rate (request limit) exceeded
-		if(rateExceeded(tReq.ip)) {
-			respond(eRes, Status.RATE_EXCEEDED);
-
-			return;
-		}
 		
 		// Request handler
 		const threadInfo = {
-			tReq, tRes,
-			eRes
+			eRes,
+			tReq
 		};
 
 		// Parse body first (async) if is plug-in (POST) request

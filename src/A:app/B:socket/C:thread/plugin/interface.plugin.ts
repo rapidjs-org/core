@@ -6,10 +6,6 @@ export function clientModule(associatedPluginName: string, relativePathToModule:
 	bindClientModule(associatedPluginName, relativePathToModule, sharedProperties, compoundOnly);
 }
 
-export function readSupportFile(associatedPluginName: string, name: string): string {
-	return "";
-}
-
 export function endpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: {
 	name?: string;
 	useCache?: boolean;
@@ -19,4 +15,12 @@ export function endpoint(associatedPluginName: string, endpointHandler: TEndpoin
 
 export function render(associatedPluginName: string) {
 	// TODO: Implement? Move to plug-in context?
+}
+
+export function readPageFile(associatedPluginName: string, name: string): string {
+	return "";
+}
+
+export function readSupportFile(associatedPluginName: string, name: string): string {
+	return "";
 }

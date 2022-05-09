@@ -2,16 +2,23 @@
  * >> START OF INDEPENDANT MEMORY (C LEVEL) <<
  */
 
+import config from "../../app.config.json";
+
 import { parentPort, BroadcastChannel, workerData } from "worker_threads";
 
-import http from "http";
+import { mergeObj } from "../../../util";
 
-import config from "../../app.config.json";
+import { PROJECT_CONFIG } from "../../config/config.project";
+
+import { HeadersMap } from "../HeadersMap";
 
 import handleAsset from "./handler/handler.asset";
 import handlePlugin from "./handler/handler.plugin";
-import { defineRequestInfo } from "./request-info";
+import { evalRequestInfo } from "./request-info";
 import { registerActivePlugin } from "./plugin/registry";
+
+import "./live/ws-server";
+import "./live/watch";
 
 
 /**
@@ -19,36 +26,35 @@ import { registerActivePlugin } from "./plugin/registry";
  * @param {IThreadRes} tRes Thread response object
  * @param {boolean} headerOnly Whether to only send headers
  */
-function respond(tRes: IThreadRes, headerOnly: boolean = false) {
-	tRes.message = !Buffer.isBuffer(tRes.message)
-	? Buffer.from(tRes.message ? tRes.message : http.STATUS_CODES[tRes.status], "utf-8")
-	: tRes.message;
-
-	tRes.headers.set("Content-Length", Buffer.byteLength(tRes.message, "utf-8"));
-	
-	tRes.message = headerOnly
-	? null
-	: tRes.message;
-
+function respond(tRes: IThreadRes) {
 	parentPort.postMessage(tRes);
 }
 
 parentPort.on("message", (post: {
-    tReq: IThreadReq,
-    tRes: IThreadRes
+    tReq: IThreadReq
 }) => {
-	defineRequestInfo(post.tReq);
+	evalRequestInfo(post.tReq);
 
+	const tRes: IThreadRes = {
+		// Already set static headers with custom overrides
+		// Relevant headers to be of ghigher priority for access throughout handler routine
+		headers: new HeadersMap(mergeObj({
+			"Server": "rapidJS"
+		}, (PROJECT_CONFIG.read("customHeaders").object || {}) as TObject) as Record<string, string>)
+	};
+	
 	// GET: File request (either a dynamic and static routine; based on filer type)
 	// HEAD: Resembles a GET request, but without the transferral of content
 	if(["GET", "HEAD"].includes(post.tReq.method))  {
-		respond(handleAsset(post.tReq, post.tRes), (post.tReq.method === "HEAD"));
-
+		tRes.headersOnly = (post.tReq.method === "HEAD");
+		
+		respond(handleAsset(post.tReq, tRes));
+		
 		return;
 	}
     
 	// POST: Plug-in request
-	respond(handlePlugin(post.tReq, post.tRes));
+	respond(handlePlugin(post.tReq, tRes));
 });
 
 

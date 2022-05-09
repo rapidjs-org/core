@@ -9,7 +9,7 @@ const config = {
 
 
 import { readFileSync } from "fs";
-import { join, extname } from "path";
+import { join, extname, dirname } from "path";
 import { gzipSync, deflateSync } from "zlib";
 
 import { PROJECT_CONFIG } from "../../../config/config.project";
@@ -18,44 +18,57 @@ import { Status } from "../../Status";
 
 import { VFS } from "../vfs";
 import { computeETag } from "../util";
-import { retrieveCompoundInfo } from "../request-info";
+import { retrieveCompoundInfo, updateCompoundInfo } from "../request-info";
 import { retireveClientModuleScript, retrieveIntegrationPluginNames } from "../plugin/registry";
 
 
 const pluginReferenceSourceRegexStr = `/${config.pluginRequestPrefix}((@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*(\\${config.pluginRequestSeparator}(@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*)*)?`;
-
 const coreModuleText = String(readFileSync(join(__dirname, "../plugin/client.core.js")));
+
+const errorPageMapping: Map<string, string> = new Map();	// TODO: Limit size?
+
+
+enum AssetType {
+	PLUGIN,
+	STATIC,
+	DYNAMIC
+}
 
 
 export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
-	// Retrieve type of asset request to apply respective sub-routine
-	if((new RegExp(`^${pluginReferenceSourceRegexStr}$`, "i")).test(tReq.pathname)) {
-		// Plug-in module request
+	let extension: string = extname(tReq.pathname).replace(/^\./, "");
+	const assetType: AssetType = (new RegExp(`^${pluginReferenceSourceRegexStr}$`, "i")).test(tReq.pathname)
+		? AssetType.PLUGIN
+		: ((extname(tReq.pathname).length === 0)
+			? AssetType.DYNAMIC
+			: AssetType.STATIC);
+
+	if(assetType === AssetType.PLUGIN) {
 		tRes = handlePlugin(tRes, tReq.pathname);
 
-		tRes.headers.set("Content-Type", "text/javascript");
-
-		return tRes;
+		extension = "js";
+	} else {
+		if((new RegExp(`/${config.privateWebFilePrefix}`)).test(tReq.pathname)) {
+			tRes.status = Status.FORBIDDEN;
+		} else {
+			tRes = (assetType === AssetType.DYNAMIC)
+				? handleDynamic(tRes, tReq.pathname)
+				: handleStatic(tRes, tReq.pathname);
+		}
 	}
 
-	// Private file request
-	if((new RegExp(`/${config.privateWebFilePrefix}`)).test(tReq.pathname)) {
-		tRes.status = Status.FORBIDDEN;	// TODO: Status conceal option?
+	tRes = (assetType === AssetType.DYNAMIC
+	&& (tRes.status || Status.SUCCESS) !== Status.SUCCESS)	// TODO: Implement conceal error status option
+		? handleDynamicError(tRes, tReq.pathname)
+		: tRes;
+
+	(assetType !== AssetType.DYNAMIC)
+	&& (tRes.staticCacheKey = tReq.pathname);
 		
+	if(tRes.message === undefined) {
 		return tRes;
 	}
 
-	const extension: string = extname(tReq.pathname).replace(/^\./, "");	// Case sensitivity for dynamic file extension?
-
-	// Handle request accordingly
-	tRes = (extension.length > 0)
-		? handleStatic(tRes, tReq.pathname)	// Static file (any file that is not a .HTML file (system web page type))
-		: handleDynamic(tRes, tReq);		// Dynamic file
-
-	if(tRes.status && tRes.status !== Status.SUCCESS) {
-		return tRes;
-	}
-	
 	const mime: string = PROJECT_CONFIG.read("mimes", extension || config.dynamicFileExtension).string;
 	if(mime) {
 		tRes.headers.set("Content-Type", mime);
@@ -87,7 +100,7 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 			tRes.headers.set("Content-Encoding", "deflate");
 		}	// TODO: Implement optional weight consideration?
 	}
-
+	
 	return tRes;
 }
 
@@ -131,33 +144,39 @@ function handlePlugin(tRes: IThreadRes, path: string): IThreadRes {
 }
 
 function handleStatic(tRes: IThreadRes, path: string): IThreadRes {
-	const fileStamp = VFS.read(path);
-	if(fileStamp === undefined) {
-		tRes.status = Status.NOT_FOUND;
-	} else {
-		tRes.message = fileStamp.contents;
-		
-		tRes.headers.set("ETag", fileStamp.eTag);
-	}
-
-	return tRes;
-}
-
-function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
-	const compoundInfo: ICompoundInfo = retrieveCompoundInfo();
-
-	// TODO: Error routine
-	// TODO: How to handle generic error routine?
-	
-	// TODO: Use static ETag routine if plug-in does NOT server-side render markup
-	const fileStamp = VFS.read(`${compoundInfo ? compoundInfo.base : tReq.pathname.replace(/\/$/, `/${config.indexPageName}`)}.${config.dynamicFileExtension}`);
-	if(fileStamp === undefined) {
+	if(!VFS.exists(path)) {
 		tRes.status = Status.NOT_FOUND;
 
 		return tRes;
 	}
 
+	const fileStamp = VFS.read(path);
+
+	tRes.message = fileStamp.contents;
+	
+	tRes.headers.set("ETag", fileStamp.eTag);
+
+	return tRes;
+}
+
+function handleDynamic(tRes: IThreadRes, pathname: string): IThreadRes {
+	const compoundInfo: ICompoundInfo = retrieveCompoundInfo();
+
+	const filePath = `${compoundInfo
+		? compoundInfo.base
+		: pathname.replace(/\/$/, `/${config.indexPageName}`)
+	}.${config.dynamicFileExtension}`;
+
+	if(!VFS.exists(filePath)) {
+		tRes.status = Status.NOT_FOUND;
+
+		return tRes;
+	}
+
+	const fileStamp = VFS.read(filePath);
+
 	// Ensure head tag exists for following injections
+	// TODO: Improve injection steps / routine
 	tRes.message = embedHead(fileStamp.contents);
 
 	// Integrate plug-in reference accordingly	
@@ -167,7 +186,7 @@ function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
 
 	// Inject compound base tag (in order to keep relative references in markup alive)
 	tRes.message = compoundInfo
-		? injectCompoundBaseIntoMarkup(tRes.message, tReq.pathname.slice(0, -(compoundInfo.args.join("/").length)))
+		? injectCompoundBaseIntoMarkup(tRes.message, pathname.slice(0, -(compoundInfo.args.join("/").length)))
 		: tRes.message;
 
 	// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
@@ -181,10 +200,40 @@ function handleDynamic(tRes: IThreadRes, tReq: IThreadReq): IThreadRes {
 	return tRes;
 }
 
-// TOD: Error page request association map?
+// TODO: Error page request association map?
+function handleDynamicError(tRes: IThreadRes, pathname: string): IThreadRes {
+	let errorPagePath: string;
 
-function handleDynamicError(tRes: IThreadRes, ): IThreadRes {
-	return {} as IThreadRes;
+	if(errorPageMapping.has(pathname)) {
+		errorPagePath = errorPageMapping.get(pathname);
+
+		if(VFS.exists(errorPagePath)) {
+			return handleDynamic(tRes, errorPagePath);
+		}
+
+		errorPageMapping.delete(pathname);
+	}
+
+	pathname = pathname.replace(/\/$/, "/_");	// Prevent empty word request to be striped
+
+	while(pathname !== "/") {
+		pathname = dirname(pathname);
+
+		errorPagePath = `${pathname}/${tRes.status}`;
+
+		// TODO: Only traverse vfs once (or when changes)!
+		updateCompoundInfo(errorPagePath, true);
+		const currentCompoundInfo = retrieveCompoundInfo();
+		
+		// TODO: Allow compound error pages?
+		if(currentCompoundInfo || VFS.exists(`${errorPagePath}.${config.dynamicFileExtension}`)) {
+			errorPageMapping.set(pathname, errorPagePath);
+
+			return handleDynamic(tRes, errorPagePath);
+		}
+	}
+
+	return tRes;
 }
 
 
@@ -217,8 +266,8 @@ function embedHead(markup: string): string {
 	}
 
 	const htmlTagPos: string[] = markup.match(/<\s*html((?!>)(\s|[^>]))*>/);
-	const headInjectionPos: number = (htmlTagPos ? markup.indexOf(htmlTagPos[0]) : 0) + (htmlTagPos[0] || [""]).length;
-
+	const headInjectionPos: number = (htmlTagPos ? markup.indexOf(htmlTagPos[0]) : 0) + (htmlTagPos ? htmlTagPos[0] : []).length;
+	
 	return `${markup.slice(0, headInjectionPos)}\n<head></head>\n${markup.slice(headInjectionPos)}`;
 }
 
@@ -236,11 +285,11 @@ function injectPluginReferenceIntoMarkup(markup: string, effectivePluginNames: S
 		})
 		.flat();
 
-	const toBeIntegratedPluginNames: string[] = [...effectivePluginNames]
+	const referencePluginNames: string[] = [...effectivePluginNames]
 		.filter((name: string) => !manuallyIntegratedPluginNames.includes(name));
 
 	// Load core application module first as is required (via plug-in module routine)
-	toBeIntegratedPluginNames.unshift(config.coreIdentifier);
+	referencePluginNames.unshift(config.coreIdentifier);
 
 	// Retrieve top index offset (before first hardcoded script tag)
 	// Tags located on top of head are to be kept in place before (could be important e.g. for meta tags)
@@ -248,7 +297,7 @@ function injectPluginReferenceIntoMarkup(markup: string, effectivePluginNames: S
 		.slice(headPos.open, headPos.close)
 		.search(/.<\s*script(\s|>)/) + 1;
 
-	const injectionSequence = `<script src="/${config.pluginRequestPrefix}${toBeIntegratedPluginNames.join(config.pluginRequestSeparator)}"></script>\n`;
+	const injectionSequence = `<script src="/${config.pluginRequestPrefix}${referencePluginNames.join(config.pluginRequestSeparator)}"></script>\n`;
 
 	return `${markup.slice(0, injectionIndex)}${injectionSequence}${markup.slice(injectionIndex)}`;
 }

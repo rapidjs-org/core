@@ -15,9 +15,7 @@ export class HeadersMap extends Map<string, string> implements HeadersMap {
 	}
 
 	public set(name: string, value: string|number|boolean) {
-		super.set(name.toLowerCase(), String(value));
-
-		return null;
+		return super.set(name.toLowerCase(), String(value));
 	}
-
+	
 }

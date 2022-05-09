@@ -37,7 +37,7 @@ if(clusterSize == 1) {
 	cluster.settings.exec = join(__dirname, "./B:socket/socket"); // SCRIPT
 	cluster.settings.args = process.argv.slice(2); // ARGS
 	cluster.settings.silent = true;
-
+	
 	// TODO: CPU strategy
 	for(let i = 0; i < clusterSize; i++) {
 		const workerProcess = cluster.fork({

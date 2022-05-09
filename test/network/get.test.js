@@ -13,17 +13,19 @@ getRequestTest
 .for({
     status: 200,
     headers: {
-        "server": "rapidJS"
+        "server": "rapidJS",
+        "content-length": 547
     }
 });
 
 getRequestTest
-.conduct("Fetch compound page")
+.conduct("Fetch compound page with custom additional header")
 .check("/compound")
 .for({
     status: 200,
     headers: {
-        "server": "rapidJS"
+        "server": "rapidJS",
+        "additional-custom-header": "test"
     }
 });
 

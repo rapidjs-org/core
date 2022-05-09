@@ -2,7 +2,7 @@
 import http from "http";
 import { cpus } from "os";
 import { Worker as Thread, SHARE_ENV, BroadcastChannel } from "worker_threads";
-import { join } from "path";
+import { normalize, join } from "path";
 
 import config from "../app.config.json";
 
@@ -11,6 +11,7 @@ import { print } from "../../print";
 import { MODE } from "../mode";
 import { IPCSignal } from "../IPCSignal";
 
+import { Cache } from"../Cache";
 import { Status } from"./Status";
 import { respond } from"./response";
 
@@ -18,12 +19,15 @@ import { respond } from"./response";
 const idleThreads: Thread[] = [];
 const activeReqs: Map<number, http.ServerResponse> = new Map();
 const pendingReqs: {
-	tReq: IThreadReq,
-	tRes: IThreadRes,
-	eRes: http.ServerResponse
+	eRes: http.ServerResponse,
+	tReq: IThreadReq
 }[] = [];
 const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
 const passivePluginRegistry: IPassivePlugin[] = [];
+
+const staticCache: Cache<IThreadRes> = new Cache(null, (key: string) => {
+	return normalize(key);
+});
 
 
 // Create fixed amount of new, reusable threads
@@ -44,8 +48,11 @@ function createThread() {
 	// Success (message provision) listener
 	thread.on("message", tRes => {
 		respond(activeReqs.get(thread.threadId), tRes);
-
+		
 		deactivateThread(thread);
+
+		tRes.staticCacheKey
+		&& staticCache.write(tRes.staticCacheKey, tRes);
 	});
 	
 	// Thread error listener
@@ -82,13 +89,18 @@ function deactivateThread(thread: Thread) {
 
 export function activateThread(entity: {
 	tReq: IThreadReq,
-	tRes: IThreadRes,
 	eRes: http.ServerResponse
 }) {
+	// TODO: Outer timeout control top prevent too costly routines and possible dead- and livelocks
+
 	if(entity === undefined) {
 		return;
 	}
-	
+
+	if(staticCache.has(entity.tReq.pathname)) {
+		return staticCache.read(entity.tReq.pathname);
+	}
+
 	if(idleThreads.length === 0) {
 		pendingReqs.push(entity);
 		
@@ -101,8 +113,7 @@ export function activateThread(entity: {
 	
 	// Filter HTTP request object for thread reduced request object
 	thread.postMessage({
-		tReq: entity.tReq,
-		tRes: entity.tRes
+		tReq: entity.tReq
 	});
 }
 

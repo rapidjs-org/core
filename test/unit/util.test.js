@@ -52,19 +52,7 @@ normalizePathTest
 
 // MEM C
 
-const { parseSubdomain, computeETag } = require("../../debug/A:app/B:socket/C:thread/util");
-
-const parseSubdomainTest = new UnitTest("Parse subdomain tests", parseSubdomain);
-
-parseSubdomainTest
-.conduct("Parse single subdomain from hostname")
-.check("www.example.com")
-.for(["www"]);
-
-parseSubdomainTest
-.conduct("Parse multiple subdomains from hostname")
-.check("www.de.example.com")
-.for(["www", "de"]);
+const { computeETag } = require("../../debug/A:app/B:socket/C:thread/util");
 
 const computeETagTest = new UnitTest("Compute ETag tests", computeETag);
 

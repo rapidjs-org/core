@@ -2,5 +2,9 @@
     "coreIdentifier": "core",
     "dynamicFileExtension": "html",
     "indexPageName": "index",
+    "localeCodingTypes": {
+        "subdomain": "subdomain",
+        "pathname": "pathname"
+    },
     "threadsBroadcastChannelName": "bc"
 }

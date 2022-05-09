@@ -26,7 +26,7 @@ import * as commonInterface from "../../../interface.common";
 
 import { Status } from "../../Status";
 
-import { Cache } from "../Cache";
+import { Cache } from "../../../Cache";
 import { MutualError } from "../../../MutualError";
 
 import { retrieveRequestInfo } from "../request-info";

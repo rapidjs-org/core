@@ -7,7 +7,6 @@
 
 import { existsSync, mkdirSync } from "fs";
 
-
 import { mergeObj, normalizeExtension } from "../../util";
 
 import { MODE } from "../mode";

@@ -12,7 +12,7 @@ export function mergeObj(target: TObject, source: TObject): TObject {
         || (source[key] || "").constructor.name !== "Object") {
 			// Leaf
 			target[key] = source[key] || target[key];
-
+			
 			continue;
 		}
 		

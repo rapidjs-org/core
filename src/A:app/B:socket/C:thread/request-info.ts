@@ -18,6 +18,9 @@ const registeredMostSignificantParts: string[] = [];
 const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
 registeredMostSignificantParts.push(configuredHostname ? `.${configuredHostname}` : "localhost");
 
+// Known subdomain patterns for instant look up
+const knownSubdomainPatterns: Map<string, string|string[]> = new Map();
+
 let currentRequestInfo: IRequestInfo;
 let currentCompoundInfo: ICompoundInfo;
 
@@ -47,9 +50,6 @@ function parseMostSignificantHostnamePart(hostname: string): string {
 
 	return sld + tld;
 }
-
-// Known subdomain patterns for instant look up
-const knownSubdomainPatterns: Map<string, string|string[]> = new Map();
 
 // TODO: Improve runtime
 function parseSubdomain(hostname: string): string|string[] {
@@ -90,23 +90,37 @@ function parseSubdomain(hostname: string): string|string[] {
 	return matchAgainstMostSignificantPart(currentMostSignificantPart);
 }
 
-function parseCookies(): Map<string, string|number|boolean> {
-	// TODO: Implement
-	return new Map();
+function parseCookies(cookiesHeader: string): Map<string, string> {
+	const cookiesMap: Map<string, string> = new Map();
+
+	if(!cookiesHeader) {
+		return cookiesMap;
+	}
+
+	cookiesHeader
+		.split(";")
+		.filter(cookie => (cookie.length > 0))
+		.forEach(cookie => {
+			const parts = cookie.split("=");
+			cookiesMap.set(parts.shift().trim(), decodeURI(parts.join("=")));
+		});
+
+	return cookiesMap;
 }
 
-const validPagePaths: string[] = [];	// TODO: Implement (along cache?)
+// const compondPageMapping: Map<string, string>;
 
-function parseCompoundInfo(path: string): ICompoundInfo {
+function parseCompoundInfo(path: string, noTraversal = false): ICompoundInfo {
 	const fileExists = (path: string) => {
 		return VFS.exists(`${path}.${config.dynamicFileExtension}`);
 	};
+
+	let compoundPath: string;
 
 	if(fileExists(`${path.replace(/\/$/i, `/${config.indexPageName}`)}`)) {
 		return undefined;
 	}
 
-	let compoundPath: string;
 	const args: string[] = [];
 	// TODO: Enhance retrieval routine?
 	if(/\/$/.test(path)) {
@@ -145,6 +159,10 @@ function parseCompoundInfo(path: string): ICompoundInfo {
 				args: args
 			};	// TODO: Expose compound page info to user? Provide plug-in specific directory from project root?
 		}
+		
+		if(noTraversal) {
+			return undefined;
+		}
 
 		const arg: string = (path.match(/[^/]+\/+$/i) || [""])[0];
 		path = path.slice(0, -arg.length);
@@ -155,23 +173,30 @@ function parseCompoundInfo(path: string): ICompoundInfo {
 }	// Information is both dynamic page as well as plug-in endpoint relevant
 
 
-export function defineRequestInfo(tReq: IThreadReq) {
+export function evalRequestInfo(tReq: IThreadReq) {
 	if(extname(tReq.pathname).length !== 0) {
 		// Do not construct / compute info if is not a page related request (dynamic asset, plug-in endpoint)
 		return;
 	}
 
-	currentCompoundInfo = parseCompoundInfo(tReq.pathname);
-
 	currentRequestInfo = {
 		auth: tReq.headers.get("Authorization"),
+		cookies: parseCookies(tReq.headers.get("Cookie")),
 		ip: tReq.ip,
-		isCompound: !!currentCompoundInfo,
 		pathname: tReq.pathname,
 		searchParams: tReq.searchParams,
 		subdomain: parseSubdomain(tReq.hostname)
 	};
+
+	updateCompoundInfo(tReq.pathname);
 }
+
+export function updateCompoundInfo(path: string, noTraversal?: boolean) {
+	currentCompoundInfo = parseCompoundInfo(path, noTraversal);
+	
+	currentRequestInfo.isCompound = !!currentCompoundInfo;
+}
+
 
 export function retrieveRequestInfo(): IRequestInfo {
 	return currentRequestInfo;

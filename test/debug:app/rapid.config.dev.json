@@ -1,4 +1,7 @@
 {
+    "customHeaders": {
+        "Additional-Custom-Header": "test"
+    },
     "directory": {
         "log": "./log"
     }

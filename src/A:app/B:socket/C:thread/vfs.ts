@@ -6,8 +6,8 @@ import { normalizePath } from "../../util";
 
 import { PROJECT_CONFIG } from "../../config/config.project";
 
-import { LimitedDictionary } from "./LimitedDictionary";
-import { Cache } from "./Cache";
+import { LimitedDictionary } from "../LimitedDictionary";
+import { Cache } from "../../Cache";
 import { computeETag } from "./util";
 
 

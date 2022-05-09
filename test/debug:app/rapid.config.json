@@ -1,12 +1,5 @@
 {
     "gzipCompressionList": ["html"],
-    "locale": [
-        "en",
-        {
-            "language": "de",
-            "countries": ["GB", "DE"]
-        }
-    ],
     "port": {
         "http": 80
     },
