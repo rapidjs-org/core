@@ -6,6 +6,7 @@ import { IS_SECURE } from "../secure";
 
 import { Status } from "./Status";
 import { HeadersMap } from "./HeadersMap";
+import { IThreadRes } from "./interfaces.thread";
 
 
 export function respond(eRes: http.ServerResponse, param: number|IThreadRes) {

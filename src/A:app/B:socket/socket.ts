@@ -3,11 +3,11 @@
  * >> START OF SOCKET MEMORY (B LEVEL) <<
  */
 
+import config from "../app.config.json";
+
 import { existsSync, readFileSync } from "fs";
 import https from "https";
 import http from "http";
-
-import config from "../app.config.json";
 
 import { print } from "../../print";
 
@@ -19,6 +19,7 @@ import { Status } from "./Status";
 import { HeadersMap } from"./HeadersMap";
 import { rateExceeded } from "./rate-limiter";
 import { respond, redirect } from "./response";
+import { IThreadReq } from "./interfaces.thread";
 import * as ThreadPool from "./thread-pool";
 
 
@@ -92,7 +93,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 			if((body.length * 8) > (PROJECT_CONFIG.read("limit", "payloadSize").number)) {
 				// Abort processing if body payload exceeds maximum size
 				reject({
-					status: Status.RATE_EXCEEDED
+					status: Status.PAYLOAD_TOO_LARGE
 				});
 			}
 		});

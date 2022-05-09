@@ -9,11 +9,14 @@ import config from "../app.config.json";
 import { print } from "../../print";
 
 import { MODE } from "../mode";
+import { PROJECT_CONFIG } from "../config/config.project";
 import { IPCSignal } from "../IPCSignal";
-
 import { Cache } from"../Cache";
+
 import { Status } from"./Status";
 import { respond } from"./response";
+import { IThreadReq, IThreadRes } from "./interfaces.thread";
+import { IPassivePlugin } from  "./interfaces.plugin";
 
 
 const idleThreads: Thread[] = [];
@@ -102,7 +105,9 @@ export function activateThread(entity: {
 	}
 
 	if(idleThreads.length === 0) {
-		pendingReqs.push(entity);
+		(pendingReqs.length >= PROJECT_CONFIG.read("limit", "pendingRequests").number)
+		? respond(entity.eRes, Status.SERVICE_UNAVAILABKLE)
+		: pendingReqs.push(entity);
 		
 		return;
 	}
@@ -112,9 +117,7 @@ export function activateThread(entity: {
 	activeReqs.set(thread.threadId, entity.eRes);
 	
 	// Filter HTTP request object for thread reduced request object
-	thread.postMessage({
-		tReq: entity.tReq
-	});
+	thread.postMessage(entity.tReq);
 }
 
 export function broadcast(message: TObject) {

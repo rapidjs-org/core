@@ -1,10 +1,10 @@
 
-declare interface ICompoundInfo {
+export interface ICompoundInfo {
 	base: string;
 	args: string[];
 }
 
-declare interface IRequestInfo {
+export interface IRequestInfo {
     auth: string;
     cookies: Map<string, string>;
     ip: string;
@@ -14,3 +14,5 @@ declare interface IRequestInfo {
 
     isCompound?: boolean;
 }
+
+export type TEndpointHandler = (body: TObject, req: IRequestInfo) => unknown;

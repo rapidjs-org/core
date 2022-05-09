@@ -10,7 +10,11 @@ import { extname } from "path";
 
 import { PROJECT_CONFIG } from "../../config/config.project";
 
+import { IThreadReq } from "../interfaces.thread";
+
 import { VFS } from "./vfs";
+import { ICompoundInfo, IRequestInfo } from "./interfaces.request";
+
 import tlds from "./static/tlds.json";
 
 
@@ -93,13 +97,9 @@ function parseSubdomain(hostname: string): string|string[] {
 function parseCookies(cookiesHeader: string): Map<string, string> {
 	const cookiesMap: Map<string, string> = new Map();
 
-	if(!cookiesHeader) {
-		return cookiesMap;
-	}
-
-	cookiesHeader
+	(cookiesHeader || "")
 		.split(";")
-		.filter(cookie => (cookie.length > 0))
+		.filter(cookie => (cookie.trim().length > 0))
 		.forEach(cookie => {
 			const parts = cookie.split("=");
 			cookiesMap.set(parts.shift().trim(), decodeURI(parts.join("=")));

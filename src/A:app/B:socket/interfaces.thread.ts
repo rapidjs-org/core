@@ -1,12 +1,8 @@
 
-declare interface HeadersMap {
-	has: (name: string) => boolean;
-	get: (name: string) => string;
-    set: (name: string, value: string|number|boolean) => this;
-    forEach: (callback: (value: string, key: string, map: Map<string, string>) => void) => void;
-}
+import { HeadersMap } from "./HeadersMap";
 
-declare interface IThreadReq {
+
+export interface IThreadReq {
     hash: string;
     headers: HeadersMap;
     hostname: string;
@@ -18,7 +14,7 @@ declare interface IThreadReq {
     body?: TObject;
 }
 
-declare interface IThreadRes {
+export interface IThreadRes {
     headers: HeadersMap;
     
     headersOnly?: boolean;

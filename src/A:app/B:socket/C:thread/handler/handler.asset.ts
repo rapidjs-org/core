@@ -15,11 +15,13 @@ import { gzipSync, deflateSync } from "zlib";
 import { PROJECT_CONFIG } from "../../../config/config.project";
 
 import { Status } from "../../Status";
+import { IThreadReq, IThreadRes } from "../../interfaces.thread";
 
 import { VFS } from "../vfs";
 import { computeETag } from "../util";
 import { retrieveCompoundInfo, updateCompoundInfo } from "../request-info";
 import { retireveClientModuleScript, retrieveIntegrationPluginNames } from "../plugin/registry";
+import { ICompoundInfo } from "../interfaces.request";
 
 
 const pluginReferenceSourceRegexStr = `/${config.pluginRequestPrefix}((@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*(\\${config.pluginRequestSeparator}(@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*)*)?`;
@@ -69,25 +71,23 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 		return tRes;
 	}
 
+	// Compare match with ETag in order to communicate possible cache usage 
+	if(tRes.headers.get("ETag")
+    && tReq.headers.get("If-None-Match") === tRes.headers.get("ETag")) {
+		tRes.status = Status.USE_CACHE;
+
+		return tRes;
+	}
+
 	const mime: string = PROJECT_CONFIG.read("mimes", extension || config.dynamicFileExtension).string;
 	if(mime) {
 		tRes.headers.set("Content-Type", mime);
 		tRes.headers.set("X-Content-Type-Options", "nosniff");
 	}
 
-	// TODO: Fix headers interface scope transmission
-
-	// Compare match with ETag in order to communicate possible cache usage 
-	if(tRes.headers.get("ETag")
-    && tReq.headers.get("If-None-Match") == tRes.headers.get("ETag")) {
-		tRes.status = Status.USE_CACHE;
-
-		return tRes;    // TODO: Respond shorthand?
-	}
-
 	// Apply compression if accepted
 	const checkCompressionAccepted = (compressionType: string) => {
-		return tReq.headers.get("Accept-Encoding").match(new RegExp(`(^|,[ ]*)${compressionType}($|[a-z0-9-])`, "i"));
+		return (tReq.headers.get("Accept-Encoding") || "").match(new RegExp(`(^|,)[ ]*${compressionType}[ ]*($|,)`, "i"));
 	};
 	if(tReq.headers.has("Accept-Encoding")) {
 		if(checkCompressionAccepted("gzip")) {

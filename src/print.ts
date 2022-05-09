@@ -29,7 +29,7 @@ logDirPath && mkdirSync(logDirPath, {
  * Even emitter for individual programmatic logging purposes.
  * To provide to the user interface.
  */
-const eventEmitter = new EventEmitter();
+export const eventEmitter = new EventEmitter();
 
 
 enum Channel {

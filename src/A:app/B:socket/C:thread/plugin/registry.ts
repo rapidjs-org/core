@@ -22,14 +22,15 @@ import { join, dirname } from "path";
 import { print } from "../../../../print";
 
 import { PLUGIN_CONFIG } from "../../../config/config.plugins";
-import * as commonInterface from "../../../interface.common";
-
-import { Status } from "../../Status";
-
 import { Cache } from "../../../Cache";
 import { MutualError } from "../../../MutualError";
+import * as commonInterface from "../../../api.common";
+
+import { Status } from "../../Status";
+import { IPassivePlugin } from "../../interfaces.plugin";
 
 import { retrieveRequestInfo } from "../request-info";
+import { TEndpointHandler } from "../interfaces.request";
 
 
 const interfaceModulePath: string = require.resolve("./interface.plugin");
@@ -53,6 +54,13 @@ const activePluginRegistry = {
 		compoundOnly: new Set<string>()
 	}
 };
+
+
+export interface IEndpointHandlerResult {
+	status: number;
+
+	data?: unknown;
+}
 
 
 function evalPlugin(name: string, moduleDirPath: string) {

@@ -1,6 +1,8 @@
 
 import { bindClientModule, defineEndpoint } from "./registry";
 
+import { TEndpointHandler } from "../interfaces.request";
+
 
 export function clientModule(associatedPluginName: string, relativePathToModule: string, sharedProperties: TObject = {}, compoundOnly = false) {
 	bindClientModule(associatedPluginName, relativePathToModule, sharedProperties, compoundOnly);

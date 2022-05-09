@@ -1,14 +1,10 @@
 
-import { argument } from "../../../../args";
-
-
-const isLiveMode: boolean = argument("watch", "W").unary;
+import { MODE } from "../../../mode";
 
 
 export function watch(dirPath: string, callback: () => void) {
-	if(!isLiveMode) {
+	if(!MODE.DEV) {
 		return;
 	}
-    
-	// TODO: Implement
+	
 }

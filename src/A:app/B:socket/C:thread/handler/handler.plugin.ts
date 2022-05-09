@@ -2,6 +2,7 @@
 import { print } from "../../../../print";
 
 import { Status } from "../../Status";
+import { IThreadReq, IThreadRes } from "../../interfaces.thread";
 
 import { activateEndpoint } from "../plugin/registry";
 
@@ -26,7 +27,10 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	tRes.headers.set("Content-Type", "application/json");
 	tRes.headers.set("X-Content-Type-Options", "nosniff");
 	
-	let handlerResult: IEndpointHandlerResult;
+	let handlerResult: {
+		status: number;
+		data?: unknown;
+	};
 	try {
 		handlerResult = activateEndpoint(payload.pluginName, payload.body, payload.endpointName);
 	} catch(err) {

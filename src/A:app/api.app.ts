@@ -1,9 +1,12 @@
 
 import config from "./app.config.json";
 
+import { eventEmitter as printEventEmitter } from "../print";
+
 import { normalizePath } from "./util";
 import { IPCSignal } from "./IPCSignal";
 import { ipcDown } from "./cluster";
+import { IPluginOptions } from "./B:socket/interfaces.plugin";
 
 
 const pluginNameRegex = /^(@[a-z0-9~-][a-z0-9._~-]*\/)?[a-z0-9~-][a-z0-9._~-]*$/i;	// = npm package name
@@ -42,4 +45,10 @@ export function plugin(reference: string, options: IPluginOptions) {
 		modulePath,
 		options
 	});
+
+	// TODO: Connection message
+}
+
+export const events = {
+	log: printEventEmitter
 }

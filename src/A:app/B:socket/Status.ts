@@ -16,11 +16,13 @@ export enum Status {
     NOT_FOUND = 404,
     UNSUPPORTED_METHOD = 405,
     NOT_ACCEPTABLE  = 406,
-    TIMEOUT = 408,  // TODO: Implement broadly
+    REQUEST_TIMEOUT = 408,  // TODO: Implement broadly
     PRECONDITION_FAILED = 412,
+    PAYLOAD_TOO_LARGE = 413,
     URL_EXCEEDED = 414,
     RATE_EXCEEDED = 429,
 
     // Server error codes
-    INTERNAL_ERROR = 500
+    INTERNAL_ERROR = 500,
+    SERVICE_UNAVAILABKLE = 503
 }

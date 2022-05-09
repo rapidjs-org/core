@@ -11,6 +11,8 @@ import { mergeObj } from "../../../util";
 import { PROJECT_CONFIG } from "../../config/config.project";
 
 import { HeadersMap } from "../HeadersMap";
+import { IPassivePlugin } from "../interfaces.plugin";
+import { IThreadReq, IThreadRes } from "../interfaces.thread";
 
 import handleAsset from "./handler/handler.asset";
 import handlePlugin from "./handler/handler.plugin";
@@ -30,11 +32,9 @@ function respond(tRes: IThreadRes) {
 	parentPort.postMessage(tRes);
 }
 
-parentPort.on("message", (post: {
-    tReq: IThreadReq
-}) => {
-	evalRequestInfo(post.tReq);
-
+parentPort.on("message", (tReq: IThreadReq) => {
+	evalRequestInfo(tReq);
+	
 	const tRes: IThreadRes = {
 		// Already set static headers with custom overrides
 		// Relevant headers to be of ghigher priority for access throughout handler routine
@@ -45,16 +45,16 @@ parentPort.on("message", (post: {
 	
 	// GET: File request (either a dynamic and static routine; based on filer type)
 	// HEAD: Resembles a GET request, but without the transferral of content
-	if(["GET", "HEAD"].includes(post.tReq.method))  {
-		tRes.headersOnly = (post.tReq.method === "HEAD");
+	if(["GET", "HEAD"].includes(tReq.method))  {
+		tRes.headersOnly = (tReq.method === "HEAD");
 		
-		respond(handleAsset(post.tReq, tRes));
+		respond(handleAsset(tReq, tRes));
 		
 		return;
 	}
-    
+	
 	// POST: Plug-in request
-	respond(handlePlugin(post.tReq, tRes));
+	respond(handlePlugin(tReq, tRes));
 });
 
 
