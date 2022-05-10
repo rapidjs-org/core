@@ -1,5 +1,7 @@
 $this.PUBLIC.testEndpoint = _ => {
-    $this.endpoint()
+    $this.endpoint({
+        abc: 123
+    })
     .then(message => {
         console.log(message);
     }).catch(msg => {
@@ -9,10 +11,8 @@ $this.PUBLIC.testEndpoint = _ => {
 };
 
 $this.PUBLIC.testNamedEndpoint = _ => {
-    $this.endpoint({
-        abc: 123
-    }, {
-        name: "abc"
+    $this.endpoint(null, {
+        name: "name"
     })
     .then(message => {
         console.log(message);

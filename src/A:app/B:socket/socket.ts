@@ -36,6 +36,7 @@ const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
 // Set SSL options if is secure environment
 const readSSLFile = (type: string) => {
 	let path: string = PROJECT_CONFIG.read("ssl", type).string;
+	
 	if(!path) {
 		return null;
 	}
@@ -150,10 +151,10 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 			return;
 		}
 
-		const clientIP: string = retrieveAmbivalentHeaderValue(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress;
+		const clientIp: string = retrieveAmbivalentHeaderValue(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress;
 
 		// Rate (request limit) exceeded
-		if(rateExceeded(clientIP)) {
+		if(rateExceeded(clientIp)) {
 			respond(eRes, Status.RATE_EXCEEDED);
 
 			return;
@@ -182,7 +183,7 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 		}
 
 		const tReq: IThreadReq = {
-			ip: clientIP,
+			ip: clientIp,
 			method: method,
 			hash: url.hash,
 			hostname: url.hostname,
@@ -211,12 +212,12 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 			parseRequestBody(eReq)
 				.then((body: TObject) => {
 					threadInfo.tReq.body = body;
-
+					
 					ThreadPool.activateThread(threadInfo);
 				})
 				.catch((bodyParseError: IBodyParseError) => {
 					respond(eRes, bodyParseError.status);
-
+					
 					bodyParseError.err && print.error(bodyParseError.err);
 				});
 			

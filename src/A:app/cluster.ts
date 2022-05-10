@@ -21,7 +21,7 @@ print.info(`Running ${print.format(`${MODE.DEV ? "DEV" : "PROD"} MODE`, [MODE.DE
 // Do not create cluster if size is 1 (applies to DEV MODE, too)
 const clusterSize: number = PROJECT_CONFIG.read("clusterSize").number || cpus().length;
 
-print.info(`HTTP${IS_SECURE ? "S" : ""} ${(clusterSize === 1) ? "server" : "cluster"} started listening (:${PROJECT_CONFIG.read("port", `http${IS_SECURE ? "s" : ""}`).string})`);
+print.info(`HTTP${IS_SECURE ? "S" : ""} ${(clusterSize === 1) ? "server" : "cluster"} started listening (:${PROJECT_CONFIG.read("port", `http${IS_SECURE ? "s" : ""}`).number})`);
 IS_SECURE && print.info(`HTTP (:${PROJECT_CONFIG.read("port", "http").string}) to HTTPS redirection enabled`);
 // TODO: Print additional info if HTTP to HTTPS redirection is enabled
 
@@ -46,7 +46,7 @@ if(clusterSize == 1) {
 
 		// Pipe worker output to master (this context)
 		workerProcess.process.stdout.on("data", printData => {
-			console.log(String(printData));
+			console.log(String(printData));	// TODO: print.() ?
 		});
 		workerProcess.process.stderr.on("data", printData => {
 			console.error(String(printData));
@@ -79,6 +79,9 @@ if(clusterSize == 1) {
 		print.info(message);
 	});
 }
+
+
+console.log("");	// Start up message bottom margin line
 
 
 export function ipcDown(type: IPCSignal , data: TObject) {

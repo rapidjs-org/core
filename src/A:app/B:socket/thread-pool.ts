@@ -19,18 +19,26 @@ import { IThreadReq, IThreadRes } from "./interfaces.thread";
 import { IPassivePlugin } from  "./interfaces.plugin";
 
 
+interface IActiveReq {
+	eRes: http.ServerResponse;
+	timeout: number;
+}
+
+
 const idleThreads: Thread[] = [];
-const activeReqs: Map<number, http.ServerResponse> = new Map();
+const activeReqs: Map<number, IActiveReq> = new Map();
 const pendingReqs: {
 	eRes: http.ServerResponse,
 	tReq: IThreadReq
 }[] = [];
 const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
 const passivePluginRegistry: IPassivePlugin[] = [];
-
+const processingTimeout = 5000;//PROJECT_CONFIG.read("limit", "processingTimeout").number;
 const staticCache: Cache<IThreadRes> = new Cache(null, (key: string) => {
 	return normalize(key);
 });
+
+let activeTimeoutThreadId: number;
 
 
 // Create fixed amount of new, reusable threads
@@ -40,6 +48,17 @@ setImmediate(_ => {
 	// TODO: Use config file parameter for size?
 });
 
+
+function handleThreadResult(threadId: number, param: number|IThreadRes) {
+	const activeObject: IActiveReq = activeReqs.get(threadId);	// TODO: Deactivate helper
+
+	try {
+		clearTimeout(activeObject.timeout);	// Timeout could not exist (anymore)
+	} finally {
+		respond(activeObject.eRes, param);
+	}
+}
+
 // TODO: Thread work timeout (to prevent deadlocks and iteration problems)
 function createThread() {
 	const thread = new Thread(join(__dirname, "./C:thread/thread.js"), {
@@ -47,11 +66,11 @@ function createThread() {
 		argv: process.argv.slice(2),
 		workerData: passivePluginRegistry
 	});
-
+	
 	// Success (message provision) listener
 	thread.on("message", tRes => {
-		respond(activeReqs.get(thread.threadId), tRes);
-		
+		handleThreadResult(thread.threadId, tRes);
+
 		deactivateThread(thread);
 
 		tRes.staticCacheKey
@@ -60,13 +79,13 @@ function createThread() {
 	
 	// Thread error listener
 	thread.on("error", err => {
-		respond(activeReqs.get(thread.threadId), Status.INTERNAL_ERROR);  // TODO: Error response?
+		handleThreadResult(thread.threadId, Status.INTERNAL_ERROR);
 		
-		createThread();
-
-		// TODO: Error restart limit?
-		// TODO: Do not print 'Unhandled error...'
+		deactivateThread(thread);
+		
 		print.error(err);
+
+		// TODO: Fires on handled errors, too; check if was handled?
 	});
 	
 	// Erroneous thread close listener
@@ -75,10 +94,16 @@ function createThread() {
 		if(code === 0) {
 			return;
 		}
-		
-		respond(activeReqs.get(thread.threadId), Status.INTERNAL_ERROR);  // TODO: Error response?  // TODO: Error response?
-		
+
+		!activeTimeoutThreadId
+		&& handleThreadResult(thread.threadId, Status.INTERNAL_ERROR);	// Not a timeout but thread internal error result
+		activeTimeoutThreadId = null;
+
+		activeReqs.delete(thread.threadId);
+
 		createThread();
+
+		// TODO: Error restart limit?
 	});
 
 	deactivateThread(thread);
@@ -94,8 +119,6 @@ export function activateThread(entity: {
 	tReq: IThreadReq,
 	eRes: http.ServerResponse
 }) {
-	// TODO: Outer timeout control top prevent too costly routines and possible dead- and livelocks
-
 	if(entity === undefined) {
 		return;
 	}
@@ -106,15 +129,25 @@ export function activateThread(entity: {
 
 	if(idleThreads.length === 0) {
 		(pendingReqs.length >= PROJECT_CONFIG.read("limit", "pendingRequests").number)
-		? respond(entity.eRes, Status.SERVICE_UNAVAILABKLE)
-		: pendingReqs.push(entity);
+			? respond(entity.eRes, Status.SERVICE_UNAVAILABKLE)
+			: pendingReqs.push(entity);
 		
 		return;
 	}
 
 	const thread = idleThreads.shift();  // FIFO
 
-	activeReqs.set(thread.threadId, entity.eRes);
+	activeReqs.set(thread.threadId, {
+		eRes: entity.eRes,
+		timeout: isFinite(processingTimeout)
+		&& setTimeout(_ => {
+			thread.terminate();
+
+			activeTimeoutThreadId = thread.threadId;
+
+			respond(entity.eRes, Status.REQUEST_TIMEOUT);
+		}, processingTimeout)
+	});
 	
 	// Filter HTTP request object for thread reduced request object
 	thread.postMessage(entity.tReq);

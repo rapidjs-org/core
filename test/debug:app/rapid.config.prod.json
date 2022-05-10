@@ -1,6 +1,8 @@
 {
     "clusterSize": 3,
-    "gzipCompressionList": ["html"],
+    "customHeaders": {
+        "Server": null
+    },
     "locale": [
         "en",
         {

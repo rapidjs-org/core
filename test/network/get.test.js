@@ -3,9 +3,16 @@ const getRequestTest = new NetworkTest("GET request tests", "localhost", "GET");
 
 // TODO: Plug-in requests (full, partial, none)
 
-// TODO: Static request (full, none)
 
-// TODO: Dynamic request (compound, non-compound) x (full, none)
+getRequestTest
+.conduct("Fetch static file")
+.check("/styles.css")
+.for({
+    status: 200,
+    headers: {
+        "server": "rapidJS"
+    }
+});
 
 getRequestTest
 .conduct("Fetch conventional page")
@@ -19,13 +26,43 @@ getRequestTest
 });
 
 getRequestTest
-.conduct("Fetch compound page with custom additional header")
-.check("/compound")
+.conduct("Fetch conventional page with custom header")
+.check("/sub/conventional")
 .for({
     status: 200,
     headers: {
         "server": "rapidJS",
         "additional-custom-header": "test"
+    }
+});
+
+getRequestTest
+.conduct("Fetch compound page")
+.check("/compound")
+.for({
+    status: 200,
+    headers: {
+        "server": "rapidJS"
+    }
+});
+
+getRequestTest
+.conduct("Fetch plug-in module")
+.check("/plug-in::test")
+.for({
+    status: 200,
+    headers: {
+        "server": "rapidJS"
+    }
+});
+
+getRequestTest
+.conduct("Partially fetch plug-in modules")
+.check("/plug-in::test+missing_plugin")
+.for({
+    status: 203,
+    headers: {
+        "server": "rapidJS"
     }
 });
 
@@ -96,6 +133,16 @@ getRequestTest
 getRequestTest
 .conduct("Fetch missing page")
 .check("/anything")
+.for({
+    status: 404,
+    headers: {
+        "server": "rapidJS"
+    }
+});
+
+getRequestTest
+.conduct("Fetch missing plug-in module")
+.check("/plug-in::missing_plugin")
 .for({
     status: 404,
     headers: {

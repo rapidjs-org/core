@@ -1,7 +1,7 @@
 
 const config = {
 	wsPort: 5757
-}
+};
 
 
 import http from "http";
@@ -14,7 +14,7 @@ import { MODE } from "../../../mode";
 
 // Read client script
 const clientScript: string = String(readFileSync(join(__dirname, "ws-client.js")))
-.replace(/@WS_PORT/, String(config.wsPort));	// With configured websocket port (mark substitution)
+	.replace(/@WS_PORT/, String(config.wsPort));	// With configured websocket port (mark substitution)
 
 const connections = [];
 

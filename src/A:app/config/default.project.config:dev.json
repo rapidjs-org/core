@@ -11,6 +11,7 @@
         "payloadSize": 0,
         "headerSize": 0,
         "pendingRequests": 0,
+        "processingTimeout": 0,
         "requestsPerMin": 0,
         "urlLength": 0
     }

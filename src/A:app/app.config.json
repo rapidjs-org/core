@@ -1,4 +1,5 @@
 {
+    "appIdentifier": "rapidJS",
     "coreIdentifier": "core",
     "dynamicFileExtension": "html",
     "indexPageName": "index",

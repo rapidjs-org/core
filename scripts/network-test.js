@@ -39,13 +39,15 @@ global.NetworkTest = class extends Test {
         : this.callReference.hostname;
     }
 
-    call(path) {
+    call(path, body) {
         return new Promise((resolve, reject) => {
-            const req = require(`http${this.isSecure ? "s" : ""}`).request({
+            const req = require(`http${this.isSecure ? "s" : ""}`)
+            .request({
                 hostname: this.callReference.hostname,
                 port: this.callReference.post,
                 path: path,
                 method: this.callReference.method,
+                body: body ? JSON.stringify(body) : null
             }, res => {
                 res.on("data", data => {
                     resolve({

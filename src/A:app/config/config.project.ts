@@ -40,7 +40,7 @@ PROJECT_CONFIG.format((configObj: TObject) => {
 			? Infinity
 			: typedConfigObj.limit[key] || Infinity;
 	}
-    
+	
 	// Normalize extension arrays for future uniform usage
 	typedConfigObj.extensionWhitelist = (typedConfigObj.extensionWhitelist || [])
 		.map(extension => {

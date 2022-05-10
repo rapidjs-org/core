@@ -8,6 +8,7 @@
         "payloadSize": 1000,
         "headerSize": 16384,
         "pendingRequests": 511,
+        "processingTimeout": 5000,
         "requestsPerMin": 100,
         "urlLength": 100
     }

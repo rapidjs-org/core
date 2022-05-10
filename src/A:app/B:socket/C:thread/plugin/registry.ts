@@ -4,7 +4,6 @@ const config = {
 
 	defaultEndpointName: "::default",
 	pluginConfigIdentifier: "pluginConfig",
-	clientModuleAppName: "rapidJS",
 	clientModuleReferenceName: {
 		shared: "SHARED",
 		public: "PUBLIC"
@@ -132,7 +131,7 @@ export function registerActivePlugin(plugin: IPassivePlugin) {
 	try {
 		evalPlugin(plugin.name, plugin.modulePath);
 	} catch(err) {
-		print.info(`An error occurred within the '${plugin.name}' plug-in module`);
+		print.info(`An error occurred evaluating the '${plugin.name}' plug-in module`);
 		print.error(err);
 	}
 }
@@ -168,10 +167,10 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 
 	// Construct individual script module
 	const modularClientScript: string[] = [`
-        ${config.clientModuleAppName}["${associatedPluginName}"] = (_ => {
+        ${config.appIdentifier}["${associatedPluginName}"] = (_ => {
             const ${config.thisRetainerIdentifier} = {
                 endpoint: (body, options = {}) => {
-                    return ${config.clientModuleAppName}.${config.coreIdentifier}.mediateEndpoint("${associatedPluginName}", body, options.name, options.progressHandler);
+                    return ${config.appIdentifier}.${config.coreIdentifier}.mediateEndpoint("${associatedPluginName}", body, options.name, options.progressHandler);
 				},
 				
                 ${config.clientModuleReferenceName.public}: {},
@@ -227,15 +226,17 @@ export function defineEndpoint(associatedPluginName: string, endpointHandler: TE
 }
 
 export function activateEndpoint(associatedPluginName: string, requestBody?: TObject, endpointName?: string): IEndpointHandlerResult {
-	endpointName = endpointName || config.defaultEndpointName;
-	
-	const endpoint = activePluginRegistry.dict.get(associatedPluginName).endpoints.get(endpointName);
+	const endpoint = activePluginRegistry.dict.get(associatedPluginName).endpoints.get(endpointName || config.defaultEndpointName);
 
 	if(!endpoint) {
-		return null;
+		print.debug(`Request of undefined ${endpointName ? `'${endpointName}'` : "default"} endpoint of plug-in '${associatedPluginName}'`);
+
+		return {
+			status: Status.NOT_FOUND
+		};
 	}
 
-	const cacheKey = `${associatedPluginName}+${endpointName}`;	// Plug-in / endpoint unique key due to name distinctive concatenation symbol
+	const cacheKey = `${associatedPluginName}+${endpointName || ""}`;	// Plug-in / endpoint unique key due to name distinctive concatenation symbol
 
 	let handlerData: unknown;
 	if(endpoint.useCache
@@ -254,8 +255,13 @@ export function activateEndpoint(associatedPluginName: string, requestBody?: TOb
 					data: err.message
 				};
 			}
-
-			throw err;
+			
+			print.info(`An error occurred activating the ${endpointName ? `'${endpointName}'` : "default"} endpoint of plug-in '${associatedPluginName}'`);
+			print.error(err);
+			
+			return {
+				status: Status.INTERNAL_ERROR
+			};
 		}
 	}
 

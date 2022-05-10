@@ -45,6 +45,10 @@ enum Event {
 
 
 function log(message: string, channel: Channel, noPrefix = false) {
+	if(argument("mute", "M").binary) {
+		return;
+	}
+
 	// TODO: Type based formatting
 	
 	// Highlight numbers
@@ -75,7 +79,7 @@ function write(message: string, channel: Channel, event: Event, noPrefix: boolea
 	log(message, channel, noPrefix);
 
 	// Emit respective log event
-	eventEmitter.emit(event, message);
+	//eventEmitter.emit(event, message);	// TODO: Fires thread event?
 
 	if(!logDirPath) {
 		return;
@@ -101,6 +105,7 @@ export namespace print {
 		T_DIM = 2,
 		T_ITALIC = 3,
 
+		FG_GRAY = 90,
 		FG_RED = 91,
 		FG_YELLOW = "38;2;250;245;150",
 		FG_CYAN = 96,
@@ -119,13 +124,15 @@ export namespace print {
 	export function debug(message: string, noPrefix?: boolean) {
 		write(message, Channel.LOG, Event.DEBUG, noPrefix);
 	}
-
+	
 	export function error(errEntity: Error|string|number|boolean, noPrefix?: boolean) {
 		write(format((errEntity instanceof Error) ? errEntity.message : String(errEntity), [
 			Format.FG_RED
 		]), Channel.ERROR, Event.ERROR, noPrefix);
 		
-		(errEntity instanceof Error) && console.log(errEntity.stack);
+		(errEntity instanceof Error) && console.log(format(errEntity.stack, [ Format.FG_GRAY ]));
+
+		// TODO: Terminate on error in DEV MODE?
 	}
 
 }

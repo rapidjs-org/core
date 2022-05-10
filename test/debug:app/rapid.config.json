@@ -2,6 +2,5 @@
     "gzipCompressionList": ["html"],
     "port": {
         "http": 80
-    },
-    "www": "yes"
+    }
 }

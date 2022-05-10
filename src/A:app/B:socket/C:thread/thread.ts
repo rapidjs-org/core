@@ -6,10 +6,6 @@ import config from "../../app.config.json";
 
 import { parentPort, BroadcastChannel, workerData } from "worker_threads";
 
-import { mergeObj } from "../../../util";
-
-import { PROJECT_CONFIG } from "../../config/config.project";
-
 import { HeadersMap } from "../HeadersMap";
 import { IPassivePlugin } from "../interfaces.plugin";
 import { IThreadReq, IThreadRes } from "../interfaces.thread";
@@ -38,9 +34,7 @@ parentPort.on("message", (tReq: IThreadReq) => {
 	const tRes: IThreadRes = {
 		// Already set static headers with custom overrides
 		// Relevant headers to be of ghigher priority for access throughout handler routine
-		headers: new HeadersMap(mergeObj({
-			"Server": "rapidJS"
-		}, (PROJECT_CONFIG.read("customHeaders").object || {}) as TObject) as Record<string, string>)
+		headers: new HeadersMap()
 	};
 	
 	// GET: File request (either a dynamic and static routine; based on filer type)

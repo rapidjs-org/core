@@ -1,7 +1,7 @@
 
 import { PROJECT_CONFIG } from "./config/config.project";
 
-import { LimitedDictionary } from "./B:socket/LimitedDictionary";
+import { LimitedDictionary } from "./LimitedDictionary";
 
 
 export class Cache<D> extends LimitedDictionary<number, D> {

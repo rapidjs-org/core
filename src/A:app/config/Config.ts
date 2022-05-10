@@ -49,7 +49,7 @@ export class Config {
         string: string,
         number: number,
         boolean: boolean,
-        object: unknown
+        object: TObject
     } {
     	let value;
     	try {
@@ -64,7 +64,7 @@ export class Config {
     		string: (value !== undefined) ? String(value) : undefined,
     		number: !isNaN(Number(value)) ? Number(value) : 0,
     		boolean: (value === true || value === "true") ? true : false,
-    		object: value
+    		object: Object.assign({}, value || {}) as TObject	// Prevent modification through call-by-reference
     	};
     }
 

@@ -1,11 +1,17 @@
-
 /**
  * Merge two objects with right associative override (recursive).
  * @param {Record} target Object 1
  * @param {Record} source Object 2 (overriding)
  * @returns {Record} Merged object.
  */
-export function mergeObj(target: TObject, source: TObject): TObject {
+export function mergeObj(...objs: TObject[]): TObject {
+	if(objs.length === 1) {
+		return objs[0];
+	}
+
+	const source: TObject = objs.pop() || {};
+	let target: TObject = objs.pop() || {};
+
 	// Explicitly merge sub objects
 	for(const key of (Object.keys(target).concat(Object.keys(source)))) {
 		if((target[key] || "").constructor.name !== "Object"
@@ -23,7 +29,9 @@ export function mergeObj(target: TObject, source: TObject): TObject {
 		);
 	}
 
-	return {...target, ...source}; // Merge top level
+	target = {...target, ...source}; // Merge top level
+	
+	return mergeObj(...objs, target);
 }
 
 /**

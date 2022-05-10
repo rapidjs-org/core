@@ -6,9 +6,5 @@
     "port": {
         "http": 80
     },
-    "ssl": {
-        "cert": "./fullchain.pem",
-        "key": "./privkey.pem"
-    },
     "webDirectory": "web"
 }

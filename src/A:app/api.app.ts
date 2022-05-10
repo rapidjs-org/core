@@ -51,4 +51,4 @@ export function plugin(reference: string, options: IPluginOptions) {
 
 export const events = {
 	log: printEventEmitter
-}
+};

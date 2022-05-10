@@ -34,6 +34,25 @@ mergeObjTest
     c: 2
 });
 
+mergeObjTest
+.conduct("Merge three objects")
+.check({
+    a: 1,
+    b: 1
+}, {
+    b: 2,
+    c: 2
+}, {
+    c: 3,
+    d: 3
+})
+.for({
+    a: 1,
+    b: 2,
+    c: 3,
+    d: 3
+});
+
 // MEM A
 
 const { normalizePath } = require("../../debug/A:app/util");
