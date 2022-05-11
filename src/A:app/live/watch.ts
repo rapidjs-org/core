@@ -1,5 +1,5 @@
 
-import { MODE } from "../../../mode";
+import { MODE } from "../mode";
 
 
 export function watch(dirPath: string, callback: () => void) {
@@ -8,3 +8,5 @@ export function watch(dirPath: string, callback: () => void) {
 	}
 	
 }
+
+// TODO: IPC down

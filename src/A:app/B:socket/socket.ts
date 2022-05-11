@@ -211,8 +211,14 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 		if(tReq.method === "POST") {
 			parseRequestBody(eReq)
 				.then((body: TObject) => {
+					if(!(body || {}).pluginName) {
+						respond(eRes, Status.PRECONDITION_FAILED);
+
+						return;
+					}
+
 					threadInfo.tReq.body = body;
-					
+
 					ThreadPool.activateThread(threadInfo);
 				})
 				.catch((bodyParseError: IBodyParseError) => {

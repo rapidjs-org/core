@@ -23,9 +23,9 @@ postRequestTest
 
 postRequestTest
 .conduct("Fetch default plug-in without body (causing internal error)")
-.check("/sub/conventional", pluginRequestPayload("test"))
+.check("/sub/conventional")
 .for({
-    status: 500,
+    status: 412,
     headers: {
         "server": "rapidJS"
     }
@@ -42,10 +42,10 @@ postRequestTest
 });
 
 postRequestTest
-.conduct("Fetch plug-in endpoint with custom error")
-.check("/", pluginRequestPayload("test", null, "custom-error"))
+.conduct("Fetch plug-in endpoint with mutual error")
+.check("/", pluginRequestPayload("test", null, "mutual-error"))
 .for({
-    status: 406,
+    status: 450,
     headers: {
         "server": "rapidJS"
     }
@@ -65,5 +65,5 @@ postRequestTest
 .conduct("Fetch plug-in unrelated data", { abc: 123 })
 .check("/")
 .for({
-    status: 404
+    status: 412
 });

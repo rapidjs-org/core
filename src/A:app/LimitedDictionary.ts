@@ -8,8 +8,8 @@ export abstract class LimitedDictionary<L, D> {
         data: D
     }> = new Map();
     private readonly normalizationCallback: (key: string) => string;
-
-    public readonly limit: L;
+	
+    protected readonly limit: L;
 
     constructor(limit?: L, normalizationCallback?: (key: string) => string) {
     	this.limit = limit;
@@ -39,10 +39,21 @@ export abstract class LimitedDictionary<L, D> {
     		? this.storage.get(this.normalizationCallback(key)).data
     		: undefined;
     }
-
+	
     protected setEntry(key: string, limitReference: L, data: D) {
     	this.storage.set(this.normalizationCallback(key), {
     		limitReference: limitReference,
+    		data: data
+    	});
+    }
+	
+    protected updateEntry(key: string, data: D) {
+		key = this.normalizationCallback(key);
+
+		const currentLimitReference: L = this.storage.get(key).limitReference;
+
+    	this.storage.set(key, {
+    		limitReference: currentLimitReference,
     		data: data
     	});
     }

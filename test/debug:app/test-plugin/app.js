@@ -53,18 +53,13 @@ module.exports = rJS => {
     });
 
     $this.endpoint(async _ => {
-        const timeout = ms => {
-            return new Promise(resolve => {
-                setTimeout(resolve, ms);
-            });
-        };
-
-        await timeout(3000);
-
-        return "No timeout";
+        return await new Promise(resolve => {
+            setTimeout(_ => {
+                resolve("No timeout")
+            }, 2500);
+        });
     }, {
-        name: "timeout",
-        useCache: true
+        name: "timeout"
     });
     
 };

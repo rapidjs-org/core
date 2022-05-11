@@ -1,33 +1,39 @@
 
 import { join } from "path";
 import { statSync, existsSync, readFileSync } from "fs";
+import { createHash } from "crypto";
 
 import { normalizePath } from "../../util";
 import { PROJECT_CONFIG } from "../../config/config.project";
 import { LimitedDictionary } from "../../LimitedDictionary";
 import { Cache } from "../../Cache";
 
-import { computeETag } from "./util";
+import { IFileStamp } from "./interfaces.file";
 
 
-// TODO: Examine effect of cache proxy (temporary limited storage) in front of vfs
-
-interface FileStamp {
-    contents: string,
-    eTag: string
-}
-
-class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
+class VirtualFileSystem extends LimitedDictionary<number, IFileStamp> {
     
-    private readonly cache: Cache<FileStamp> = new Cache(null, normalizePath);
+	// TODO: Examine effect of cache proxy (temporary limited storage) in front of vfs
+    private readonly cache: Cache<IFileStamp> = new Cache(null, normalizePath);
 
     constructor() {
     	super(null, normalizePath);
     }
+	
+	private computeETag(fileContents: string): string {
+		return createHash("md5").update(fileContents).digest("hex");
+	}
 
     private retrieveLocalPath(path: string): string {
     	return normalizePath(join(PROJECT_CONFIG.read("webDirectory").string, path));
     }
+
+	private computeFileStamp(fileContents: string): IFileStamp {
+		return {
+    		contents: fileContents,
+    		eTag: this.computeETag(fileContents)
+    	};
+	}
 
     protected validateLimitReference(mtimeMs: number, path: string) {
     	return (statSync(this.retrieveLocalPath(path)).mtimeMs == mtimeMs);
@@ -38,42 +44,55 @@ class VirtualFileSystem extends LimitedDictionary<number, FileStamp> {
     		return true;
     	}
 
-    	this.write(path);
-		
-    	return super.hasEntry(path);
+    	return !!this.write(path);
     }
 
-    public read(path: string): FileStamp {
-    	let data: FileStamp = this.cache.read(path);
+    public read(path: string): IFileStamp {
+    	let data: IFileStamp = this.cache.read(path);
     	if(data) {
     		return data;
     	}
 		
     	if(!(data = super.getEntry(path))) {
     		// Try to write if intially not found
-    		this.write(path);
+    		data = this.write(path);
     	}
 
-    	return data || super.getEntry(path);
+    	return data;
     }
 
-    public write(path: string) {
+    public write(path: string): IFileStamp {
     	const localPath: string = this.retrieveLocalPath(path);
     	if(!existsSync(localPath)) {
-    		return;
+    		return null;
     	}
 
     	const fileContents = String(readFileSync(localPath));
+    	const fileStamp: IFileStamp = this.computeFileStamp(fileContents);
 
-    	const data: FileStamp = {
-    		contents: fileContents,
-    		eTag: computeETag(fileContents)
-    	};
+    	super.setEntry(path, statSync(localPath).mtimeMs, fileStamp);
 
-    	super.setEntry(path, statSync(localPath).mtimeMs, data);
+    	this.cache.write(path, fileStamp);
 
-    	this.cache.write(path, data);
+		return fileStamp;
     }
+
+	public modifyExistingFile(path: string, modifiedFileContents: string): IFileStamp {
+		const currentStamp: IFileStamp = super.getEntry(path);
+
+		if(!currentStamp) {
+			return;
+		}
+		
+    	const fileStamp: IFileStamp = this.computeFileStamp(modifiedFileContents);
+		fileStamp.modified = true;
+		
+		super.updateEntry(path, fileStamp);
+
+    	this.cache.write(path, fileStamp);
+
+		return fileStamp;
+	}
 
 }
 

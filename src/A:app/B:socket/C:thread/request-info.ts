@@ -16,7 +16,7 @@ import { VFS } from "./vfs";
 import { ICompoundInfo, IRequestInfo } from "./interfaces.request";
 
 import tlds from "./static/tlds.json";
-
+// TODO: Always fetch generic single part TLD and only match multi part TLDs against existence in map
 
 const registeredMostSignificantParts: string[] = [];
 const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
@@ -180,7 +180,7 @@ export function evalRequestInfo(tReq: IThreadReq) {
 	}
 
 	currentRequestInfo = {
-		auth: tReq.headers.get("Authorization"),
+		auth: tReq.headers.get("Authorization"),	// TODO: Store individually relevant headers option / configuration?
 		cookies: parseCookies(tReq.headers.get("Cookie")),
 		ip: tReq.ip,
 		pathname: tReq.pathname,

@@ -9,7 +9,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { server as WebSocketServer } from "websocket";
 
-import { MODE } from "../../../mode";
+import { MODE } from "../mode";
 
 
 // Read client script

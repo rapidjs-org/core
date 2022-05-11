@@ -15,9 +15,6 @@ import handlePlugin from "./handler/handler.plugin";
 import { evalRequestInfo } from "./request-info";
 import { registerActivePlugin } from "./plugin/registry";
 
-import "./live/ws-server";
-import "./live/watch";
-
 
 /**
  * Respond from thread (message socket with individual data relevant for network response).

@@ -45,12 +45,17 @@ let activeTimeoutThreadId: number;
 // Defer in order to read connected plug-ins first
 setImmediate(_ => {
 	Array.from({ length: (MODE.DEV ? 1 : --cpus().length) }, createThread);
+	// TODO: Use optimal / optimized size formula?
 	// TODO: Use config file parameter for size?
 });
 
 
 function handleThreadResult(threadId: number, param: number|IThreadRes) {
 	const activeObject: IActiveReq = activeReqs.get(threadId);	// TODO: Deactivate helper
+
+	if(!activeObject) {
+		return;	// Routine could have been triggered by request unrelated thread error
+	}
 
 	try {
 		clearTimeout(activeObject.timeout);	// Timeout could not exist (anymore)
@@ -59,14 +64,13 @@ function handleThreadResult(threadId: number, param: number|IThreadRes) {
 	}
 }
 
-// TODO: Thread work timeout (to prevent deadlocks and iteration problems)
 function createThread() {
 	const thread = new Thread(join(__dirname, "./C:thread/thread.js"), {
 		env: SHARE_ENV,
 		argv: process.argv.slice(2),
 		workerData: passivePluginRegistry
 	});
-	
+
 	// Success (message provision) listener
 	thread.on("message", tRes => {
 		handleThreadResult(thread.threadId, tRes);
@@ -106,7 +110,7 @@ function createThread() {
 		// TODO: Error restart limit?
 	});
 
-	deactivateThread(thread);
+	idleThreads.push(thread);
 }
 
 function deactivateThread(thread: Thread) {

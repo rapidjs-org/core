@@ -32,7 +32,7 @@ import { retrieveRequestInfo } from "../request-info";
 import { TEndpointHandler } from "../interfaces.request";
 
 
-const interfaceModulePath: string = require.resolve("./interface.plugin");
+const apiModulePath: string = require.resolve("./api.plugin");
 
 const activePluginRegistry = {
 	dict: new Map<string, {
@@ -86,7 +86,7 @@ function evalPlugin(name: string, moduleDirPath: string) {
 		// };
 		Module.wrap = (_exports => {
 			return `${Module.wrapper[0]}
-            const interface = require("${interfaceModulePath}");
+            const interface = require("${apiModulePath}");
                 for(const prop in interface) {
                     this[prop] = (...args) => {
                         interface[prop]("${name}", ...args);

@@ -18,10 +18,10 @@ import { Status } from "../../Status";
 import { IThreadReq, IThreadRes } from "../../interfaces.thread";
 
 import { VFS } from "../vfs";
-import { computeETag } from "../util";
 import { retrieveCompoundInfo, updateCompoundInfo } from "../request-info";
 import { retireveClientModuleScript, retrieveIntegrationPluginNames } from "../plugin/registry";
 import { ICompoundInfo } from "../interfaces.request";
+import { IFileStamp } from "../interfaces.file";
 
 
 const pluginReferenceSourceRegexStr = `/${config.pluginRequestPrefix}((@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*(\\${config.pluginRequestSeparator}(@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*)*)?`;
@@ -150,7 +150,7 @@ function handleStatic(tRes: IThreadRes, path: string): IThreadRes {
 		return tRes;
 	}
 
-	const fileStamp = VFS.read(path);
+	const fileStamp: IFileStamp = VFS.read(path);
 
 	tRes.message = fileStamp.contents;
 	
@@ -173,30 +173,40 @@ function handleDynamic(tRes: IThreadRes, pathname: string): IThreadRes {
 		return tRes;
 	}
 
-	const fileStamp = VFS.read(filePath);
+	let fileStamp = VFS.read(filePath);
 
-	// Ensure head tag exists for following injections
-	// TODO: Improve injection steps / routine
-	tRes.message = embedHead(fileStamp.contents);
+	if(!fileStamp.modified) {
+		// Initial (user modified) file read
 
-	// Integrate plug-in reference accordingly	
-	const pluginIntegrationSequence = retrieveIntegrationPluginNames(!!compoundInfo);
-	// TODO: What about manually integrated compound only plug-ins? Allow for mutual usage?
-	tRes.message = injectPluginReferenceIntoMarkup(tRes.message, pluginIntegrationSequence);
+		// Ensure head tag exists for following injections
+		// TODO: Improve injection steps / routine
+		tRes.message = embedHead(fileStamp.contents);
 
-	// Inject compound base tag (in order to keep relative references in markup alive)
-	tRes.message = compoundInfo
-		? injectCompoundBaseIntoMarkup(tRes.message, pathname.slice(0, -(compoundInfo.args.join("/").length)))
-		: tRes.message;
+		// Integrate plug-in reference accordingly	
+		const pluginIntegrationSequence = retrieveIntegrationPluginNames(!!compoundInfo);
+		// TODO: What about manually integrated compound only plug-ins? Allow for mutual usage?
+		tRes.message = injectPluginReferenceIntoMarkup(tRes.message, pluginIntegrationSequence);
 
-	// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
-	// TODO: Write statically prepared dynamic file back to VFS for better performance?
+		// Inject compound base tag (in order to keep relative references in markup alive)
+		tRes.message = compoundInfo
+			? injectCompoundBaseIntoMarkup(tRes.message, pathname.slice(0, -(compoundInfo.args.join("/").length)))
+			: tRes.message;
 
-	// Rendering
-	// TODO: Implement
+		// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
 
-	tRes.headers.set("ETag", computeETag(tRes.message));
+		// TODO: Write statically prepared dynamic file back to VFS for better performance?
+		fileStamp = VFS.modifyExistingFile(filePath, tRes.message);
+		
+	} else {
+		// Backwritten / modified (preprocessed, user untouched) file read
+		tRes.message = fileStamp.contents;
+	}
 	
+	tRes.headers.set("ETag", fileStamp.eTag);
+
+	// Rendering (individual request dependant)
+	// TODO: Implement
+		
 	return tRes;
 }
 

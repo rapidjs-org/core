@@ -49,6 +49,6 @@ export function plugin(reference: string, options: IPluginOptions) {
 	// TODO: Connection message
 }
 
-export const events = {
+/* export const events = {
 	log: printEventEmitter
-};
+}; */

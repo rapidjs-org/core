@@ -1,5 +1,6 @@
 {
     "limit": {
-        "requestsPerMin": 2
+        "requestsPerMin": 2,
+        "processingTimeout": 2000
     }
 }

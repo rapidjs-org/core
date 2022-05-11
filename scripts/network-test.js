@@ -46,8 +46,7 @@ global.NetworkTest = class extends Test {
                 hostname: this.callReference.hostname,
                 port: this.callReference.post,
                 path: path,
-                method: this.callReference.method,
-                body: body ? JSON.stringify(body) : null
+                method: this.callReference.method
             }, res => {
                 res.on("data", data => {
                     resolve({
@@ -57,10 +56,12 @@ global.NetworkTest = class extends Test {
                     });
                 });
             });
-
+            
             req.on("error", err => {
                 reject(err);
             });
+            
+            body && req.write(JSON.stringify(body));
 
             req.end();
 
