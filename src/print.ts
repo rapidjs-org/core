@@ -8,6 +8,7 @@ import { mkdirSync, appendFile } from "fs";
 import { join, dirname } from "path";
 import { EventEmitter } from "events";
 
+import { absolutizePath } from "./util";
 import { argument } from "./args";
 
 
@@ -15,10 +16,7 @@ import { argument } from "./args";
  * Construct absolute path from possibly given log argument.
  * Inherently create directory (path) if does not exist.
  */
-let logDirPath: string = argument("log", "L").binary;
-logDirPath = ((logDirPath || "/").charAt(0) !== "/")
-	? join(dirname(require.main.filename), logDirPath)
-	: logDirPath;
+const logDirPath: string = absolutizePath(argument("log", "L").binary, dirname(require.main.filename));
 
 // TODO: Create error?
 logDirPath && mkdirSync(logDirPath, {
@@ -118,6 +116,7 @@ export namespace print {
 	}
 	
 	export function info(message: string, noPrefix?: boolean) {
+		// TODO: Message type cumulation argument? Ass bottom margin after type groups?
 		write(message, Channel.LOG, Event.INFO, noPrefix);
 	}
 	

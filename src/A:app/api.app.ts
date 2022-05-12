@@ -3,9 +3,12 @@ import config from "./app.config.json";
 
 import { eventEmitter as printEventEmitter } from "../print";
 
+import { print } from "../print";
+
 import { normalizePath } from "./util";
-import { IPCSignal } from "./IPCSignal";
 import { ipcDown } from "./cluster";
+import { watch } from "./live/watch";
+import { IPCSignal } from "./IPCSignal";
 import { IPluginOptions } from "./B:socket/interfaces.plugin";
 
 
@@ -45,8 +48,18 @@ export function plugin(reference: string, options: IPluginOptions) {
 		modulePath,
 		options
 	});
+	
+	// Watch (live) plug-in directory (recursively)
+	watch(modulePath, () => {
+		console.log("Plugg-in change registered:")
+		console.log(name, modulePath)
+
+		// TODO: Signal threads:
+		// Sub-perform: evalPlugin(plugin.name, plugin.modulePath);
+	}, true, `Plug-in: ${name}`);
 
 	// TODO: Connection message
+	print.info(`↴ Plug-in '${name}'`);
 }
 
 /* export const events = {

@@ -24,7 +24,7 @@
 		};
 		
 		ws.onclose = _ => {
-			setTimeout(logCloseMessage || (_ => {}), 500);
+			//setTimeout(logCloseMessage || (_ => {}), 500);
 		};
 	};
 	

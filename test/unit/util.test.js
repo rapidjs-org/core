@@ -3,7 +3,7 @@ const { join } = require("path");
 
 // MEM 0
 
-const { mergeObj } = require("../../debug/util");
+const { mergeObj, absolutizePath } = require("../../debug/util");
 
 const mergeObjTest = new UnitTest("Object merge tests", mergeObj);
 
@@ -53,6 +53,18 @@ mergeObjTest
     d: 3
 });
 
+const absolutizePathTest = new UnitTest("Absolutize path tests", absolutizePath);
+
+absolutizePathTest
+.conduct("Absolutize relative path (root appendix)")
+.check("./def/ghj.txt", "/abc")
+.for("/abc/def/ghj.txt");
+
+absolutizePathTest
+.conduct("Absolutize absolute path (unchanged)")
+.check("/def", "/abc")
+.for("/def");
+
 // MEM A
 
 const { normalizePath } = require("../../debug/A:app/util");
@@ -68,14 +80,3 @@ normalizePathTest
 .conduct("Project normalize absolute path")
 .check("/test")
 .for(join(__dirname, "../../scripts/test"));
-
-// MEM C
-
-const { computeETag } = require("../../debug/A:app/B:socket/C:thread/util");
-
-const computeETagTest = new UnitTest("Compute ETag tests", computeETag);
-
-computeETagTest
-.conduct("Compute ETag")
-.check("<html></html>")
-.for("c83301425b2ad1d496473a5ff3d9ecca");

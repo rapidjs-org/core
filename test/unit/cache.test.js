@@ -1,5 +1,5 @@
 
-const cache = new (require("../../debug/A:app/B:socket/C:thread/Cache").Cache)(500, key => {
+const cache = new (require("../../debug/A:app/Cache").Cache)(500, key => {
     return key.toLowerCase();
 });
 

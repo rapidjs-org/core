@@ -1,5 +1,6 @@
-import { dirname, join } from "path";
+import { dirname } from "path";
 
+import { absolutizePath } from "../util";
 import { argument } from "../args";
 
 
@@ -7,9 +8,9 @@ import { argument } from "../args";
 // or working directory of execution otherwise
 const wdPath: string = process.env.wd || dirname(process.argv[1]);
 const argPath: string = argument("path", "P").binary;
+
+
 // Construct absolute path from call point if relative path given
-export const PROJECT_PATH: string = (argPath !== undefined)
-	? (/[^/]/.test(argPath)
-		? join(wdPath, argPath)
-		: argPath)
-	: wdPath;
+export const PROJECT_PATH: string = argPath
+? absolutizePath(argPath, wdPath)
+: wdPath;

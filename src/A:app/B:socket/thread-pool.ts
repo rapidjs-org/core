@@ -176,4 +176,4 @@ export function ipcDown(message: TObject) {
 	}
 }
 
-process.on("message", ipcDown);
+process.on("message", ipcDown);	// Pass through master messages to threads

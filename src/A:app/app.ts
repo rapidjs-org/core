@@ -5,7 +5,11 @@
 
 import "./cluster";
 
+import { initLive } from  "./live/ws-server";
 import "./live/watch";
+
+
+initLive();
 
 
 console.log("");	// Start up message bottom margin line

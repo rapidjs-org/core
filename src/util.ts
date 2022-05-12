@@ -1,3 +1,7 @@
+
+import { join } from "path";
+
+
 /**
  * Merge two objects with right associative override (recursive).
  * @param {Record} target Object 1
@@ -45,4 +49,14 @@ export function normalizeExtension(extension: string): string {
 		.trim()
 		.replace(/^\./, "")
 		.toLowerCase();
+}
+
+export function absolutizePath(path: string, root: string): string {
+	if(!path) {
+		return null;
+	}
+	
+	return /^[^/]/.test(path)
+	? join(root || "", path)
+	: path;
 }

@@ -18,13 +18,15 @@ import { proposeClientReload } from "./ws-server";
 
 interface IWatchEntity {
 	path: string;
-	callback: () => void;
-	scanRecursively: boolean;
+
+	callback?: () => void;
+	messageIndicator?: string;
+	scanRecursively?: boolean;
 }
 
 
-const abortScanSignal = 1;
 const watchRegistry: IWatchEntity[] = [];
+const curRunIndexLocks: Set<number> = new Set();
 
 
 // TODO: One line watch messaging?
@@ -32,35 +34,47 @@ const watchRegistry: IWatchEntity[] = [];
 
 // Initialize detection interval
 MODE.DEV && setInterval(() => {
+	curRunIndexLocks.clear();
+
 	// Scan registered directories / files respectively
+	let i: number = 0;
 	watchRegistry.forEach(async (entity: IWatchEntity) => {
-		try {
-			watchEntity(entity.path, entity.scanRecursively);
-		} catch(err) {	// Abort signal entity watch iteration termination
-			if(err !== abortScanSignal) {
-				throw err;
-			}
-			console.log(err)
-			entity.callback && entity.callback();
-			
-			proposeClientReload();	// Always also reload connected web client documents
-		}
+		watchEntity(i++, entity.path, entity);
 	});
 }, config.detectionFrequency);
 
 
-function watchEntity(path: string, scanRecursively?: boolean) {
-	const fullPath: string = normalizePath(path);
+function watchEntity(index: number, path: string, entity: IWatchEntity) {
+	if(curRunIndexLocks.has(index)) {
+		return;
+	}
+
+	const fullPath: string = /^[^/]/.test(path)
+	? normalizePath(path)
+	: path;
 
 	if(!existsSync(fullPath)) {
 		// Directory does not exist
 		return;
 	}
 
+	const modificationOccurred = (time: number) => {
+		return (Math.abs(time - Date.now()) < config.detectionFrequency);
+	};
+
 	if(lstatSync(fullPath).isFile()) {
-		checkFile(path)
-		.then(() => {
-			//throw abortScanSignal;
+		stat(fullPath, (_, stats) => {
+			if(modificationOccurred(stats.birthtimeMs)
+			|| modificationOccurred(stats.mtimeMs)) {
+				curRunIndexLocks.add(index);
+
+				// TODO: Output
+				print.debug(`Registered file change '${entity.messageIndicator || path}' ⟳`);
+
+				entity.callback && entity.callback();
+				
+				proposeClientReload();	// Always also reload connected web client documents (TODO: Only load if is touched?)
+			}
 		});
 	}
 
@@ -69,67 +83,50 @@ function watchEntity(path: string, scanRecursively?: boolean) {
 		withFileTypes: true
 	}, (_, dirents: Dirent[]) => {
 		(dirents || []).forEach(dirent => {
-			if(!scanRecursively && dirent.isDirectory()) {
+			if(!entity.scanRecursively && dirent.isDirectory()) {
 				return;
 			}
 			
-			watchEntity(join(path, dirent.name), scanRecursively);
-		});
-	});
-}
-
-function checkFile(path: string): Promise<void|number> {
-	const modificationOccurred = (time: number) => {
-		return (Math.abs(time - Date.now()) < config.detectionFrequency);
-	};
-	
-	return new Promise((resolve: (signal?: number) => void) => {
-		// Read file stats to check for modification status
-		stat(normalizePath(path), (_, stats) => {
-			if(modificationOccurred(stats.birthtimeMs)
-			|| modificationOccurred(stats.mtimeMs)) {
-				// TODO: Output
-				print.debug(`Registered file change ... initiating reload ('${path}')`);
-				
-				resolve(abortScanSignal);
-			}
-
-			resolve();
+			watchEntity(index, join(path, dirent.name), entity);
 		});
 	});
 }
 
 
-export function watch(path: string, callback: () => void, scanRecursively: boolean = true) {
+export function watch(path: string, callback?: () => void, scanRecursively: boolean = true, messageIndicator?: string) {
+	// NOTICE: Do not watch from sub-processes, but watch from master and IPC signal accordingly.
+	// Prevent multiple parallel fs watch processes.
+
 	if(!MODE.DEV) {
 		return;
 	}
 
 	watchRegistry.push({
 		path: path,
+
 		callback,
+		messageIndicator,
 		scanRecursively
 	});
 }
 
 
+// Minimum watch handlers:
 
-/* // Watch project directory level (non-recursively) (server / main module, configs, ...)
+// Project directory level (non-recursively) (main module, config files, ...)
 watch("./", () => {
 	// Restart app if file in project root has changed
-	spawn(process.argv.shift(), process.argv, {
+	/* spawn(process.argv.shift(), process.argv, {
 		cwd: process.cwd(),
 		detached: true,
 		stdio: "inherit"
 	});
 
-	process.exit();
-}, false); */
+	process.exit(); */
+}, false);
 
-// Watch web file directory (recursively)
-watch(PROJECT_CONFIG.read("webDirectory").string, () => {
-	console.log(999);
-});
+// Web file directory (recursively)
+watch(PROJECT_CONFIG.read("webDirectory").string);
 
 
 // TODO: IPC down for plugin reload action

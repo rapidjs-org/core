@@ -124,7 +124,7 @@ export function registerActivePlugin(plugin: IPassivePlugin) {
 	activePluginRegistry.dict.set(plugin.name, {
 		integrateManually: plugin.options.integrateManually,
 		moduleDirPath: dirname(plugin.modulePath),
-		muteEndpoints: plugin.options.muteEndpoints,
+		muteEndpoints: plugin.options.muteEndpoints,	// TODO: Reconsider
 		muteRendering: plugin.options.muteRendering,
 	});
     
@@ -147,7 +147,7 @@ export function retrieveIntegrationPluginNames(isCompound: boolean): Set<string>
 }
 
 
-// PLIUG-IN INTERFACE
+// PLIUG-IN API
 
 const endpointCache: Cache<unknown> = new Cache();
 
