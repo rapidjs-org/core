@@ -1,32 +1,28 @@
 
-const config = {
-	wsPort: 5757
-};
-
+import config from "../app.config.json";
 
 import http from "http";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { server as WebSocketServer } from "websocket";
 
 import { MODE } from "../mode";
 
 
-// Read client script
-const clientScript: string = String(readFileSync(join(__dirname, "ws-client.js")))
-	.replace(/@WS_PORT/, String(config.wsPort));	// With configured websocket port (mark substitution)
-
 const connections = [];
 
 
-startServer();
+MODE.DEV && startServer();
 
+
+function cleanEnv() {
+	// Manually close ports in case of implicit failure
+	try {
+		require("child_process").exec(`lsof -t -i:${config.liveWsPort} | sed -n 1p | kill -9`);
+	} finally {
+		process.exit();
+	}
+};
 
 function startServer() {
-	if(!MODE.DEV) {
-		return;
-	}
-	
 	// Create substantial HTTP server
 	const webServer = http
 		.createServer()
@@ -45,12 +41,14 @@ function startServer() {
 	wsServer.on("request", req => {
 		connections.push(req.accept(null, req.origin));
 	});
+	
+	process.on("SIGTERM", cleanEnv);
+	process.on("SIGINT", cleanEnv);
+	process.on("SIGBREAK", cleanEnv);
 }
 
-/**
- * Porpose a refresh activity to the client.
- */
-export function proposeRefresh() {
+
+export function proposeClientReload() {
 	(connections || []).forEach(connection => {
 		connection.sendUTF("1");
 	});

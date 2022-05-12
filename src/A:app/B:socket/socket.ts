@@ -99,7 +99,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 			}
 		});
 
-		eReq.on("end", _ => {
+		eReq.on("end", () => {
 			// Parse payload
 			try {
 				resolve((body.length > 0) ? JSON.parse(body.toString()) : null);

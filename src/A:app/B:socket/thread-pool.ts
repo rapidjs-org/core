@@ -21,7 +21,7 @@ import { IPassivePlugin } from  "./interfaces.plugin";
 
 interface IActiveReq {
 	eRes: http.ServerResponse;
-	timeout: number;
+	timeout: NodeJS.Timeout;
 }
 
 
@@ -33,7 +33,7 @@ const pendingReqs: {
 }[] = [];
 const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
 const passivePluginRegistry: IPassivePlugin[] = [];
-const processingTimeout = 5000;//PROJECT_CONFIG.read("limit", "processingTimeout").number;
+const processingTimeout = PROJECT_CONFIG.read("limit", "processingTimeout").number;
 const staticCache: Cache<IThreadRes> = new Cache(null, (key: string) => {
 	return normalize(key);
 });
@@ -43,7 +43,7 @@ let activeTimeoutThreadId: number;
 
 // Create fixed amount of new, reusable threads
 // Defer in order to read connected plug-ins first
-setImmediate(_ => {
+setImmediate(() => {
 	Array.from({ length: (MODE.DEV ? 1 : --cpus().length) }, createThread);
 	// TODO: Use optimal / optimized size formula?
 	// TODO: Use config file parameter for size?
@@ -144,7 +144,7 @@ export function activateThread(entity: {
 	activeReqs.set(thread.threadId, {
 		eRes: entity.eRes,
 		timeout: isFinite(processingTimeout)
-		&& setTimeout(_ => {
+		&& setTimeout(() => {
 			thread.terminate();
 
 			activeTimeoutThreadId = thread.threadId;

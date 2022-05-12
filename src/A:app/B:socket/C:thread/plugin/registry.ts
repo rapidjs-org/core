@@ -167,7 +167,7 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 
 	// Construct individual script module
 	const modularClientScript: string[] = [`
-        ${config.appIdentifier}["${associatedPluginName}"] = (_ => {
+        ${config.appIdentifier}["${associatedPluginName}"] = (() => {
             const ${config.thisRetainerIdentifier} = {
                 endpoint: (body, options = {}) => {
                     return ${config.appIdentifier}.${config.coreIdentifier}.mediateEndpoint("${associatedPluginName}", body, options.name, options.progressHandler);

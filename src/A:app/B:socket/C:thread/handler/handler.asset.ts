@@ -12,6 +12,7 @@ import { readFileSync } from "fs";
 import { join, extname, dirname } from "path";
 import { gzipSync, deflateSync } from "zlib";
 
+import { MODE } from "../../../mode";
 import { PROJECT_CONFIG } from "../../../config/config.project";
 
 import { Status } from "../../Status";
@@ -28,6 +29,9 @@ const pluginReferenceSourceRegexStr = `/${config.pluginRequestPrefix}((@[a-z0-9~
 const coreModuleText = String(readFileSync(join(__dirname, "../plugin/client.core.js")));
 
 const errorPageMapping: Map<string, string> = new Map();	// TODO: Limit size?
+
+const liveWsClientModuleText: string = String(readFileSync(join(__dirname, "../../../live/ws-client.js")))
+	.replace(/@WS_PORT/, String(config.liveWsPort));	// With configured websocket port (mark substitution)
 
 
 enum AssetType {
@@ -110,7 +114,7 @@ function handlePlugin(tRes: IThreadRes, path: string): IThreadRes {
 	const requestedPluginNames: Set<string> = new Set(path
 		.slice(config.pluginRequestPrefix.length + 1)
 		.split(new RegExp(`\\${config.pluginRequestSeparator}`, "g")));
-
+	
 	if(requestedPluginNames.size === 0) {
 		tRes.status = Status.NOT_ACCEPTABLE;
 
@@ -192,8 +196,13 @@ function handleDynamic(tRes: IThreadRes, pathname: string): IThreadRes {
 			? injectCompoundBaseIntoMarkup(tRes.message, pathname.slice(0, -(compoundInfo.args.join("/").length)))
 			: tRes.message;
 
-		// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
+		// Inject live ws client module script if environment is in DEV MODE
+		tRes.message = MODE.DEV
+		? injectLiveWsClientModuleIntoMarkup(tRes.message)
+		: tRes.message;
 
+		// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
+		
 		// TODO: Write statically prepared dynamic file back to VFS for better performance?
 		fileStamp = VFS.modifyExistingFile(filePath, tRes.message);
 		
@@ -281,9 +290,17 @@ function embedHead(markup: string): string {
 	return `${markup.slice(0, headInjectionPos)}\n<head></head>\n${markup.slice(headInjectionPos)}`;
 }
 
+function injectIntoMarkupHead(markup: string, injectionSequence: string) {
+	const headPos = getHeadPosition(markup);
+
+	// At bottom
+	return `${markup.slice(0, headPos.open)}\n${injectionSequence}${markup.slice(headPos.open)}`;
+}
+
 function injectPluginReferenceIntoMarkup(markup: string, effectivePluginNames: Set<string>): string {
 	const headPos = getHeadPosition(markup);
 
+	// Do not reference manually referenced plug-ins but do not merge due to custom ordering
 	const manuallyIntegratedPluginNames: string[] = markup
 		.slice(headPos.open, headPos.close)
 		.match(new RegExp(`<[ ]*script\\s*src\\s*=\\s*("|')[ ]*(${pluginReferenceSourceRegexStr})[ ]*\\1\\s*>\\s*<[ ]*/[ ]*script\\s*>`, "gi")) || []
@@ -313,7 +330,9 @@ function injectPluginReferenceIntoMarkup(markup: string, effectivePluginNames: S
 }
 
 function injectCompoundBaseIntoMarkup(markup: string, basePath: string): string {
-	const headPos = getHeadPosition(markup);
+	return injectIntoMarkupHead(markup, `<base href="${basePath}">`);
+}
 
-	return `${markup.slice(0, headPos.open)}\n<base href="${basePath}">${markup.slice(headPos.open)}`;
+function injectLiveWsClientModuleIntoMarkup(markup: string): string {
+	return injectIntoMarkupHead(markup, `<script>\n${liveWsClientModuleText}\n</script>`);
 }

@@ -55,7 +55,7 @@ if(clusterSize == 1) {
 
 	// Automatic restart on error
 	// Starts after specified timeout in order to prevent endless restarts on start up errors
-	setTimeout(_ => {
+	setTimeout(() => {
 		cluster.on("exit", (workerProcess, code) => {
 			if (code === 0 || workerProcess.exitedAfterDisconnect) {
 				return;
@@ -70,7 +70,7 @@ if(clusterSize == 1) {
 		});
 	}, config.autoRestartTimeout);
 
-	cluster.on("listening", _ => {
+	cluster.on("listening", () => {
 		(++initClusterProcesses == clusterSize)
 		&& print.info(`${clusterSize} cluster sockets have been set up`);
 	});
@@ -79,9 +79,6 @@ if(clusterSize == 1) {
 		print.info(message);
 	});
 }
-
-
-console.log("");	// Start up message bottom margin line
 
 
 export function ipcDown(type: IPCSignal , data: TObject) {

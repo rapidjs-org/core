@@ -3,6 +3,7 @@
     "coreIdentifier": "core",
     "dynamicFileExtension": "html",
     "indexPageName": "index",
+	"liveWsPort": 5757,
     "localeCodingTypes": {
         "subdomain": "subdomain",
         "pathname": "pathname"
