@@ -127,6 +127,3 @@ watch("./", () => {
 
 // Web file directory (recursively)
 watch(PROJECT_CONFIG.read("webDirectory").string);
-
-
-// TODO: IPC down for plugin reload action

@@ -1,4 +1,4 @@
 export enum IPCSignal {
-    PLUGIN,
-    LIVE
+    PLUGIN_REGISTER,
+    PLUGIN_RELOAD
 }

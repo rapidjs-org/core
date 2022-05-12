@@ -62,10 +62,10 @@ export interface IEndpointHandlerResult {
 }
 
 
-function evalPlugin(name: string, moduleDirPath: string) {
+function requirePluginModule(name: string, modulePath: string) {
 	// Empty module cache (for eventual re-evaluation; live behavior in DEV MODE)
-	if(require.cache[moduleDirPath]) {
-		delete require.cache[moduleDirPath];
+	if(require.cache[modulePath]) {
+		delete require.cache[modulePath];
 	}
 
 	const Module = require("module");   // for runtime dynamic module wrapping
@@ -99,7 +99,7 @@ function evalPlugin(name: string, moduleDirPath: string) {
             ${_exports}${Module.wrapper[1]}`;
 		});
 
-		pluginModule = require.main.require(moduleDirPath);	// Require using the modified module wrapper
+		pluginModule = require.main.require(modulePath);	// Require using the modified module wrapper
 	} catch(err) {
 		Module.wrap = _wrap;
 
@@ -119,6 +119,15 @@ function evalPlugin(name: string, moduleDirPath: string) {
 	pluginModule(commonInterface);
 }
 
+function evalPluginModule(name: string, modulePath: string) {
+	try {
+		requirePluginModule(name, modulePath);
+	} catch(err) {
+		print.info(`An error occurred evaluating the '${name}' plug-in module`);
+		print.error(err);
+	}
+}
+
 
 export function registerActivePlugin(plugin: IPassivePlugin) {
 	activePluginRegistry.dict.set(plugin.name, {
@@ -127,13 +136,12 @@ export function registerActivePlugin(plugin: IPassivePlugin) {
 		muteEndpoints: plugin.options.muteEndpoints,	// TODO: Reconsider
 		muteRendering: plugin.options.muteRendering,
 	});
-    
-	try {
-		evalPlugin(plugin.name, plugin.modulePath);
-	} catch(err) {
-		print.info(`An error occurred evaluating the '${plugin.name}' plug-in module`);
-		print.error(err);
-	}
+	
+	evalPluginModule(plugin.name, plugin.modulePath);
+}
+
+export function reloadActivePlugin(name: string, modulePath: string) {
+	evalPluginModule(name, modulePath);
 }
 
 export function retireveClientModuleScript(pluginName: string): string {

@@ -1,6 +1,8 @@
 
 import config from "./app.config.json";
 
+import { dirname } from "path";
+
 import { eventEmitter as printEventEmitter } from "../print";
 
 import { print } from "../print";
@@ -12,7 +14,7 @@ import { IPCSignal } from "./IPCSignal";
 import { IPluginOptions } from "./B:socket/interfaces.plugin";
 
 
-const pluginNameRegex = /^(@[a-z0-9~-][a-z0-9._~-]*\/)?[a-z0-9~-][a-z0-9._~-]*$/i;	// = npm package name
+const pluginNameRegex = /^(@[a-z0-9~-][a-z0-9._~-]*\/)?[a-z0-9~-][a-z0-9._~-]*$/i;	// = npm package name syntax
 
 
 export function plugin(reference: string, options: IPluginOptions) {
@@ -43,19 +45,19 @@ export function plugin(reference: string, options: IPluginOptions) {
 	}
 
 	// Communicate plug-in conmnection to sub-processes
-	ipcDown(IPCSignal.PLUGIN, {
+	ipcDown(IPCSignal.PLUGIN_REGISTER, {
 		name,
 		modulePath,
 		options
 	});
 	
 	// Watch (live) plug-in directory (recursively)
-	watch(modulePath, () => {
-		console.log("Plugg-in change registered:")
-		console.log(name, modulePath)
-
-		// TODO: Signal threads:
-		// Sub-perform: evalPlugin(plugin.name, plugin.modulePath);
+	watch(dirname(modulePath), () => {
+		// Communicate plug-in conmnection to sub-processes
+		ipcDown(IPCSignal.PLUGIN_RELOAD, {
+			name,
+			modulePath
+		});
 	}, true, `Plug-in: ${name}`);
 
 	// TODO: Connection message

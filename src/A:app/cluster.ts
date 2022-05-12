@@ -81,15 +81,15 @@ if(clusterSize == 1) {
 }
 
 
-export function ipcDown(type: IPCSignal , data: TObject) {
+export function ipcDown(signal: IPCSignal , data: TObject) {
 	const message: TObject = {
-		type,
+		signal,
 		data
 	};
-
+	
 	if(clusterSize == 1) {
 		require("./B:socket/thread-pool").ipcDown(message);
-
+		
 		return;
 	}
     

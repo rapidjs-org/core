@@ -157,23 +157,20 @@ export function activateThread(entity: {
 	thread.postMessage(entity.tReq);
 }
 
-export function broadcast(message: TObject) {
-	broadcastChannel.postMessage(message);
-}
-
 /*
  * IPC interface (top-down).
  */
 export function ipcDown(message: TObject) {
 	// TODO: IPC types
-	switch(message.type) {
-	case IPCSignal.PLUGIN:
-		broadcast(message.data as TObject);
-
-		passivePluginRegistry.push(message.data as IPassivePlugin);
-            
-		break;
+	switch(message.signal) {
+		case IPCSignal.PLUGIN_REGISTER:
+			// Intercept signal in order to keep track of already registered plug-ins for new thread creation processes
+			passivePluginRegistry.push(message.data as IPassivePlugin);
+			
+			break;
 	}
+
+	broadcastChannel.postMessage(message);
 }
 
 process.on("message", ipcDown);	// Pass through master messages to threads
