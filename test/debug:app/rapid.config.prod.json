@@ -1,7 +1,7 @@
 {
     "clusterSize": 3,
     "customHeaders": {
-        "Server": null
+        "Additional-Custom-Header": "test"
     },
     "locale": [
         "en",
@@ -11,8 +11,7 @@
         }
     ],
     "limit": {
-        "requestsPerMin": 5,
-        "requestTimeout": 10
+        "requestsPerMin": 0
     },
     "www": "yes"
 }

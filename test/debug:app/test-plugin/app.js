@@ -53,11 +53,11 @@ module.exports = rJS => {
     });
 
     $this.endpoint(async _ => {
-        return await new Promise(resolve => {
-            setTimeout(_ => {
-                resolve("No timeout")
-            }, 2500);
-        });
+        const refTime = new Date().getTime() + 3000;
+        
+        while (new Date().getTime() < refTime) {}
+
+        return "No timeout";
     }, {
         name: "timeout"
     });

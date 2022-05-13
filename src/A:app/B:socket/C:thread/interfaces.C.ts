@@ -15,4 +15,22 @@ export interface IRequestInfo {
     isCompound?: boolean;
 }
 
+export interface IEndpointOptions {
+	name?: string;
+	useCache?: boolean;
+}
+
+export interface IEndpointHandlerResult {
+	status: number;
+
+	data?: unknown;
+}
+
+export interface IFileStamp {
+    contents: string,
+    eTag: string,
+
+    modified?: boolean;
+}
+
 export type TEndpointHandler = (body: TObject, req: IRequestInfo) => unknown;

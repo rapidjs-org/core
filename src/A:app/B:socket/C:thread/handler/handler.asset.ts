@@ -16,13 +16,12 @@ import { MODE } from "../../../mode";
 import { PROJECT_CONFIG } from "../../../config/config.project";
 
 import { Status } from "../../Status";
-import { IThreadReq, IThreadRes } from "../../interfaces.thread";
+import { IThreadReq, IThreadRes } from "../../interfaces.B";
 
 import { VFS } from "../vfs";
 import { retrieveCompoundInfo, updateCompoundInfo } from "../request-info";
 import { retireveClientModuleScript, retrieveIntegrationPluginNames } from "../plugin/registry";
-import { ICompoundInfo } from "../interfaces.request";
-import { IFileStamp } from "../interfaces.file";
+import { ICompoundInfo, IFileStamp } from "../interfaces.C";
 
 
 const pluginReferenceSourceRegexStr = `/${config.pluginRequestPrefix}((@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*(\\${config.pluginRequestSeparator}(@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*)*)?`;
@@ -62,15 +61,16 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 				: handleStatic(tRes, tReq.pathname);
 		}
 	}
-
+	
 	tRes = (assetType === AssetType.DYNAMIC
 	&& (tRes.status || Status.SUCCESS) !== Status.SUCCESS)	// TODO: Implement conceal error status option
 		? handleDynamicError(tRes, tReq.pathname)
 		: tRes;
+	
+	tRes.staticCacheKey = (assetType !== AssetType.DYNAMIC)
+	? tReq.pathname
+	: null;	// TODO: Move back to pool control module?
 
-	(assetType !== AssetType.DYNAMIC)
-	&& (tRes.staticCacheKey = tReq.pathname);
-		
 	if(tRes.message === undefined) {
 		return tRes;
 	}
@@ -82,17 +82,18 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 
 		return tRes;
 	}
-
+	
 	const mime: string = PROJECT_CONFIG.read("mimes", extension || config.dynamicFileExtension).string;
 	if(mime) {
 		tRes.headers.set("Content-Type", mime);
 		tRes.headers.set("X-Content-Type-Options", "nosniff");
 	}
 
-	// Apply compression if accepted
+	// Apply compression if is accepted
 	const checkCompressionAccepted = (compressionType: string) => {
 		return (tReq.headers.get("Accept-Encoding") || "").match(new RegExp(`(^|,)[ ]*${compressionType}[ ]*($|,)`, "i"));
 	};
+	
 	if(tReq.headers.has("Accept-Encoding")) {
 		if(checkCompressionAccepted("gzip")) {
 			tRes.message = gzipSync(tRes.message);

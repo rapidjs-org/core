@@ -26,10 +26,10 @@ import { MutualError } from "../../../MutualError";
 import * as commonInterface from "../../../api.common";
 
 import { Status } from "../../Status";
-import { IPassivePlugin } from "../../interfaces.plugin";
+import { IPassivePlugin } from "../../interfaces.B";
 
 import { retrieveRequestInfo } from "../request-info";
-import { TEndpointHandler } from "../interfaces.request";
+import { IEndpointOptions, IEndpointHandlerResult, TEndpointHandler } from "../interfaces.C";
 
 
 const apiModulePath: string = require.resolve("./api.plugin");
@@ -54,12 +54,6 @@ const activePluginRegistry = {
 	}
 };
 
-
-export interface IEndpointHandlerResult {
-	status: number;
-
-	data?: unknown;
-}
 
 
 function requirePluginModule(name: string, modulePath: string) {
@@ -131,10 +125,10 @@ function evalPluginModule(name: string, modulePath: string) {
 
 export function registerActivePlugin(plugin: IPassivePlugin) {
 	activePluginRegistry.dict.set(plugin.name, {
-		integrateManually: plugin.options.integrateManually,
+		integrateManually: !!plugin.options.integrateManually,
 		moduleDirPath: dirname(plugin.modulePath),
-		muteEndpoints: plugin.options.muteEndpoints,	// TODO: Reconsider
-		muteRendering: plugin.options.muteRendering,
+		muteEndpoints: !!plugin.options.muteEndpoints,	// TODO: Reconsider
+		muteRendering: !!plugin.options.muteRendering,
 	});
 	
 	evalPluginModule(plugin.name, plugin.modulePath);
@@ -163,13 +157,13 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 	// TODO: Swap shared and compound argument as of usage frequency (keep backwards compatibility with type check augmented overload)
 
 	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
-
+	
 	// Construct path to plugin client script file
 	const clientModuleFilePath: string = join(pluginObj.moduleDirPath, relativePath).replace(/(\.js)?$/, ".js");
 
 	// Read client module file
 	if(!existsSync(clientModuleFilePath)) {
-		throw new ReferenceError(`Client module file of plugin '${associatedPluginName}' not found at  '${clientModuleFilePath}'`);
+		throw new ReferenceError(`Client module file of plugin '${associatedPluginName}' not found at '${clientModuleFilePath}'`);
 	}
 	const bareClientScript = String(readFileSync(clientModuleFilePath));
 
@@ -193,7 +187,8 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 
             return ${config.thisRetainerIdentifier}.${config.clientModuleReferenceName.public};
         })();
-    `].map(part => {
+    `]
+	.map(part => {
 		// Minifiy wrapper
 		return part
 			.replace(/([{};,])\s+/g, "$1")
@@ -204,9 +199,9 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 	pluginObj.clientModuleText = `${modularClientScript[0]}${bareClientScript}${(bareClientScript.slice(-1) != ";") ? ";" : ""}${modularClientScript[1]}`;
 	pluginObj.compoundOnly = compoundOnly;
 	pluginObj.endpoints = new Map();
-	
-	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
 
+	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
+	
 	// Manipulate generic integration set according to integration option
 	activePluginRegistry.genericIntegrationList
 		.compoundOnly[(!pluginObj.integrateManually && compoundOnly) ? "add" : "delete"](associatedPluginName);
@@ -214,7 +209,7 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 		.any[(!pluginObj.integrateManually && !compoundOnly) ? "add" : "delete"](associatedPluginName);
 }
 
-export function defineEndpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: TObject) {
+export function defineEndpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: IEndpointOptions) {
 	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
 
 	if(pluginObj.muteEndpoints) {
@@ -233,15 +228,21 @@ export function defineEndpoint(associatedPluginName: string, endpointHandler: TE
 	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
 }
 
-export function activateEndpoint(associatedPluginName: string, requestBody?: TObject, endpointName?: string): IEndpointHandlerResult {
-	const endpoint = activePluginRegistry.dict.get(associatedPluginName).endpoints.get(endpointName || config.defaultEndpointName);
+export function activateEndpoint(associatedPluginName: string, requestBody?: TObject, endpointName?: string): IEndpointHandlerResult|number {
+	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
+	
+	if(!pluginObj) {
+		print.debug(`Endpoint request of undefined plug-in '${associatedPluginName}'`);
+
+		return Status.NOT_FOUND;
+	}
+
+	const endpoint = pluginObj.endpoints.get(endpointName || config.defaultEndpointName);
 
 	if(!endpoint) {
-		print.debug(`Request of undefined ${endpointName ? `'${endpointName}'` : "default"} endpoint of plug-in '${associatedPluginName}'`);
+		print.debug(`Undefined ${endpointName ? `'${endpointName}'` : "default"} endpoint request of plug-in '${associatedPluginName}'`);
 
-		return {
-			status: Status.NOT_FOUND
-		};
+		return Status.NOT_FOUND;
 	}
 
 	const cacheKey = `${associatedPluginName}+${endpointName || ""}`;	// Plug-in / endpoint unique key due to name distinctive concatenation symbol
@@ -267,13 +268,12 @@ export function activateEndpoint(associatedPluginName: string, requestBody?: TOb
 			print.info(`An error occurred activating the ${endpointName ? `'${endpointName}'` : "default"} endpoint of plug-in '${associatedPluginName}'`);
 			print.error(err);
 			
-			return {
-				status: Status.INTERNAL_ERROR
-			};
+			return Status.INTERNAL_ERROR;
 		}
 	}
 
-	endpoint.useCache && endpointCache.write(cacheKey, handlerData);
+	endpoint.useCache
+	&& endpointCache.write(cacheKey, handlerData);
 
 	return {
 		status: Status.SUCCESS,

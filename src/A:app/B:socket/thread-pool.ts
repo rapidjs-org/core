@@ -15,8 +15,7 @@ import { Cache } from"../Cache";
 
 import { Status } from"./Status";
 import { respond } from"./response";
-import { IThreadReq, IThreadRes } from "./interfaces.thread";
-import { IPassivePlugin } from  "./interfaces.plugin";
+import { IThreadReq, IThreadRes, IPassivePlugin } from  "./interfaces.B";
 
 
 interface IActiveReq {
@@ -51,7 +50,7 @@ setImmediate(() => {
 
 
 function handleThreadResult(threadId: number, param: number|IThreadRes) {
-	const activeObject: IActiveReq = activeReqs.get(threadId);	// TODO: Deactivate helper
+	const activeObject: IActiveReq = activeReqs.get(threadId);
 
 	if(!activeObject) {
 		return;	// Routine could have been triggered by request unrelated thread error
@@ -77,8 +76,8 @@ function createThread() {
 
 		deactivateThread(thread);
 
-		tRes.staticCacheKey
-		&& staticCache.write(tRes.staticCacheKey, tRes);
+		/* tRes.staticCacheKey
+		&& staticCache.write(tRes.staticCacheKey, tRes); */
 	});
 	
 	// Thread error listener
@@ -127,10 +126,6 @@ export function activateThread(entity: {
 		return;
 	}
 
-	if(staticCache.has(entity.tReq.pathname)) {
-		return staticCache.read(entity.tReq.pathname);
-	}
-
 	if(idleThreads.length === 0) {
 		(pendingReqs.length >= PROJECT_CONFIG.read("limit", "pendingRequests").number)
 			? respond(entity.eRes, Status.SERVICE_UNAVAILABKLE)
@@ -140,6 +135,12 @@ export function activateThread(entity: {
 	}
 
 	const thread = idleThreads.shift();  // FIFO
+
+	if(staticCache.has(entity.tReq.pathname)) {
+		thread.postMessage(staticCache.read(entity.tReq.pathname));
+
+		return;
+	}
 
 	activeReqs.set(thread.threadId, {
 		eRes: entity.eRes,

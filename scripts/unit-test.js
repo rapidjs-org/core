@@ -1,4 +1,4 @@
-const { Test, log, formatStr } = require("./test-framework");
+const { start, Test, log, formatStr } = require("./test-framework");
 
 
 // TODO: Extract private members
@@ -76,3 +76,5 @@ global.UnitTest = class extends Test {
 
 
 log(formatStr(" UNIT TEST SUITE ", null, [253, 202, 64], 1));
+
+start();

@@ -8,7 +8,7 @@ import { PROJECT_CONFIG } from "../../config/config.project";
 import { LimitedDictionary } from "../../LimitedDictionary";
 import { Cache } from "../../Cache";
 
-import { IFileStamp } from "./interfaces.file";
+import { IFileStamp } from "./interfaces.C";
 
 
 class VirtualFileSystem extends LimitedDictionary<number, IFileStamp> {

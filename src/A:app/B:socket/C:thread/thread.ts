@@ -9,23 +9,14 @@ import { parentPort, BroadcastChannel, workerData } from "worker_threads";
 import { IPCSignal } from "../../IPCSignal";
 
 import { HeadersMap } from "../HeadersMap";
-import { IPassivePlugin } from "../interfaces.plugin";
-import { IThreadReq, IThreadRes } from "../interfaces.thread";
+import { IPassivePlugin } from "../interfaces.B";
+import { IThreadReq, IThreadRes } from "../interfaces.B";
 
 import handleAsset from "./handler/handler.asset";
 import handlePlugin from "./handler/handler.plugin";
 import { evalRequestInfo } from "./request-info";
 import { registerActivePlugin, reloadActivePlugin } from "./plugin/registry";
 
-
-/**
- * Respond from thread (message socket with individual data relevant for network response).
- * @param {IThreadRes} tRes Thread response object
- * @param {boolean} headerOnly Whether to only send headers
- */
-function respond(tRes: IThreadRes) {
-	parentPort.postMessage(tRes);
-}
 
 parentPort.on("message", (tReq: IThreadReq) => {
 	evalRequestInfo(tReq);
@@ -41,13 +32,13 @@ parentPort.on("message", (tReq: IThreadReq) => {
 	if(["GET", "HEAD"].includes(tReq.method))  {
 		tRes.headersOnly = (tReq.method === "HEAD");
 		
-		respond(handleAsset(tReq, tRes));
+		parentPort.postMessage(handleAsset(tReq, tRes));
 		
 		return;
 	}
 	
 	// POST: Plug-in request
-	respond(handlePlugin(tReq, tRes));
+	parentPort.postMessage(handlePlugin(tReq, tRes));
 });
 
 

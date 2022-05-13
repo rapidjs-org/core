@@ -19,7 +19,7 @@ import { Status } from "./Status";
 import { HeadersMap } from"./HeadersMap";
 import { rateExceeded } from "./rate-limiter";
 import { respond, redirect } from "./response";
-import { IThreadReq } from "./interfaces.thread";
+import { IThreadReq } from "./interfaces.B";
 import * as ThreadPool from "./thread-pool";
 
 

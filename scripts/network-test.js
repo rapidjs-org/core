@@ -1,4 +1,4 @@
-const { Test, log, formatStr } = require("./test-framework");
+const { start, Test, log, formatStr } = require("./test-framework");
 
 
 /*
@@ -96,3 +96,5 @@ global.NetworkTest = class extends Test {
 
 
 log(formatStr(" NETWORK TEST SUITE ", null, [253, 202, 64], 1));
+
+setTimeout(start, 3000);    // TODO: Per arg / option

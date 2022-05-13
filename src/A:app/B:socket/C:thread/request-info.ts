@@ -10,10 +10,10 @@ import { extname } from "path";
 
 import { PROJECT_CONFIG } from "../../config/config.project";
 
-import { IThreadReq } from "../interfaces.thread";
+import { IThreadReq } from "../interfaces.B";
 
 import { VFS } from "./vfs";
-import { ICompoundInfo, IRequestInfo } from "./interfaces.request";
+import { ICompoundInfo, IRequestInfo } from "./interfaces.C";
 
 import tlds from "./static/tlds.json";
 // TODO: Always fetch generic single part TLD and only match multi part TLDs against existence in map

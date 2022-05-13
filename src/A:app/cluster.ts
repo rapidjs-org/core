@@ -21,6 +21,8 @@ print.info(`Running ${print.format(`${MODE.DEV ? "DEV" : "PROD"} MODE`, [MODE.DE
 // Do not create cluster if size is 1 (applies to DEV MODE, too)
 const clusterSize: number = PROJECT_CONFIG.read("clusterSize").number || cpus().length;
 
+// TODO: Prompt with warning if cluster size is configured huge
+
 print.info(`HTTP${IS_SECURE ? "S" : ""} ${(clusterSize === 1) ? "server" : "cluster"} started listening (:${PROJECT_CONFIG.read("port", `http${IS_SECURE ? "s" : ""}`).number})`);
 IS_SECURE && print.info(`HTTP (:${PROJECT_CONFIG.read("port", "http").string}) to HTTPS redirection enabled`);
 // TODO: Print additional info if HTTP to HTTPS redirection is enabled
@@ -60,7 +62,7 @@ if(clusterSize == 1) {
 			if (code === 0 || workerProcess.exitedAfterDisconnect) {
 				return;
 			}
-
+			
 			// TODO: Stop on recursive error eventually
 			// Error restart / fill up
 			print.info("Socket process restarted due to an error");

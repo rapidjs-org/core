@@ -161,3 +161,9 @@
 [16:55:34]: HTTP server started listening (:80)
 [16:55:34]: ↴ Plug-in 'test'
 [16:55:51]: Registered file change 'Plug-in: test' ⟳
+[17:01:29]: Running DEV MODE
+[17:01:29]: HTTP server started listening (:80)
+[17:01:29]: ↴ Plug-in 'test'
+[17:01:54]: Running DEV MODE
+[17:01:54]: HTTP server started listening (:80)
+[17:01:54]: ↴ Plug-in 'test'

@@ -1,7 +1,8 @@
 
-import { IThreadReq, IThreadRes } from "../../interfaces.thread";
+import { IThreadReq, IThreadRes } from "../../interfaces.B";
 
 import { activateEndpoint } from "../plugin/registry";
+import { IEndpointHandlerResult } from "../interfaces.C";
 
 
 interface IPluginPayload {
@@ -18,13 +19,15 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	tRes.headers.set("Content-Type", "application/json");
 	tRes.headers.set("X-Content-Type-Options", "nosniff");
 	
-	const handlerResult: {
-		status: number;
-		data?: unknown;
-	} = activateEndpoint(payload.pluginName, payload.body, payload.endpointName);
-	
-	tRes.status = handlerResult.status;
-	tRes.message = handlerResult.data ? JSON.stringify(handlerResult.data) : null;
+	const handlerResult: IEndpointHandlerResult|number = activateEndpoint(payload.pluginName, payload.body, payload.endpointName);
+	const resultObject: IEndpointHandlerResult = ((handlerResult instanceof Number) || (typeof(handlerResult) === "number"))
+	? {
+		status: handlerResult as number
+	}
+	: handlerResult;
+
+	tRes.status = resultObject.status;
+	tRes.message = resultObject.data ? JSON.stringify(resultObject.data) : null;
 
 	return tRes;
 }

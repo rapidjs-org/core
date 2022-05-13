@@ -11,7 +11,7 @@ import { IS_SECURE } from "../secure";
 
 import { Status } from "./Status";
 import { HeadersMap } from "./HeadersMap";
-import { IThreadRes } from "./interfaces.thread";
+import { IThreadRes } from "./interfaces.B";
 
 
 export function respond(eRes: http.ServerResponse, param: number|IThreadRes) {
@@ -33,13 +33,12 @@ export function respond(eRes: http.ServerResponse, param: number|IThreadRes) {
 	tRes.headers.set("Referrer-Policy", "no-referrer-when-downgrade");
 	tRes.headers.set("Strict-Transport-Security", IS_SECURE ? `max-age=${PROJECT_CONFIG.read("cachingDuration", "client")}; includeSubDomains` : null);
 	tRes.headers.set("X-XSS-Protection", "1; mode=block");
-
+	
 	tRes.message = !Buffer.isBuffer(tRes.message)
 		? Buffer.from(tRes.message || http.STATUS_CODES[tRes.status], "utf-8")
 		: tRes.message;
 	
 	tRes.headers.set("Content-Length", Buffer.byteLength(tRes.message, "utf-8"));
-	
 	
 	// Write modified cookies to header
 	/* const cookiesArray: string[] = [];

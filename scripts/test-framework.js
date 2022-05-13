@@ -60,7 +60,6 @@ console.error = console.log;
 
 // INITIATE TEST SUITE EXECUTION
 performTestAction("setup");
-testDirectory(testDirPath);
 
 
 /**
@@ -256,6 +255,11 @@ function testDirectory(dirPath) {
 /*
  * Implementation interface.
  */
+
 module.exports = out;
 module.exports.formatStr = formatStr;
 module.exports.Test = Test;
+
+module.exports.start = _ => {
+    testDirectory(testDirPath);
+};
