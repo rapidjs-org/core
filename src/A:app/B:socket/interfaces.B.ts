@@ -33,5 +33,6 @@ export interface IPluginOptions {
 export interface IPassivePlugin {
     name: string;
     modulePath: string;
-    options: IPluginOptions;
+    
+    options?: IPluginOptions;
 }

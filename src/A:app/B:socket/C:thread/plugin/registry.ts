@@ -33,7 +33,6 @@ import { IEndpointOptions, IEndpointHandlerResult, TEndpointHandler } from "../i
 
 
 const apiModulePath: string = require.resolve("./api.plugin");
-
 const activePluginRegistry = {
 	dict: new Map<string, {
         integrateManually: boolean;
@@ -53,7 +52,6 @@ const activePluginRegistry = {
 		compoundOnly: new Set<string>()
 	}
 };
-
 
 
 function requirePluginModule(name: string, modulePath: string) {

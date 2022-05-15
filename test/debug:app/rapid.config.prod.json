@@ -1,5 +1,5 @@
 {
-    "clusterSize": 3,
+    "clusterSize": 2,
     "customHeaders": {
         "Additional-Custom-Header": "test"
     },

@@ -11,7 +11,7 @@ import { normalizePath } from "./util";
 import { ipcDown } from "./cluster";
 import { watch } from "./live/watch";
 import { IPCSignal } from "./IPCSignal";
-import { IPluginOptions } from "./B:socket/interfaces.B";
+import { IPassivePlugin, IPluginOptions } from "./B:socket/interfaces.B";
 
 
 const pluginNameRegex = /^(@[a-z0-9~-][a-z0-9._~-]*\/)?[a-z0-9~-][a-z0-9._~-]*$/i;	// = npm package name syntax
@@ -38,7 +38,7 @@ export function plugin(reference: string, options: IPluginOptions) {
 	
 	// Name safe guards
 	if(name === config.coreIdentifier) {
-		throw new SyntaxError("Plug-in name illegally resolved to reserved name 'core'.");
+		throw new SyntaxError(`Plug-in name illegally resolved to reserved name '${config.coreIdentifier}'.`);
 	}
 	if(!pluginNameRegex.test(name)) {
 		throw new SyntaxError(`Resolved plug-in name '${name}' is not URL-safe.`);
@@ -49,7 +49,7 @@ export function plugin(reference: string, options: IPluginOptions) {
 		name,
 		modulePath,
 		options
-	});
+	} as IPassivePlugin);
 	
 	// Watch (live) plug-in directory (recursively)
 	watch(dirname(modulePath), () => {
@@ -57,7 +57,7 @@ export function plugin(reference: string, options: IPluginOptions) {
 		ipcDown(IPCSignal.PLUGIN_RELOAD, {
 			name,
 			modulePath
-		});
+		} as IPassivePlugin);
 	}, true, `Plug-in: ${name}`);
 
 	// TODO: Connection message

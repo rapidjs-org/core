@@ -29,6 +29,9 @@ import * as ThreadPool from "./thread-pool";
     print.error(err.message);
 }); */
 
+/* setTimeout(_ => {
+	throw new Error("Eventual test error");
+}, 3000); */
 
 const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
 

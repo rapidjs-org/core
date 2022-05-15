@@ -7,15 +7,18 @@ import config from "../../app.config.json";
 import { parentPort, BroadcastChannel, workerData } from "worker_threads";
 
 import { IPCSignal } from "../../IPCSignal";
+import { IIPCPackage } from "../../interfaces.A";
 
 import { HeadersMap } from "../HeadersMap";
-import { IPassivePlugin } from "../interfaces.B";
-import { IThreadReq, IThreadRes } from "../interfaces.B";
+import { IPassivePlugin, IThreadReq, IThreadRes } from "../interfaces.B";
 
 import handleAsset from "./handler/handler.asset";
 import handlePlugin from "./handler/handler.plugin";
 import { evalRequestInfo } from "./request-info";
 import { registerActivePlugin, reloadActivePlugin } from "./plugin/registry";
+
+
+const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
 
 
 parentPort.on("message", (tReq: IThreadReq) => {
@@ -42,31 +45,31 @@ parentPort.on("message", (tReq: IThreadReq) => {
 });
 
 
+function handleIpc(message: IIPCPackage[]|MessageEvent) {
+	((message instanceof MessageEvent)
+	? message.data as IIPCPackage[]
+	: message).forEach((message: IIPCPackage) => {
+		switch(message.signal) {
+			case IPCSignal.PLUGIN_REGISTER:
+				registerActivePlugin(message.data as unknown as IPassivePlugin);	// TODO: Improve passing
+	
+				break;
+			case IPCSignal.PLUGIN_RELOAD:
+				const data = message.data as unknown as IPassivePlugin;
+				reloadActivePlugin(data.name, data.modulePath);
+	
+				break;
+		}
+	});
+} 
+
 /**
  * Thread initial, multiple (already registered) plug-in connection directive.
  */
-workerData.forEach((passivePlugin: IPassivePlugin) => {
-	registerActivePlugin(passivePlugin);
-});
-
+handleIpc(workerData);	// TODO: Request again if received empty list? Or always ask again?
 
 /**
  * IPC:
  * Single (new) plug-in connection directive.
  */
-const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
-
-broadcastChannel.onmessage = (message: Record<string, any>) => {
-	message = message.data;
-
-	switch(message.signal) {
-		case IPCSignal.PLUGIN_REGISTER:
-			registerActivePlugin(message.data as IPassivePlugin);
-
-			break;
-		case IPCSignal.PLUGIN_RELOAD:
-			reloadActivePlugin(message.data.name, message.data.modulePath);
-
-			break;
-	}
-};
+broadcastChannel.onmessage = handleIpc;

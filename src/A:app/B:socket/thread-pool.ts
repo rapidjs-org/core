@@ -10,12 +10,13 @@ import { print } from "../../print";
 
 import { MODE } from "../mode";
 import { PROJECT_CONFIG } from "../config/config.project";
-import { IPCSignal } from "../IPCSignal";
 import { Cache } from"../Cache";
+import { ErrorControl } from"../ErrorControl";
+import { IIPCPackage } from "../interfaces.A";
 
 import { Status } from"./Status";
 import { respond } from"./response";
-import { IThreadReq, IThreadRes, IPassivePlugin } from  "./interfaces.B";
+import { IThreadReq, IThreadRes } from  "./interfaces.B";
 
 
 interface IActiveReq {
@@ -31,11 +32,12 @@ const pendingReqs: {
 	tReq: IThreadReq
 }[] = [];
 const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
-const passivePluginRegistry: IPassivePlugin[] = [];
 const processingTimeout = PROJECT_CONFIG.read("limit", "processingTimeout").number;
 const staticCache: Cache<IThreadRes> = new Cache(null, (key: string) => {
 	return normalize(key);
 });
+const ipcHistory: IIPCPackage[] = [];
+const threadErrorControl = new ErrorControl("Density of errors caused in request processing thread(s) too high");
 
 let activeTimeoutThreadId: number;
 
@@ -67,17 +69,17 @@ function createThread() {
 	const thread = new Thread(join(__dirname, "./C:thread/thread.js"), {
 		env: SHARE_ENV,
 		argv: process.argv.slice(2),
-		workerData: passivePluginRegistry
+		workerData: ipcHistory
 	});
 
 	// Success (message provision) listener
 	thread.on("message", tRes => {
+		tRes.staticCacheKey
+		&& staticCache.write(tRes.staticCacheKey, tRes);
+
 		handleThreadResult(thread.threadId, tRes);
 
 		deactivateThread(thread);
-
-		/* tRes.staticCacheKey
-		&& staticCache.write(tRes.staticCacheKey, tRes); */
 	});
 	
 	// Thread error listener
@@ -86,9 +88,10 @@ function createThread() {
 		
 		deactivateThread(thread);
 		
+		print.debug("An error occurred in a request processing thread");
 		print.error(err);
 
-		// TODO: Fires on handled errors, too; check if was handled?
+		threadErrorControl.feed();
 	});
 	
 	// Erroneous thread close listener
@@ -108,7 +111,7 @@ function createThread() {
 
 		// TODO: Error restart limit?
 	});
-
+	
 	idleThreads.push(thread);
 }
 
@@ -125,6 +128,12 @@ export function activateThread(entity: {
 	if(entity === undefined) {
 		return;
 	}
+	
+	if(staticCache.has(entity.tReq.pathname)) {
+		respond(entity.eRes, staticCache.read(entity.tReq.pathname));
+
+		return;
+	}
 
 	if(idleThreads.length === 0) {
 		(pendingReqs.length >= PROJECT_CONFIG.read("limit", "pendingRequests").number)
@@ -135,12 +144,6 @@ export function activateThread(entity: {
 	}
 
 	const thread = idleThreads.shift();  // FIFO
-
-	if(staticCache.has(entity.tReq.pathname)) {
-		thread.postMessage(staticCache.read(entity.tReq.pathname));
-
-		return;
-	}
 
 	activeReqs.set(thread.threadId, {
 		eRes: entity.eRes,
@@ -161,17 +164,12 @@ export function activateThread(entity: {
 /*
  * IPC interface (top-down).
  */
-export function ipcDown(message: TObject) {
-	// TODO: IPC types
-	switch(message.signal) {
-		case IPCSignal.PLUGIN_REGISTER:
-			// Intercept signal in order to keep track of already registered plug-ins for new thread creation processes
-			passivePluginRegistry.push(message.data as IPassivePlugin);
-			
-			break;
-	}
-
+export function ipcDown(message: IIPCPackage[]) {
 	broadcastChannel.postMessage(message);
+	
+	message.forEach((message: IIPCPackage) => {
+		ipcHistory.push(message);
+	});
 }
 
-process.on("message", ipcDown);	// Pass through master messages to threads
+process.on("message", ipcDown);	// Instant pass through (from master to thread(s))
