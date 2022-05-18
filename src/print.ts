@@ -18,16 +18,11 @@ import { argument } from "./args";
  */
 const logDirPath: string = absolutizePath(argument("log", "L").binary, dirname(require.main.filename));
 
+
 // TODO: Create error?
 logDirPath && mkdirSync(logDirPath, {
 	recursive: true
 });
-
-/*
- * Even emitter for individual programmatic logging purposes.
- * To provide to the user interface.
- */
-export const eventEmitter = new EventEmitter();
 
 
 enum Channel {
@@ -54,7 +49,7 @@ function log(message: string, channel: Channel, noPrefix = false) {
 		.replace(/(^|((?!\x1b)(.)){3})([0-9]+)/g, `$1${print.format("$4", [
 			print.Format.FG_CYAN
 		])}`);
-
+	
 	console[channel](`${!noPrefix
 		? `${print.format(config.appName, [
 			print.Format.T_BOLD,
@@ -79,6 +74,8 @@ function write(message: string, channel: Channel, event: Event, noPrefix: boolea
 	// Emit respective log event
 	//eventEmitter.emit(event, message);	// TODO: Fires thread event?
 
+	// TODO: Repeated message (equal) combination (replace line with amount indicator)
+
 	if(!logDirPath) {
 		return;
 	}
@@ -95,6 +92,12 @@ function write(message: string, channel: Channel, event: Event, noPrefix: boolea
 		});
 }
 
+
+/*
+ * Even emitter for individual programmatic logging purposes.
+ * To provide to the user interface.
+ */
+export const eventEmitter = new EventEmitter();
 
 export namespace print {
 

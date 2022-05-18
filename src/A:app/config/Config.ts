@@ -1,15 +1,11 @@
 
-const config = {
-	filePrefix: "rapid."
-};
-
+import config from "../app.config.json";
 
 import { existsSync } from "fs";
 
 import { mergeObj } from "../../util";
-import { MODE } from "../mode";
 
-import { normalizePath } from "../util";
+import { retrieveModeNames, normalizePath } from "../util";
 
 
 // TODO: Reduce computation costs on runtime
@@ -24,11 +20,10 @@ export class Config {
 
     	// Default < Generic < Mode specific
     	this.configObj = mergeObj(defaultConfig, this.readFile());
-    	for(const mode in MODE) {
-    		this.configObj = (MODE[mode] === true)
-    			? mergeObj(this.configObj, this.readFile(`.${mode.toLowerCase()}`))
-    			: this.configObj;
-    	}
+
+    	retrieveModeNames().forEach((name: string) => {
+    		this.configObj = mergeObj(this.configObj, this.readFile(`.${name}`));
+    	});
     }
 
     /**
@@ -38,7 +33,7 @@ export class Config {
      */
     private readFile(suffix = "") {
     	// Retrieve custom config object (depending on mode)
-    	const customConfigPath = normalizePath(`${config.filePrefix}${this.name}${suffix}.json`);
+    	const customConfigPath = normalizePath(`${config.configFilePrefix}.${this.name}${suffix}.json`);
         
     	return existsSync(customConfigPath)
     		? require(customConfigPath)

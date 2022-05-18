@@ -4,6 +4,7 @@
  * and file extension normalization.
  */
 
+import config from "../app.config.json";
 
 import { existsSync, mkdirSync } from "fs";
 
@@ -18,7 +19,7 @@ import DEFAULT_CONFIG_DEV from "./default.project.config:dev.json";
 import { Config } from "./Config";
 
 
-export const PROJECT_CONFIG = new Config("config", mergeObj(DEFAULT_CONFIG, MODE.PROD ? DEFAULT_CONFIG_PROD : DEFAULT_CONFIG_DEV));
+export const PROJECT_CONFIG = new Config(config.configFileNameProject, mergeObj(DEFAULT_CONFIG, MODE.PROD ? DEFAULT_CONFIG_PROD : DEFAULT_CONFIG_DEV));
 
 
 interface IProjectConfig {

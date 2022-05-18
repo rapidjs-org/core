@@ -1,12 +1,11 @@
 {
     "appIdentifier": "rapidJS",
+    "configFilePrefix": "rapid",
+    "configFileNamePlugins": "plugins",
+    "configFileNameProject": "config",
     "coreIdentifier": "core",
     "dynamicFileExtension": "html",
     "indexPageName": "index",
 	"liveWsPort": 5757,
-    "localeCodingTypes": {
-        "subdomain": "subdomain",
-        "pathname": "pathname"
-    },
-    "threadsBroadcastChannelName": "bc"
+    "threadsBroadcastChannelName": "rapidJS::bc"
 }

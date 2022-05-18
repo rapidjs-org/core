@@ -11,7 +11,7 @@ import { normalizePath } from "./util";
 import { ipcDown } from "./cluster";
 import { watch } from "./live/watch";
 import { IPCSignal } from "./IPCSignal";
-import { IPassivePlugin, IPluginOptions } from "./B:socket/interfaces.B";
+import { IPassivePlugin, IPluginOptions } from "./B:worker/interfaces.B";
 
 
 const pluginNameRegex = /^(@[a-z0-9~-][a-z0-9._~-]*\/)?[a-z0-9~-][a-z0-9._~-]*$/i;	// = npm package name syntax

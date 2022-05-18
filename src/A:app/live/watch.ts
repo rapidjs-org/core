@@ -1,5 +1,7 @@
 
 const config = {
+	...require("../app.config.json"),
+
 	detectionFrequency: 1000
 };
 
@@ -11,7 +13,7 @@ import { print } from "../../print";
 import { PROJECT_CONFIG } from "../config/config.project";
 
 import { MODE } from "../mode";
-import { normalizePath } from "../util";
+import { normalizePath, retrieveModeNames } from "../util";
 
 import { proposeClientReload } from "./ws-server";
 
@@ -54,7 +56,8 @@ function watchEntity(index: number, path: string, entity: IWatchEntity) {
 	: path;
 
 	if(!existsSync(fullPath)) {
-		// Directory does not exist
+		// File does not exist
+		// Always check again as of possible creation throughout on runtime
 		return;
 	}
 
@@ -100,6 +103,7 @@ export function watch(path: string, callback?: () => void, scanRecursively: bool
 	if(!MODE.DEV) {
 		return;
 	}
+		console.log(path);
 
 	watchRegistry.push({
 		path: path,
@@ -113,17 +117,21 @@ export function watch(path: string, callback?: () => void, scanRecursively: bool
 
 // Minimum watch handlers:
 
-// Project directory level (non-recursively) (main module, config files, ...)
-watch("./", () => {
-	// Restart app if file in project root has changed
-	/* spawn(process.argv.shift(), process.argv, {
-		cwd: process.cwd(),
-		detached: true,
-		stdio: "inherit"
-	});
+// Config files
 
-	process.exit(); */
-}, false);
+function watchConfigFile(typeName: string) {
+	retrieveModeNames().forEach((modeName: string) => {
+		watch(`${config.configFilePrefix}.${typeName}.${modeName}.json`, () => {
+			// Update configs
+			// Replug plugins
+			// TODO: IPC
+		});
+	});
+}
+
+watchConfigFile(config.configFileNameProject);
+watchConfigFile(config.configFileNamePlugins);
 
 // Web file directory (recursively)
+
 watch(PROJECT_CONFIG.read("webDirectory").string);

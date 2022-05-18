@@ -45,10 +45,8 @@ parentPort.on("message", (tReq: IThreadReq) => {
 });
 
 
-function handleIpc(message: IIPCPackage[]|MessageEvent) {
-	((message instanceof MessageEvent)
-	? message.data as IIPCPackage[]
-	: message).forEach((message: IIPCPackage) => {
+function handleIpc(message: IIPCPackage[]) {
+	message.forEach((message: IIPCPackage) => {
 		switch(message.signal) {
 			case IPCSignal.PLUGIN_REGISTER:
 				registerActivePlugin(message.data as unknown as IPassivePlugin);	// TODO: Improve passing
@@ -72,4 +70,6 @@ handleIpc(workerData);	// TODO: Request again if received empty list? Or always 
  * IPC:
  * Single (new) plug-in connection directive.
  */
-broadcastChannel.onmessage = handleIpc;
+broadcastChannel.onmessage = (message: MessageEvent) => {
+	handleIpc(message.data as IIPCPackage[]);
+};

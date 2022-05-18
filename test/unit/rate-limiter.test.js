@@ -6,6 +6,7 @@ const IP_AUGMENT = "ip";
 rateLimiterTest
 .conduct("Negatively check against rate limit")
 .check(IP_AUGMENT).for(false);
+
 rateLimiterTest
 .conduct("Positively check against rate limit")
 .check(IP_AUGMENT).for(true);

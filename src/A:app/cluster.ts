@@ -14,6 +14,7 @@ import { PROJECT_CONFIG } from "./config/config.project";
 import { MODE } from "./mode";
 import { IS_SECURE } from "./secure";
 import { ErrorControl } from "./ErrorControl";
+import { memspaceMutex } from "./mutex";
 import { IPCSignal } from "./IPCSignal";
 import { IIPCPackage } from "./interfaces.A";
 
@@ -37,10 +38,10 @@ if(clusterSize == 1) {
 	process.env.wd = dirname(require.main.filename);
     
 	// Create a single socket / server if cluster size is 1
-	require("./B:socket/socket");
+	require("./B:worker/net");
 } else {
 	// Create cluster (min. 2 sockets / servers)
-	cluster.settings.exec = join(__dirname, "./B:socket/socket"); // SCRIPT
+	cluster.settings.exec = join(__dirname, "./B:worker/net"); // SCRIPT
 	cluster.settings.args = process.argv.slice(2); // ARGS
 	cluster.settings.silent = true;
 
@@ -72,7 +73,7 @@ if(clusterSize == 1) {
 
 	cluster.on("listening", () => {
 		(++listeningWorkers === clusterSize)
-		&& print.info(`${clusterSize} cluster sockets have been set up`);
+		&& print.info(`Listening on ${clusterSize} cluster processes`);
 	});
 
 	cluster.on("message", (_, message) => {
@@ -82,18 +83,20 @@ if(clusterSize == 1) {
 
 
 function createWorker() {
-	const workerProcess = cluster.fork({
-		wd: dirname(require.main.filename)
-	});
+	memspaceMutex.lock(() => {
+		const workerProcess = cluster.fork({
+			wd: dirname(require.main.filename)
+		});
 
-	workerProcess.send(ipcHistory);
+		workerProcess.send(ipcHistory);
 
-	// Pipe worker output to master (this context)
-	workerProcess.process.stdout.on("data", printData => {
-		console.log(String(printData));	// TODO: print.() ?
-	});
-	workerProcess.process.stderr.on("data", printData => {
-		console.error(String(printData));
+		// Pipe worker output to master (this context)
+		workerProcess.process.stdout.on("data", printData => {
+			console.log(String(printData));	// TODO: print.() ?
+		});
+		workerProcess.process.stderr.on("data", printData => {
+			console.error(String(printData));
+		});
 	});
 }
 
@@ -101,20 +104,22 @@ function createWorker() {
 // TODO: Passive plug-in registry
 // TODO: General async creation signal restoration mechanism
 export function ipcDown(signal: IPCSignal , data) {
-	const message: IIPCPackage = {
-		signal,
-		data
-	};
+	memspaceMutex.lock(() => {
+		const message: IIPCPackage = {
+			signal,
+			data
+		};
 
-	if(clusterSize == 1) {
-		require("./B:socket/thread-pool").ipcDown([message]);
+		if(clusterSize == 1) {
+			require("./B:worker/thread-pool").ipcDown([message]);
+			
+			return;
+		}
 		
-		return;
-	}
-	
-	for(const workerProcess of Object.entries(cluster.workers)) {
-		workerProcess[1].send([message]);
-	}
+		for(const workerProcess of Object.entries(cluster.workers)) {
+			workerProcess[1].send([message]);
+		}
 
-	ipcHistory.push(message);
+		ipcHistory.push(message);
+	});
 }
