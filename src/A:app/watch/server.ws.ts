@@ -4,7 +4,7 @@ import config from "../app.config.json";
 import http from "http";
 import { server as WebSocketServer } from "websocket";
 
-import { MODE } from "../mode";
+import { MODE } from "../MODE";
 
 
 const connections = [];

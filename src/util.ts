@@ -57,6 +57,6 @@ export function absolutizePath(path: string, root: string): string {
 	}
 	
 	return /^[^/]/.test(path)
-	? join(root || "", path)
-	: path;
+		? join(root || "", path)
+		: path;
 }

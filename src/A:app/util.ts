@@ -1,8 +1,8 @@
 
 import { normalize, join } from "path";
 
-import { PROJECT_PATH } from "./path";
-import { MODE } from "./mode";
+import { PATH } from "./PATH";
+import { MODE } from "./MODE";
 
 
 /**
@@ -12,7 +12,7 @@ import { MODE } from "./mode";
  * @returns {string} Normalized path
  */
 export function normalizePath(path: string): string {
-	return normalize(join(PROJECT_PATH, path));
+	return normalize(join(PATH, path));
 }
 
 

@@ -1,8 +1,8 @@
 
-import { IPCSignal } from "./IPCSignal";
+import { EIPCSignal } from "./EIPCSignal";
 
 
 export interface IIPCPackage {
-    signal: IPCSignal;
+    signal: EIPCSignal;
 	data: TObject;
 }

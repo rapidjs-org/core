@@ -21,10 +21,10 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	
 	const handlerResult: IEndpointHandlerResult|number = activateEndpoint(payload.pluginName, payload.body, payload.endpointName);
 	const resultObject: IEndpointHandlerResult = ((handlerResult instanceof Number) || (typeof(handlerResult) === "number"))
-	? {
-		status: handlerResult as number
-	}
-	: handlerResult;
+		? {
+			status: handlerResult as number
+		}
+		: handlerResult;
 
 	tRes.status = resultObject.status;
 	tRes.message = resultObject.data ? JSON.stringify(resultObject.data) : null;

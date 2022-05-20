@@ -10,7 +10,7 @@ import { existsSync, mkdirSync } from "fs";
 
 import { mergeObj, normalizeExtension } from "../../util";
 
-import { MODE } from "../mode";
+import { MODE } from "../MODE";
 import { normalizePath } from "../util";
 
 import DEFAULT_CONFIG from "./default.project.config.json";

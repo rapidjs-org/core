@@ -8,4 +8,4 @@ import config from "../app.config.json";
 import { Config } from "./Config";
 
 
-export const PLUGIN_CONFIG = new Config(config.configFileNamePlugins);
+export const PLUGINS_CONFIG = new Config(config.configFileNamePlugins);

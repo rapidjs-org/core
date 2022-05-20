@@ -5,8 +5,8 @@
 
 import "./cluster";
 
-import { initLive } from  "./live/ws-server";
-import "./live/watch";
+import { initLive } from  "./watch/server.ws";
+import "./watch/watch";
 
 
 initLive();

@@ -10,12 +10,12 @@ import { readdir, stat, lstatSync, existsSync, Dirent } from "fs";
 import { join } from "path";
 
 import { print } from "../../print";
-import { PROJECT_CONFIG } from "../config/config.project";
+import { PROJECT_CONFIG } from "../config/config.PROJECT";
 
-import { MODE } from "../mode";
+import { MODE } from "../MODE";
 import { normalizePath, retrieveModeNames } from "../util";
 
-import { proposeClientReload } from "./ws-server";
+import { proposeClientReload } from "./server.ws";
 
 
 interface IWatchEntity {
@@ -39,7 +39,7 @@ MODE.DEV && setInterval(() => {
 	curRunIndexLocks.clear();
 
 	// Scan registered directories / files respectively
-	let i: number = 0;
+	let i = 0;
 	watchRegistry.forEach(async (entity: IWatchEntity) => {
 		watchEntity(i++, entity.path, entity);
 	});
@@ -52,8 +52,8 @@ function watchEntity(index: number, path: string, entity: IWatchEntity) {
 	}
 
 	const fullPath: string = /^[^/]/.test(path)
-	? normalizePath(path)
-	: path;
+		? normalizePath(path)
+		: path;
 
 	if(!existsSync(fullPath)) {
 		// File does not exist
@@ -96,14 +96,13 @@ function watchEntity(index: number, path: string, entity: IWatchEntity) {
 }
 
 
-export function watch(path: string, callback?: () => void, scanRecursively: boolean = true, messageIndicator?: string) {
+export function watch(path: string, callback?: () => void, scanRecursively = true, messageIndicator?: string) {
 	// NOTICE: Do not watch from sub-processes, but watch from master and IPC signal accordingly.
 	// Prevent multiple parallel fs watch processes.
-
+	
 	if(!MODE.DEV) {
 		return;
 	}
-		console.log(path);
 
 	watchRegistry.push({
 		path: path,

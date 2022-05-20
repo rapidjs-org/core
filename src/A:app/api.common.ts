@@ -1,10 +1,10 @@
 
-import { MODE } from "./mode";
+import { MODE } from "./MODE";
 
 
 export { Cache } from "./Cache";
 
-export { MutualClientError, MutualServerError } from "./MutualError";
+export { MutualClientError, MutualServerError } from "./MutualErrors";
 
 // TODO: Rethink scoping
 

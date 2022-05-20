@@ -12,10 +12,10 @@ import { readFileSync } from "fs";
 import { join, extname, dirname } from "path";
 import { gzipSync, deflateSync } from "zlib";
 
-import { MODE } from "../../../mode";
-import { PROJECT_CONFIG } from "../../../config/config.project";
+import { MODE } from "../../../MODE";
+import { PROJECT_CONFIG } from "../../../config/config.PROJECT";
 
-import { Status } from "../../Status";
+import { EStatus } from "../../EStatus";
 import { IThreadReq, IThreadRes } from "../../interfaces.B";
 
 import { VFS } from "../vfs";
@@ -29,7 +29,7 @@ const coreModuleText = String(readFileSync(join(__dirname, "../plugin/client.cor
 
 const errorPageMapping: Map<string, string> = new Map();	// TODO: Limit size?
 
-const liveWsClientModuleText: string = String(readFileSync(join(__dirname, "../../../live/ws-client.js")))
+const wsClientModuleText: string = String(readFileSync(join(__dirname, "../../../watch/client.ws.js")))
 	.replace(/@WS_PORT/, String(config.liveWsPort));	// With configured websocket port (mark substitution)
 
 
@@ -54,7 +54,7 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 		extension = "js";
 	} else {
 		if((new RegExp(`/${config.privateWebFilePrefix}`)).test(tReq.pathname)) {
-			tRes.status = Status.FORBIDDEN;
+			tRes.status = EStatus.FORBIDDEN;
 		} else {
 			tRes = (assetType === AssetType.DYNAMIC)
 				? handleDynamic(tRes, tReq.pathname)
@@ -63,13 +63,13 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	}
 	
 	tRes = (assetType === AssetType.DYNAMIC
-	&& (tRes.status || Status.SUCCESS) !== Status.SUCCESS)	// TODO: Implement conceal error status option
+	&& (tRes.status || EStatus.SUCCESS) !== EStatus.SUCCESS)	// TODO: Implement conceal error status option
 		? handleDynamicError(tRes, tReq.pathname)
 		: tRes;
 	
 	tRes.staticCacheKey = (assetType !== AssetType.DYNAMIC)
-	? tReq.pathname
-	: null;	// TODO: Move back to pool control module?
+		? tReq.pathname
+		: null;	// TODO: Move back to pool control module?
 
 	if(tRes.message === undefined) {
 		return tRes;
@@ -78,7 +78,7 @@ export default function(tReq: IThreadReq, tRes: IThreadRes): IThreadRes {
 	// Compare match with ETag in order to communicate possible cache usage 
 	if(tRes.headers.get("ETag")
     && tReq.headers.get("If-None-Match") === tRes.headers.get("ETag")) {
-		tRes.status = Status.USE_CACHE;
+		tRes.status = EStatus.USE_CACHE;
 
 		return tRes;
 	}
@@ -117,7 +117,7 @@ function handlePlugin(tRes: IThreadRes, path: string): IThreadRes {
 		.split(new RegExp(`\\${config.pluginRequestSeparator}`, "g")));
 	
 	if(requestedPluginNames.size === 0) {
-		tRes.status = Status.NOT_ACCEPTABLE;
+		tRes.status = EStatus.NOT_ACCEPTABLE;
 
 		return tRes;
 	}
@@ -134,11 +134,11 @@ function handlePlugin(tRes: IThreadRes, path: string): IThreadRes {
 		
 		clientModuleScriptText
 			? cumulatedClientModuleScripts += `\n${clientModuleScriptText}`
-			: tRes.status = Status.PARTIAL_INFORMATION;
+			: tRes.status = EStatus.PARTIAL_INFORMATION;
 	});
 
 	if(cumulatedClientModuleScripts.length === 0) {
-		tRes.status = Status.NOT_FOUND;
+		tRes.status = EStatus.NOT_FOUND;
 		
 		return tRes;
 	}
@@ -150,7 +150,7 @@ function handlePlugin(tRes: IThreadRes, path: string): IThreadRes {
 
 function handleStatic(tRes: IThreadRes, path: string): IThreadRes {
 	if(!VFS.exists(path)) {
-		tRes.status = Status.NOT_FOUND;
+		tRes.status = EStatus.NOT_FOUND;
 
 		return tRes;
 	}
@@ -173,7 +173,7 @@ function handleDynamic(tRes: IThreadRes, pathname: string): IThreadRes {
 	}.${config.dynamicFileExtension}`;
 
 	if(!VFS.exists(filePath)) {
-		tRes.status = Status.NOT_FOUND;
+		tRes.status = EStatus.NOT_FOUND;
 
 		return tRes;
 	}
@@ -199,8 +199,8 @@ function handleDynamic(tRes: IThreadRes, pathname: string): IThreadRes {
 
 		// Inject live ws client module script if environment is in DEV MODE
 		tRes.message = MODE.DEV
-		? injectLiveWsClientModuleIntoMarkup(tRes.message)
-		: tRes.message;
+			? injectLiveWsClientModuleIntoMarkup(tRes.message)
+			: tRes.message;
 
 		// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
 		
@@ -335,5 +335,5 @@ function injectCompoundBaseIntoMarkup(markup: string, basePath: string): string 
 }
 
 function injectLiveWsClientModuleIntoMarkup(markup: string): string {
-	return injectIntoMarkupHead(markup, `<script>\n${liveWsClientModuleText}\n</script>`);
+	return injectIntoMarkupHead(markup, `<script>\n${wsClientModuleText}\n</script>`);
 }

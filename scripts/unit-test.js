@@ -14,7 +14,7 @@ global.UnitTest = class extends Test {
     }
 
     call(...args) {
-        return this.callReference(...args);
+        return this.callReference.call(...args);    // TODO: Implement option for object property passing (retain this context)
     }
 
     compare(expected, actual) {

@@ -2,7 +2,7 @@
 type TEmptyResolve = (value?: unknown) => void;
 
 
-class AsyncMutex {
+export class AsyncMutex {
 
 	private readonly acquireQueue: TEmptyResolve[] = [];
 
@@ -25,14 +25,9 @@ class AsyncMutex {
 			callback();
 
 			(this.acquireQueue.length > 0)
-			? this.acquireQueue.shift()()
-			: (this.isLocked = false);
+				? this.acquireQueue.shift()()
+				: (this.isLocked = false);
 		});
 	}
 
 }
-
-
-
-
-export const memspaceMutex = new AsyncMutex();

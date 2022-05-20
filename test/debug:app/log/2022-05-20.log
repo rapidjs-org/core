@@ -1,0 +1,91 @@
+[15:58:49]: Running DEV MODE
+[15:58:49]: HTTP server started listening (:80)
+[15:58:49]: ↴ Plug-in 'test'
+[15:59:33]: Running DEV MODE
+[15:59:33]: HTTP server started listening (:80)
+[15:59:33]: ↴ Plug-in 'test'
+[15:59:42]: Running DEV MODE
+[15:59:42]: HTTP server started listening (:80)
+[15:59:42]: ↴ Plug-in 'test'
+[16:00:02]: Running DEV MODE
+[16:00:02]: HTTP server started listening (:80)
+[16:00:02]: ↴ Plug-in 'test'
+[16:00:29]: HTTP server started listening (:80)
+[16:00:29]: Running DEV MODE
+[16:00:30]: ↴ Plug-in 'test'
+[16:02:05]: Running DEV MODE
+[16:02:05]: HTTP server started listening (:80)
+[16:02:05]: ↴ Plug-in 'test'
+[16:02:05]: An error occurred in a request processing thread
+[16:02:05]: ENOENT: no such file or directory, open '/Users/thassilo/Desktop/rapidjs/core/debug/A:app/live/ws-client.js'
+[16:02:05]: An error occurred in a request processing thread
+[16:02:05]: ENOENT: no such file or directory, open '/Users/thassilo/Desktop/rapidjs/core/debug/A:app/live/ws-client.js'
+[16:03:17]: Running DEV MODE
+[16:03:18]: HTTP server started listening (:80)
+[16:03:18]: ↴ Plug-in 'test'
+[16:04:50]: Running DEV MODE
+[16:04:50]: HTTP server started listening (:80)
+[16:04:51]: ↴ Plug-in 'test'
+[16:05:55]: Running DEV MODE
+[16:05:55]: HTTP server started listening (:80)
+[16:05:55]: ↴ Plug-in 'test'
+[16:06:42]: Running DEV MODE
+[16:06:42]: HTTP server started listening (:80)
+[16:06:42]: ↴ Plug-in 'test'
+[16:06:55]: Running DEV MODE
+[16:06:55]: HTTP server started listening (:80)
+[16:06:55]: ↴ Plug-in 'test'
+[16:33:16]: Running DEV MODE
+[16:33:16]: HTTP server started listening (:80)
+[16:33:16]: ↴ Plug-in 'test'
+[16:34:17]: Running DEV MODE
+[16:34:17]: HTTP server started listening (:80)
+[16:34:17]: ↴ Plug-in 'test'
+[16:34:59]: Running DEV MODE
+[16:34:59]: HTTP server started listening (:80)
+[16:34:59]: ↴ Plug-in 'test'
+[16:35:52]: Running DEV MODE
+[16:35:52]: HTTP server started listening (:80)
+[16:35:52]: ↴ Plug-in 'test'
+[16:36:33]: Running DEV MODE
+[16:36:33]: HTTP server started listening (:80)
+[16:36:34]: ↴ Plug-in 'test'
+[16:37:25]: Running DEV MODE
+[16:37:25]: HTTP server started listening (:80)
+[16:37:25]: ↴ Plug-in 'test'
+[16:38:22]: Running DEV MODE
+[16:38:22]: HTTP server started listening (:80)
+[16:38:22]: ↴ Plug-in 'test'
+[16:39:02]: Running DEV MODE
+[16:39:02]: HTTP server started listening (:80)
+[16:39:02]: ↴ Plug-in 'test'
+[17:00:43]: Running DEV MODE
+[17:00:43]: HTTP server started listening (:80)
+[17:00:43]: ↴ Plug-in 'test'
+[17:02:55]: Running DEV MODE
+[17:02:55]: HTTP server started listening (:80)
+[17:02:55]: ↴ Plug-in 'test'
+[17:03:45]: Running DEV MODE
+[17:03:45]: HTTP server started listening (:80)
+[17:03:45]: ↴ Plug-in 'test'
+[17:04:05]: Running DEV MODE
+[17:04:05]: HTTP server started listening (:80)
+[17:04:05]: ↴ Plug-in 'test'
+[17:04:31]: Running DEV MODE
+[17:04:31]: HTTP server started listening (:80)
+[17:04:31]: ↴ Plug-in 'test'
+[17:09:09]: Running DEV MODE
+[17:09:09]: HTTP server started listening (:80)
+[17:09:09]: ↴ Plug-in 'test'
+[17:09:41]: Running DEV MODE
+[17:09:41]: HTTP server started listening (:80)
+[17:09:41]: ↴ Plug-in 'test'
+[17:11:28]: Running DEV MODE
+[17:11:28]: HTTP server started listening (:80)
+[17:11:28]: ↴ Plug-in 'test'
+[17:11:41]: Running DEV MODE
+[17:11:41]: HTTP server started listening (:80)
+[17:11:41]: ↴ Plug-in 'test'
+[18:01:32]: Running DEV MODE
+[18:01:32]: HTTP server started listening (:80)
+[18:01:32]: ↴ Plug-in 'test'

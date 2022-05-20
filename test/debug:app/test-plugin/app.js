@@ -11,6 +11,11 @@ const names = {
     ]
 };
 
+
+const fixed = Math.round(Math.random() * 100);
+
+//console.log(fixed);
+
 const retrieveName = list => {
     return list[Math.round(Math.random() * (list.length - 1))];
 };
@@ -20,7 +25,7 @@ $this.clientModule("./client");
 
 
 
-$this.endpoint((body, req) => {
+$this.endpoint((body) => {
     if(!body) {
         throw new ReferenceError("Body is empty");
     }
@@ -31,7 +36,7 @@ $this.endpoint((body, req) => {
 $this.endpoint((_, req) => {
     console.log(req.ip);
 
-    return `${retrieveName(names.first)} ${retrieveName(names.last)}`;
+    return `${retrieveName(names.first)} ${retrieveName(names.last)} (fixed: ${fixed})`;
 }, {
     name: "name"
 });

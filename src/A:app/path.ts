@@ -11,6 +11,6 @@ const argPath: string = argument("path", "P").binary;
 
 
 // Construct absolute path from call point if relative path given
-export const PROJECT_PATH: string = argPath
-? absolutizePath(argPath, wdPath)
-: wdPath;
+export const PATH: string = argPath
+	? absolutizePath(argPath, wdPath)
+	: wdPath;

@@ -20,12 +20,12 @@ import { join, dirname } from "path";
 
 import { print } from "../../../../print";
 
-import { PLUGIN_CONFIG } from "../../../config/config.plugins";
+import { PLUGINS_CONFIG } from "../../../config/config.PLUGINS";
 import { Cache } from "../../../Cache";
-import { MutualError } from "../../../MutualError";
+import { MutualError } from "../../../MutualErrors";
 import * as commonInterface from "../../../api.common";
 
-import { Status } from "../../Status";
+import { EStatus } from "../../EStatus";
 import { IPassivePlugin } from "../../interfaces.B";
 
 import { retrieveRequestInfo } from "../request-info";
@@ -85,7 +85,7 @@ function requirePluginModule(name: string, modulePath: string) {
                     };
                 }
                 
-                this.${config.pluginConfigIdentifier} = ${JSON.stringify(PLUGIN_CONFIG)};
+                this.${config.pluginConfigIdentifier} = ${JSON.stringify(PLUGINS_CONFIG)};
 				
                 const ${config.thisRetainerIdentifier} = this;
             ${_exports}${Module.wrapper[1]}`;
@@ -186,12 +186,12 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
             return ${config.thisRetainerIdentifier}.${config.clientModuleReferenceName.public};
         })();
     `]
-	.map(part => {
+		.map(part => {
 		// Minifiy wrapper
-		return part
-			.replace(/([{};,])\s+/g, "$1")
-			.trim();
-	});
+			return part
+				.replace(/([{};,])\s+/g, "$1")
+				.trim();
+		});
 
 	// Register client module in order to be integrated into pages upon request
 	pluginObj.clientModuleText = `${modularClientScript[0]}${bareClientScript}${(bareClientScript.slice(-1) != ";") ? ";" : ""}${modularClientScript[1]}`;
@@ -232,7 +232,7 @@ export function activateEndpoint(associatedPluginName: string, requestBody?: TOb
 	if(!pluginObj) {
 		print.debug(`Endpoint request of undefined plug-in '${associatedPluginName}'`);
 
-		return Status.NOT_FOUND;
+		return EStatus.NOT_FOUND;
 	}
 
 	const endpoint = pluginObj.endpoints.get(endpointName || config.defaultEndpointName);
@@ -240,7 +240,7 @@ export function activateEndpoint(associatedPluginName: string, requestBody?: TOb
 	if(!endpoint) {
 		print.debug(`Undefined ${endpointName ? `'${endpointName}'` : "default"} endpoint request of plug-in '${associatedPluginName}'`);
 
-		return Status.NOT_FOUND;
+		return EStatus.NOT_FOUND;
 	}
 
 	const cacheKey = `${associatedPluginName}+${endpointName || ""}`;	// Plug-in / endpoint unique key due to name distinctive concatenation symbol
@@ -249,7 +249,7 @@ export function activateEndpoint(associatedPluginName: string, requestBody?: TOb
 	if(endpoint.useCache
 	&& endpointCache.has(cacheKey)) {
 		return {
-			status: Status.SUCCESS,
+			status: EStatus.SUCCESS,
 			data: endpointCache.read(cacheKey)
 		};
 	} else {
@@ -266,7 +266,7 @@ export function activateEndpoint(associatedPluginName: string, requestBody?: TOb
 			print.info(`An error occurred activating the ${endpointName ? `'${endpointName}'` : "default"} endpoint of plug-in '${associatedPluginName}'`);
 			print.error(err);
 			
-			return Status.INTERNAL_ERROR;
+			return EStatus.INTERNAL_ERROR;
 		}
 	}
 
@@ -274,7 +274,7 @@ export function activateEndpoint(associatedPluginName: string, requestBody?: TOb
 	&& endpointCache.write(cacheKey, handlerData);
 
 	return {
-		status: Status.SUCCESS,
+		status: EStatus.SUCCESS,
 		data: handlerData
 	};
 }

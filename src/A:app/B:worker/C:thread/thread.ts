@@ -6,7 +6,7 @@ import config from "../../app.config.json";
 
 import { parentPort, BroadcastChannel, workerData } from "worker_threads";
 
-import { IPCSignal } from "../../IPCSignal";
+import { EIPCSignal } from "../../EIPCSignal";
 import { IIPCPackage } from "../../interfaces.A";
 
 import { HeadersMap } from "../HeadersMap";
@@ -22,8 +22,7 @@ const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBr
 
 
 parentPort.on("message", (tReq: IThreadReq) => {
-	evalRequestInfo(tReq);
-	
+	evalRequestInfo(tReq);	// TODO: Retrieve subdomain in net module (for redirects)
 	const tRes: IThreadRes = {
 		// Already set static headers with custom overrides
 		// Relevant headers to be of ghigher priority for access throughout handler routine
@@ -48,15 +47,17 @@ parentPort.on("message", (tReq: IThreadReq) => {
 function handleIpc(message: IIPCPackage[]) {
 	message.forEach((message: IIPCPackage) => {
 		switch(message.signal) {
-			case IPCSignal.PLUGIN_REGISTER:
-				registerActivePlugin(message.data as unknown as IPassivePlugin);	// TODO: Improve passing
+		case EIPCSignal.PLUGIN_REGISTER: {
+			registerActivePlugin(message.data as unknown as IPassivePlugin);	// TODO: Improve passing
 	
-				break;
-			case IPCSignal.PLUGIN_RELOAD:
-				const data = message.data as unknown as IPassivePlugin;
-				reloadActivePlugin(data.name, data.modulePath);
-	
-				break;
+			break;
+		}
+		case EIPCSignal.PLUGIN_RELOAD: {
+			const data = message.data as unknown as IPassivePlugin;
+			reloadActivePlugin(data.name, data.modulePath);
+		
+			break;
+		}
 		}
 	});
 } 

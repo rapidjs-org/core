@@ -48,9 +48,9 @@ export abstract class LimitedDictionary<L, D> {
     }
 	
     protected updateEntry(key: string, data: D) {
-		key = this.normalizationCallback(key);
+    	key = this.normalizationCallback(key);
 
-		const currentLimitReference: L = this.storage.get(key).limitReference;
+    	const currentLimitReference: L = this.storage.get(key).limitReference;
 
     	this.storage.set(key, {
     		limitReference: currentLimitReference,

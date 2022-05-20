@@ -1,5 +1,5 @@
 
-const mutex = require("../../debug/A:app/mutex").memspaceMutex;
+const mutex = new (require("../../debug/A:app/AsyncMutex").AsyncMutex)();
 
 
 let referenceVar = false;

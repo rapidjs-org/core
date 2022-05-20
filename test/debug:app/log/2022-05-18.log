@@ -20,3 +20,18 @@
 [14:43:39]: HTTP server started listening (:80)
 [14:43:39]: ↴ Plug-in 'test'
 [14:43:51]: Registered file change 'rapid.config.dev.json' ⟳
+[16:27:36]: Running DEV MODE
+[16:27:36]: HTTP server started listening (:80)
+[16:27:36]: ↴ Plug-in 'test'
+[19:35:08]: Running DEV MODE
+[19:35:08]: HTTP server started listening (:80)
+[19:35:08]: ↴ Plug-in 'test'
+[19:38:00]: Running DEV MODE
+[19:38:00]: HTTP server started listening (:80)
+[19:38:00]: ↴ Plug-in 'test'
+[19:38:46]: Running DEV MODE
+[19:38:46]: HTTP server started listening (:80)
+[19:38:46]: ↴ Plug-in 'test'
+[19:39:12]: Running DEV MODE
+[19:39:12]: HTTP server started listening (:80)
+[19:39:12]: ↴ Plug-in 'test'

@@ -8,13 +8,13 @@ import config from "../app.config.json";
 
 import { print } from "../../print";
 
-import { MODE } from "../mode";
-import { PROJECT_CONFIG } from "../config/config.project";
+import { MODE } from "../MODE";
+import { PROJECT_CONFIG } from "../config/config.PROJECT";
 import { Cache } from"../Cache";
 import { ErrorControl } from"../ErrorControl";
 import { IIPCPackage } from "../interfaces.A";
 
-import { Status } from"./Status";
+import { EStatus } from"./EStatus";
 import { respond } from"./response";
 import { IThreadReq, IThreadRes } from  "./interfaces.B";
 
@@ -48,22 +48,10 @@ setImmediate(() => {
 	Array.from({ length: (MODE.DEV ? 1 : --cpus().length) }, createThread);
 	// TODO: Use optimal / optimized size formula?
 	// TODO: Use config file parameter for size?
+
+	// TODO: Create new thread if repeatedly none idle upon request to find optimal pool size?
 });
 
-
-function handleThreadResult(threadId: number, param: number|IThreadRes) {
-	const activeObject: IActiveReq = activeReqs.get(threadId);
-
-	if(!activeObject) {
-		return;	// Routine could have been triggered by request unrelated thread error
-	}
-
-	try {
-		clearTimeout(activeObject.timeout);	// Timeout could not exist (anymore)
-	} finally {
-		respond(activeObject.eRes, param);
-	}
-}
 
 function createThread() {
 	const thread = new Thread(join(__dirname, "./C:thread/thread.js"), {
@@ -77,16 +65,12 @@ function createThread() {
 		tRes.staticCacheKey
 		&& staticCache.write(tRes.staticCacheKey, tRes);
 
-		handleThreadResult(thread.threadId, tRes);
-
-		deactivateThread(thread);
+		deactivateThread(thread, tRes);
 	});
 	
 	// Thread error listener
 	thread.on("error", err => {
-		handleThreadResult(thread.threadId, Status.INTERNAL_ERROR);
-		
-		deactivateThread(thread);
+		deactivateThread(thread, EStatus.INTERNAL_ERROR);
 		
 		print.debug("An error occurred in a request processing thread");
 		print.error(err);
@@ -102,7 +86,7 @@ function createThread() {
 		}
 
 		!activeTimeoutThreadId
-		&& handleThreadResult(thread.threadId, Status.INTERNAL_ERROR);	// Not a timeout but thread internal error result
+		&& deactivateThread(thread, EStatus.INTERNAL_ERROR);	// Not a timeout but thread internal error result
 		activeTimeoutThreadId = null;
 
 		activeReqs.delete(thread.threadId);
@@ -115,11 +99,24 @@ function createThread() {
 	idleThreads.push(thread);
 }
 
-function deactivateThread(thread: Thread) {
+function deactivateThread(thread: Thread, param: number|IThreadRes) {
+	const activeObject: IActiveReq = activeReqs.get(thread.threadId);
+
+	if(!activeObject) {
+		return;	// Routine could have been triggered by request unrelated thread error
+	}
+
+	try {
+		clearTimeout(activeObject.timeout);	// Timeout could not exist (anymore)
+	} finally {
+		respond(activeObject.eRes, param);
+	}
+	
 	idleThreads.push(thread);
 	
 	activateThread(pendingReqs.shift());
 }
+
 
 export function activateThread(entity: {
 	tReq: IThreadReq,
@@ -137,14 +134,14 @@ export function activateThread(entity: {
 
 	if(idleThreads.length === 0) {
 		(pendingReqs.length >= PROJECT_CONFIG.read("limit", "pendingRequests").number)
-			? respond(entity.eRes, Status.SERVICE_UNAVAILABKLE)
+			? respond(entity.eRes, EStatus.SERVICE_UNAVAILABKLE)
 			: pendingReqs.push(entity);
 		
 		return;
 	}
 
 	const thread = idleThreads.shift();  // FIFO
-
+	
 	activeReqs.set(thread.threadId, {
 		eRes: entity.eRes,
 		timeout: isFinite(processingTimeout)
@@ -153,7 +150,7 @@ export function activateThread(entity: {
 
 			activeTimeoutThreadId = thread.threadId;
 
-			respond(entity.eRes, Status.REQUEST_TIMEOUT);
+			respond(entity.eRes, EStatus.REQUEST_TIMEOUT);
 		}, processingTimeout)
 	});
 	

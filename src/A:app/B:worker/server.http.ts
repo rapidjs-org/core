@@ -11,17 +11,18 @@ import http from "http";
 
 import { print } from "../../print";
 
-import { PROJECT_CONFIG } from "../config/config.project";
-import { IS_SECURE } from "../secure";
+import { PROJECT_CONFIG } from "../config/config.PROJECT";
+import { IS_SECURE } from "../IS_SECURE";
 import { normalizePath } from "../util";
 
-import { Status } from "./Status";
+import { EStatus } from "./EStatus";
 import { HeadersMap } from"./HeadersMap";
-import { rateExceeded } from "./rate-limiter";
+import { RateLimiter } from "./RateLimiter";
 import { respond, redirect } from "./response";
 import { IThreadReq } from "./interfaces.B";
 import * as ThreadPool from "./thread-pool";
 
+// TODO: Watch memory usage for statically stored helper data (process.memoryUsage().heapUsed / 1024 / 1024); create helpoer class?
 
 // TODO: Error messaqge formatting (globally)?
 // TODO: In all memory spaces?
@@ -34,6 +35,8 @@ import * as ThreadPool from "./thread-pool";
 }, 3000); */
 
 const configuredHostname: string = PROJECT_CONFIG.read("hostname").string;
+
+const rateLimiter: RateLimiter = new RateLimiter();
 
 
 // Set SSL options if is secure environment
@@ -82,7 +85,7 @@ const socketOptions: TObject = {
 // HELPERS
 
 interface IBodyParseError {
-	status: Status,
+	status: EStatus,
 	
 	err?: Error
 }
@@ -90,14 +93,14 @@ interface IBodyParseError {
 function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 	return new Promise((resolve: (_: TObject) => void, reject: (_: IBodyParseError) => void) => {
 		const body: string[] = [];
-				
+		
 		eReq.on("data", chunk => {
 			body.push(chunk);
 
 			if((body.length * 8) > (PROJECT_CONFIG.read("limit", "payloadSize").number)) {
 				// Abort processing if body payload exceeds maximum size
 				reject({
-					status: Status.PAYLOAD_TOO_LARGE
+					status: EStatus.PAYLOAD_TOO_LARGE
 				});
 			}
 		});
@@ -108,7 +111,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 				resolve((body.length > 0) ? JSON.parse(body.toString()) : null);
 			} catch(err) {
 				reject({
-					status: Status.PRECONDITION_FAILED,
+					status: EStatus.PRECONDITION_FAILED,
 
 					err: err
 				});
@@ -117,7 +120,7 @@ function parseRequestBody(eReq: http.IncomingMessage): Promise<TObject> {
 
 		eReq.on("error", (err: Error) => {
 			reject({
-				status: Status.INTERNAL_ERROR,
+				status: EStatus.INTERNAL_ERROR,
 
 				err: err
 			});
@@ -142,14 +145,14 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 
 		// Unsupported request method
 		if(!["GET", "HEAD", "POST"].includes(method)) {
-			respond(eRes, Status.UNSUPPORTED_METHOD);
+			respond(eRes, EStatus.UNSUPPORTED_METHOD);
 
 			return;
 		}
 
 		// URL length exceeded
 		if(eReq.url.length > (PROJECT_CONFIG.read("limit", "urlLength")).number) {
-			respond(eRes, Status.URL_EXCEEDED);
+			respond(eRes, EStatus.URL_EXCEEDED);
 
 			return;
 		}
@@ -157,8 +160,8 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 		const clientIp: string = retrieveAmbivalentHeaderValue(eReq.headers["x-forwarded-for"]) || eReq.connection.remoteAddress;
 
 		// Rate (request limit) exceeded
-		if(rateExceeded(clientIp)) {
-			respond(eRes, Status.RATE_EXCEEDED);
+		if(rateLimiter.exceeded(clientIp)) {
+			respond(eRes, EStatus.RATE_EXCEEDED);
 
 			return;
 		}
@@ -170,7 +173,7 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 		// TODO: Reconsider
 		if(configuredHostname
 		&& configuredHostname !== url.hostname) {
-			respond(eRes, Status.UNSUPPORTED_METHOD);
+			respond(eRes, EStatus.UNSUPPORTED_METHOD);
 
 			return;
 		}
@@ -183,6 +186,8 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 			redirect(eRes, url.toString());
 			
 			return;
+			// TODO: Allowed subdomains?
+			// TODO: Force www strategy option
 		}
 
 		const tReq: IThreadReq = {
@@ -215,7 +220,7 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 			parseRequestBody(eReq)
 				.then((body: TObject) => {
 					if(!(body || {}).pluginName) {
-						respond(eRes, Status.PRECONDITION_FAILED);
+						respond(eRes, EStatus.PRECONDITION_FAILED);
 
 						return;
 					}
@@ -249,7 +254,7 @@ function retrieveAmbivalentHeaderValue(value: string[]|string): string {	// TODO
 // TODO: Necessary?
 IS_SECURE && http
 	.createServer(serverOptions, (eReq: http.IncomingMessage, eRes: http.ServerResponse) => {
-		eRes.statusCode = Status.REDIRECT;
+		eRes.statusCode = EStatus.REDIRECT;
 		// TODO: Use generic response routine
 		const securePort: number = PROJECT_CONFIG.read("port", "https").number;
 		const secureHost: string = eReq.headers["host"].replace(/(:[0-9]+)?$/i, (securePort !== 443) ? `:${securePort}` : "");

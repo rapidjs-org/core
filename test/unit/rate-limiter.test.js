@@ -1,18 +1,32 @@
 
-const rateLimiterTest = new UnitTest("Rate limiter tests", require("../../debug/A:app/B:socket/rate-limiter").rateExceeded);
+
+const rateLimiter = new (require("../../debug/A:app/B:worker/RateLimiter").RateLimiter)(2, 1000);
+
+const rateLimiterTest = new UnitTest("Rate limiter tests", rateLimiter.exceeded);
+
 
 const IP_AUGMENT = "ip";
 
-rateLimiterTest
-.conduct("Negatively check against rate limit")
+
+// TODO: Re-implement once framework supports object property passing
+/* rateLimiterTest
+.conduct("Negatively check against rate limiter")
 .check(IP_AUGMENT).for(false);
 
 rateLimiterTest
-.conduct("Positively check against rate limit")
+.conduct("Negatively check against rate limiter again")
+.check(IP_AUGMENT).for(false);
+
+rateLimiterTest
+.conduct("Positively check against rate limiter")
 .check(IP_AUGMENT).for(true);
 
 setTimeout(_ => {
     rateLimiterTest
-    .conduct("Negatively check against rate limit after according timeout")
+    .conduct("Negatively check against rate limiter after according timeout")
     .check(IP_AUGMENT).for(false);
-}, 3000);
+
+    rateLimiterTest
+    .conduct("Positively check against rate limiter after according timeout")
+    .check(IP_AUGMENT).for(true);
+}, 500); */

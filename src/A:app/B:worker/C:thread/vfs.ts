@@ -4,7 +4,7 @@ import { statSync, existsSync, readFileSync } from "fs";
 import { createHash } from "crypto";
 
 import { normalizePath } from "../../util";
-import { PROJECT_CONFIG } from "../../config/config.project";
+import { PROJECT_CONFIG } from "../../config/config.PROJECT";
 import { LimitedDictionary } from "../../LimitedDictionary";
 import { Cache } from "../../Cache";
 
@@ -20,20 +20,20 @@ class VirtualFileSystem extends LimitedDictionary<number, IFileStamp> {
     	super(null, normalizePath);
     }
 	
-	private computeETag(fileContents: string): string {
-		return createHash("md5").update(fileContents).digest("hex");
-	}
+    private computeETag(fileContents: string): string {
+    	return createHash("md5").update(fileContents).digest("hex");
+    }
 
     private retrieveLocalPath(path: string): string {
     	return normalizePath(join(PROJECT_CONFIG.read("webDirectory").string, path));
     }
 
-	private computeFileStamp(fileContents: string): IFileStamp {
-		return {
+    private computeFileStamp(fileContents: string): IFileStamp {
+    	return {
     		contents: fileContents,
     		eTag: this.computeETag(fileContents)
     	};
-	}
+    }
 
     protected validateLimitReference(mtimeMs: number, path: string) {
     	return (statSync(this.retrieveLocalPath(path)).mtimeMs == mtimeMs);
@@ -74,25 +74,25 @@ class VirtualFileSystem extends LimitedDictionary<number, IFileStamp> {
 
     	this.cache.write(path, fileStamp);
 
-		return fileStamp;
+    	return fileStamp;
     }
 
-	public modifyExistingFile(path: string, modifiedFileContents: string): IFileStamp {
-		const currentStamp: IFileStamp = super.getEntry(path);
+    public modifyExistingFile(path: string, modifiedFileContents: string): IFileStamp {
+    	const currentStamp: IFileStamp = super.getEntry(path);
 
-		if(!currentStamp) {
-			return;
-		}
+    	if(!currentStamp) {
+    		return;
+    	}
 		
     	const fileStamp: IFileStamp = this.computeFileStamp(modifiedFileContents);
-		fileStamp.modified = true;
+    	fileStamp.modified = true;
 		
-		super.updateEntry(path, fileStamp);
+    	super.updateEntry(path, fileStamp);
 
     	this.cache.write(path, fileStamp);
 
-		return fileStamp;
-	}
+    	return fileStamp;
+    }
 
 }
 

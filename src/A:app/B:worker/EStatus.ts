@@ -2,7 +2,7 @@
 /**
  * Application wide supported status codes with descriptive names.
  */
-export enum Status {
+export enum EStatus {
     // Success codes
     SUCCESS = 200,
     PARTIAL_INFORMATION = 203,

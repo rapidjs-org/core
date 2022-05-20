@@ -10,12 +10,12 @@ import { join, dirname } from "path";
 
 import { print } from "../print";
 
-import { PROJECT_CONFIG } from "./config/config.project";
-import { MODE } from "./mode";
-import { IS_SECURE } from "./secure";
+import { PROJECT_CONFIG } from "./config/config.PROJECT";
+import { MODE } from "./MODE";
+import { IS_SECURE } from "./IS_SECURE";
 import { ErrorControl } from "./ErrorControl";
-import { memspaceMutex } from "./mutex";
-import { IPCSignal } from "./IPCSignal";
+import { AsyncMutex } from "./AsyncMutex";
+import { EIPCSignal } from "./EIPCSignal";
 import { IIPCPackage } from "./interfaces.A";
 
 
@@ -27,6 +27,7 @@ const clusterSize: number = PROJECT_CONFIG.read("clusterSize").number || cpus().
 const onlineWorkers: Set<Worker> = new Set();
 const ipcHistory: IIPCPackage[] = [];
 const clusterErrorControl = new ErrorControl("Density of errors caused in server cluster sub-process(es) too high");
+const memspaceMutex = new AsyncMutex();
 
 // TODO: Prompt with warning if cluster size is configured huge
 
@@ -38,14 +39,14 @@ if(clusterSize == 1) {
 	process.env.wd = dirname(require.main.filename);
     
 	// Create a single socket / server if cluster size is 1
-	require("./B:worker/net");
+	require("./B:worker/server.http");
 } else {
 	// Create cluster (min. 2 sockets / servers)
-	cluster.settings.exec = join(__dirname, "./B:worker/net"); // SCRIPT
-	cluster.settings.args = process.argv.slice(2); // ARGS
+	cluster.settings.exec = join(__dirname, "./B:worker/server.http"); // SCRIPT
+	cluster.settings.args = process.argv.slice(2); // CLI ARGS
 	cluster.settings.silent = true;
 
-	let listeningWorkers: number = 0;
+	let listeningWorkers = 0;
 	
 	// TODO: CPU strategy
 	Array.from({ length: clusterSize }, createWorker);
@@ -91,11 +92,11 @@ function createWorker() {
 		workerProcess.send(ipcHistory);
 
 		// Pipe worker output to master (this context)
-		workerProcess.process.stdout.on("data", printData => {
-			console.log(String(printData));	// TODO: print.() ?
+		workerProcess.process.stdout.on("data", (printData: string) => {
+			process.stdout.write(printData);
 		});
-		workerProcess.process.stderr.on("data", printData => {
-			console.error(String(printData));
+		workerProcess.process.stderr.on("data", (printData: string) => {
+			process.stderr.write(printData);
 		});
 	});
 }
@@ -103,7 +104,7 @@ function createWorker() {
 
 // TODO: Passive plug-in registry
 // TODO: General async creation signal restoration mechanism
-export function ipcDown(signal: IPCSignal , data) {
+export function ipcDown(signal: EIPCSignal , data) {
 	memspaceMutex.lock(() => {
 		const message: IIPCPackage = {
 			signal,

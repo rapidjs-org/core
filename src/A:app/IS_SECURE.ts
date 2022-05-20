@@ -1,5 +1,5 @@
 
-import { PROJECT_CONFIG } from "./config/config.project";
+import { PROJECT_CONFIG } from "./config/config.PROJECT";
 
 
 // Construct absolute path from call point if relative path given

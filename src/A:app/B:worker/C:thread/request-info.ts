@@ -8,7 +8,7 @@ const config = {
 
 import { extname } from "path";
 
-import { PROJECT_CONFIG } from "../../config/config.project";
+import { PROJECT_CONFIG } from "../../config/config.PROJECT";
 
 import { IThreadReq } from "../interfaces.B";
 

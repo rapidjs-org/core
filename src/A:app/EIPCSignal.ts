@@ -1,4 +1,4 @@
-export enum IPCSignal {
+export enum EIPCSignal {
     PLUGIN_REGISTER,
     PLUGIN_RELOAD
 }

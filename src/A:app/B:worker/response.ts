@@ -6,10 +6,10 @@ import http from "http";
 
 import { mergeObj } from "../../util";
 
-import { PROJECT_CONFIG } from "../config/config.project";
-import { IS_SECURE } from "../secure";
+import { PROJECT_CONFIG } from "../config/config.PROJECT";
+import { IS_SECURE } from "../IS_SECURE";
 
-import { Status } from "./Status";
+import { EStatus } from "./EStatus";
 import { HeadersMap } from "./HeadersMap";
 import { IThreadRes } from "./interfaces.B";
 
@@ -23,10 +23,10 @@ export function respond(eRes: http.ServerResponse, param: number|IThreadRes) {
 		? {
 			status: param,
 			headers: new HeadersMap()
-		} as unknown as IThreadRes	// Status code overload
+		} as unknown as IThreadRes	// EStatus code overload
 		: param;					// Response object overload
 	
-	tRes.status = tRes.status || Status.SUCCESS;
+	tRes.status = tRes.status || EStatus.SUCCESS;
 
 	// Common headers
 	tRes.headers.set("Cache-Control", PROJECT_CONFIG.read("cache", "client").number ? `public, max-age=${PROJECT_CONFIG.read("cache", "client").number}, must-revalidate` : null);
@@ -71,7 +71,7 @@ export function respond(eRes: http.ServerResponse, param: number|IThreadRes) {
 
 export function redirect(eRes: http.ServerResponse, location: string) {
 	respond(eRes, {
-		status: Status.REDIRECT,
+		status: EStatus.REDIRECT,
 		headers: new HeadersMap({
 			"Location": location
 		})

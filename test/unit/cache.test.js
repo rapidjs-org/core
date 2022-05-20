@@ -3,11 +3,12 @@ const cache = new (require("../../debug/A:app/Cache").Cache)(500, key => {
     return key.toLowerCase();
 });
 
-const cacheReadTest = new UnitTest("rate-limiter tests", cache.read);
+const cacheReadTest = new UnitTest("Cache reading tests", cache.read);
 
 const PIVOT_KEY = "Key";
 const PIVOT_VALUE = "Value";
 
+// TODO: Re-implement once framework supports object property passing
 /* cacheReadTest
 .conduct("Negatively check against cache entry existence")
 .check(PIVOT_KEY).for(false);

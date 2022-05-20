@@ -1,5 +1,5 @@
 
-import { PROJECT_CONFIG } from "./config/config.project";
+import { PROJECT_CONFIG } from "./config/config.PROJECT";
 
 import { LimitedDictionary } from "./LimitedDictionary";
 

@@ -11,8 +11,8 @@ export abstract class MutualError extends Error {
     public status: number;
 
     /**
-	 * @param {number} leadingDigit Status code range (leading digit for type)
-	 * @param {number} status Status code (within error code range (<leadingDigit>**))
+	 * @param {number} leadingDigit EStatus code range (leading digit for type)
+	 * @param {number} status EStatus code (within error code range (<leadingDigit>**))
 	 * @param {string} message Optional description message
 	 */
     constructor(leadingDigit: number, status: number, message?: string) {
@@ -34,7 +34,7 @@ export abstract class MutualError extends Error {
 export class MutualClientError extends MutualError {
 
 	/**
-	 * @param {number} status Status code (within client error code range (4**))
+	 * @param {number} status EStatus code (within client error code range (4**))
 	 * @param {string} message Optional description message
 	 */
 	constructor(status: number, message?: string) {
@@ -46,7 +46,7 @@ export class MutualClientError extends MutualError {
 export class MutualServerError extends MutualError {
 	
 	/**
-     * @param {number} status Status code (within server error code range (5**))
+     * @param {number} status EStatus code (within server error code range (5**))
 	 * @param {string} message Optional description message
      */
 	constructor(status: number, message?: string) {

@@ -9,16 +9,18 @@ import { print } from "../print";
 
 import { normalizePath } from "./util";
 import { ipcDown } from "./cluster";
-import { watch } from "./live/watch";
-import { IPCSignal } from "./IPCSignal";
+import { watch } from "./watch/watch";
+import { EIPCSignal } from "./EIPCSignal";
 import { IPassivePlugin, IPluginOptions } from "./B:worker/interfaces.B";
 
 
 const pluginNameRegex = /^(@[a-z0-9~-][a-z0-9._~-]*\/)?[a-z0-9~-][a-z0-9._~-]*$/i;	// = npm package name syntax
 
 
-export function plugin(reference: string, options: IPluginOptions) {
-	reference = ((reference || "/").charAt(0) !== "/")
+export function plugin(reference: string, options: IPluginOptions = {}) {
+	const isInstalledPackage: boolean = pluginNameRegex.test(reference);
+
+	reference = (!isInstalledPackage && (reference || "/").charAt(0) !== "/")
 		? normalizePath(reference)
 		: reference;
 	
@@ -32,7 +34,7 @@ export function plugin(reference: string, options: IPluginOptions) {
 	
 	// Derive unique plug-in associated runtime name
 	const name = options.alias
-	|| (!pluginNameRegex.test(reference)
+	|| (!isInstalledPackage
 		? reference.match(/([^/]+\/)?[^/]+?$/i)[0].replace(/^((\.(\.)?)\/)*|((\.[jt]s)?$)/gi, "")
 		: reference);
 	
@@ -45,7 +47,7 @@ export function plugin(reference: string, options: IPluginOptions) {
 	}
 
 	// Communicate plug-in conmnection to sub-processes
-	ipcDown(IPCSignal.PLUGIN_REGISTER, {
+	ipcDown(EIPCSignal.PLUGIN_REGISTER, {
 		name,
 		modulePath,
 		options
@@ -54,7 +56,7 @@ export function plugin(reference: string, options: IPluginOptions) {
 	// Watch (live) plug-in directory (recursively)
 	watch(dirname(modulePath), () => {
 		// Communicate plug-in conmnection to sub-processes
-		ipcDown(IPCSignal.PLUGIN_RELOAD, {
+		ipcDown(EIPCSignal.PLUGIN_RELOAD, {
 			name,
 			modulePath
 		} as IPassivePlugin);
