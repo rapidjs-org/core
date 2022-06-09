@@ -1,0 +1,10 @@
+{
+    "appIdentifier": "rapidJS",
+    "configFileNamePlugins": "plugins",
+    "dynamicFileExtension": "html",
+    "indexPageName": "index",
+	"liveWsPort": 5757,
+	"pluginRequestPrefix": "plug-in::",
+	"pluginRequestSeparator": "+",
+	"privateWebFilePrefix": "_"
+}

@@ -6,3 +6,4 @@ node_modules/
 debug/
 dist/
 tmp/
+test/debug:app/log/

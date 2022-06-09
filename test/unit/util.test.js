@@ -67,16 +67,16 @@ absolutizePathTest
 
 // MEM A
 
-const { normalizePath } = require("../../debug/A:app/util");
+const { projectNormalizePath } = require("../../debug/A:app/util");
 
-const normalizePathTest = new UnitTest("Project normalize path tests", normalizePath);
+const projectNormalizePathTest = new UnitTest("Project normalize path tests", projectNormalizePath);
 
-normalizePathTest
+projectNormalizePathTest
 .conduct("Project normalize relative path")
 .check("./test")
 .for(join(__dirname, "../../scripts/test"));
 
-normalizePathTest
+projectNormalizePathTest
 .conduct("Project normalize absolute path")
 .check("/test")
 .for(join(__dirname, "../../scripts/test"));
