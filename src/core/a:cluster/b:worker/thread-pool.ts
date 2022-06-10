@@ -5,14 +5,12 @@
 
 import config from "../../src.config.json";
 
-import { cpus } from "os";
 import { join } from "path";
 import { Worker as Thread, BroadcastChannel, SHARE_ENV } from "worker_threads";
 
 import { Config } from "../../config/Config";
 import { print } from "../../print";
 import { arrayify } from "../../util";
-import { MODE } from "../../MODE";
 
 import { AsyncMutex } from "../AsyncMutex";
 
@@ -20,23 +18,26 @@ import { IRequest, IResponse } from "./interfaces";
 import { EStatus } from"./EStatus";
 import { BroadcastMessage } from "../BroadcastMessage";
 import { respond } from"./response";
-import { getContextId } from "./context-hook";
 import { bindHeadersFilter } from "./b:worker";
+import { POOL_SIZE } from "./POOL_SIZE";
 
 
 // TODO: Dynamic thread pool size strategy (burst times, ...)
 
 
-interface IActiveReq {
-	asyncId: number;
-	timeout: NodeJS.Timeout;
+interface IPendingReq {
+	resId: number;
 	tReq: IRequest;
+}
+
+interface IActiveReq extends IPendingReq {
+	timeout: NodeJS.Timeout;
 }
 
 
 const idleThreads: Thread[] = [];
 const activeReqs: Map<number, IActiveReq> = new Map();
-const pendingReqs: IRequest[] = [];
+const pendingReqs: IPendingReq[] = [];
 const processingTimeout = Config["project"].read("limit", "processingTimeout").number;
 
 const threadMutex = new AsyncMutex();
@@ -47,7 +48,7 @@ let activeTimeoutThreadId: number;
 
 
 // Create fixed amount of new, reusable threads
-Array.from({ length: (MODE.DEV ? 1 : --cpus().length) }, createThread);
+Array.from({ length: POOL_SIZE }, createThread);
 // TODO: Use optimal / optimized size formula?
 // TODO: Use config file parameter for size?
 // TODO: Create new thread if repeatedly none idle upon request to find optimal pool size?
@@ -57,7 +58,7 @@ Array.from({ length: (MODE.DEV ? 1 : --cpus().length) }, createThread);
  * Create a single request handler thread.
  */
 function createThread() {
-	threadMutex.lock(new Promise((resolve: () => void) => {
+	threadMutex.lock(new Promise((resolve: (unknown?) => void) => {
 		const thread = new Thread(join(__dirname, "./c:thread/c:thread.js"), {
 			env: SHARE_ENV,	// Share env variables
 			argv: process.argv.slice(2),	// Pass through CLI arguments
@@ -70,6 +71,7 @@ function createThread() {
 		thread.on("message", () => {
 			// Transient (one time) thread load completion listener
 			resolve();
+
 			thread.removeAllListeners("message");
 			
 			// Install permanent response listener
@@ -123,12 +125,15 @@ function deactivateThread(thread: Thread, param: number|IResponse) {
 	try {
 		clearTimeout(activeObject.timeout);	// Timeout could not exist (anymore)
 	} finally {
-		respond(param, activeObject.asyncId);
+		respond(param, activeObject.resId);
 	}
 	
 	idleThreads.push(thread);
 	
-	activateThread(pendingReqs.shift());
+	// Activate next pending request from queue
+	const nextPendingReq: IPendingReq = pendingReqs.shift()
+	nextPendingReq
+	&& activateThread(nextPendingReq.tReq, nextPendingReq.resId);
 }
 
 
@@ -139,17 +144,15 @@ function deactivateThread(thread: Thread, param: number|IResponse) {
  * a configured size, the request will immediately be closed
  * with a server error.
  * @param {IRequest} tReq Thread request object to perfrom on
+ * @param {number} resId Request id for async response hook
  */
-export function activateThread(tReq: IRequest) {
-	if(!tReq) {
-		// Ignore empty activations (possibly from pending activation)
-		return;
-	}
-
+export function activateThread(tReq: IRequest, resId: number) {
 	if(idleThreads.length === 0) {
 		(pendingReqs.length >= Config["project"].read("limit", "pendingRequests").number)
 		? respond(EStatus.SERVICE_UNAVAILABLE)
-		: pendingReqs.push(tReq);
+		: pendingReqs.push({
+			resId, tReq
+		});
 		
 		return;
 	}
@@ -157,7 +160,6 @@ export function activateThread(tReq: IRequest) {
 	const thread = idleThreads.shift();  // FIFO
 	
 	activeReqs.set(thread.threadId, {
-		asyncId: getContextId(),
 		timeout: isFinite(processingTimeout)
 		? setTimeout(() => {
 			thread.terminate();	// Triggers replacement inherently
@@ -167,7 +169,8 @@ export function activateThread(tReq: IRequest) {
 			respond(EStatus.REQUEST_TIMEOUT);
 		}, processingTimeout)
 		: null,
-		tReq: tReq
+		
+		resId, tReq
 	});
 	
 	// Filter HTTP request object for thread reduced request object
@@ -211,13 +214,13 @@ export function activateThread(tReq: IRequest) {
  * @param {BroadcastMessage} broadcastMessage Broadcast signal
  */
 process.on("message", (broadcastMessage: BroadcastMessage|BroadcastMessage[]) => {
-	BroadcastMessage.pushHistory(broadcastMessage);	// Necessary for each isolated memoryspace
-	
 	threadMutex.lock(() => {
 		if(handleBroadcast(broadcastMessage)) {
 			return;
 		}
 		
 		broadcastChannel.postMessage(broadcastMessage);
+
+		BroadcastMessage.pushHistory(broadcastMessage);	// Necessary for each isolated memoryspace
 	});
 });

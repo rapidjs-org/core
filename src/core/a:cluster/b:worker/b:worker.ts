@@ -20,8 +20,7 @@ import { IRequest } from "./interfaces";
 import { EStatus } from "./EStatus";
 import { HeadersMap } from"./HeadersMap";
 import { RateLimiter } from "./RateLimiter";
-import { hookContext } from "./context-hook";
-import { respond, respondFromCache } from "./response";
+import { hookResponseContext, respond, respondFromCache } from "./response";
 import { activateThread } from "./thread-pool";
 
 
@@ -162,10 +161,13 @@ function parseRequestBody(oReq: http.IncomingMessage): Promise<TObject> {
 					|| checkCompressionAccepted(oReq.headers["accept-encoding"], "deflate");
 		const method: string = oReq.method.toUpperCase();
 		
-		hookContext(oReq.url, oRes, encode, (method === "HEAD"));
+		// Construct thread request object related to the current response
+		const url: URL = new URL(`http${IS_SECURE ? "s" : ""}://${oReq.headers["host"]}${oReq.url}`);
+		
+		const resId: number = hookResponseContext(oRes, url.pathname, encode, (method === "HEAD"));
 
 		// Respond from cache if valid entry exists
-		if(respondFromCache()) {
+		if(respondFromCache(url.pathname)) {
 			return;
 		}
 
@@ -187,9 +189,6 @@ function parseRequestBody(oReq: http.IncomingMessage): Promise<TObject> {
 			return;
 		}
         
-		// Construct thread request object related to the current response
-		const url: URL = new URL(`http${IS_SECURE ? "s" : ""}://${oReq.headers["host"]}${oReq.url}`);
-
 		// Hostname mismatch (only if configured)
 		// TODO: Reconsider
 		if(url.hostname !== (Config["project"].read("hostname").string || url.hostname)) {
@@ -220,7 +219,7 @@ function parseRequestBody(oReq: http.IncomingMessage): Promise<TObject> {
 		// TODO: Emit connection event for individual request logs?
 		
 		if(!["POST", "PUT", "PATCH"].includes(method)) {
-			activateThread(tReq);
+			activateThread(tReq, resId);
 
 			return;
 		}
@@ -230,7 +229,7 @@ function parseRequestBody(oReq: http.IncomingMessage): Promise<TObject> {
 		.then((body: TObject) => {
 			tReq.body = body;
 
-			activateThread(tReq);
+			activateThread(tReq, resId);
 		})
 		.catch((bodyParseError: IBodyParseError) => {
 			respond(bodyParseError.status);

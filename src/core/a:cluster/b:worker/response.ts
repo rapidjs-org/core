@@ -12,10 +12,11 @@ import config from "../../src.config.json";
 
 import { normalize as normalizePath } from "path";
 import { gzipSync, deflateSync } from "zlib";
-import { STATUS_CODES } from "http";
+import { ServerResponse, STATUS_CODES } from "http";
 
 import { Config } from "../../config/Config";
 import { mergeObj } from "../../util";
+import { MODE } from "../../MODE";
 
 import { IS_SECURE } from "../IS_SECURE";
 
@@ -23,20 +24,51 @@ import { IContext, IResponse } from "./interfaces";
 import { EStatus } from "./EStatus";
 import { Cache } from"./Cache";
 import { HeadersMap } from "./HeadersMap";
-import { getContext } from "./context-hook";
+import { POOL_SIZE } from "./POOL_SIZE";
 
 
+interface IOpenRes {
+	oRes: ServerResponse;
+	url: string;
+	encode: string;
+	headersOnly: boolean;
+}
+
+
+// Static cache for globally cacheable resources
 const staticCache: Cache<number|IResponse> = new Cache(null, normalizePath);
 
+// Currently open responses for hooking async processing routines via request ID
+const openResponses: Map<number, IOpenRes> = new Map();
+const totalReqLoadLimit: number = Math.min(POOL_SIZE * Config["project"].read("limit", "pendingRequests").number, MODE.DEV ? 1000 : Number.MAX_SAFE_INTEGER);	// For annular response ID retrieval (no incremental out of range)
+let curResId: number = 0;
+
+/**
+ * Hook response context for eventual (async) closing directive via response ID.
+ * @param {ServerResponse} oRes Original response object for closing a request accordingly
+ * @param {string} url Request URL for caching purposes (non-ambivalent; pathname)
+ * @param {string} encode Accepted encoding type of response {ø, gzip, deflate}
+ * @param {boolean} headersOnly Whether to send headers only (HEAD verb request)
+ * @returns {number} Associated response ID
+ */
+export function hookResponseContext(oRes: ServerResponse, url: string, encode: string, headersOnly: boolean) {
+	curResId = ++curResId % totalReqLoadLimit;	// Annular retrieval
+
+	openResponses.set(curResId, {
+		encode, headersOnly, oRes, url
+	})
+
+	return curResId;
+}
 
 /**
  * Respond with status code or thread response object (overload).
  * @param {number|IResponse} param Status code or thread response object
+ * @param {number} [resId] ID of associated open response (Uses current/last issued ID by defaqult as assuming a sync context)
  */
-export function respond(param: number|IResponse, asyncId?: number) {
+export async function respond(param: number|IResponse|unknown, resId: number = curResId) {
 	// TODP: Static cache: Store entire response (except for individual headers)?
-
-	const context: IContext = getContext(asyncId);
+	const context: IContext = openResponses.get(resId);
 
 	// Resolve overload	
 	const tRes: IResponse = (param instanceof Number || typeof(param) === "number")
@@ -98,7 +130,7 @@ export function respond(param: number|IResponse, asyncId?: number) {
 		(value !== undefined && value !== null)
 		&& context.oRes.setHeader(name, value);
 	}
-
+	
 	context.oRes.statusCode = tRes.status;    // TODO: Concealing error status? Mind message, too!
 	
 	context.oRes.end(context.headersOnly
@@ -114,14 +146,14 @@ export function respond(param: number|IResponse, asyncId?: number) {
  * Return positively if cache has been successfully activated in order
  * to stop the normal processing routine.
  */
-export function respondFromCache(): boolean {
-	const contextUrl: string = getContext().url;
+export function respondFromCache(url: string): boolean {
+	url = normalizePath(url);
 
-	if(!staticCache.has(contextUrl)) {
+	if(!staticCache.has(url)) {
 		return false;
 	}
 
-	respond(staticCache.read(contextUrl));
+	respond(staticCache.read(url));
 
 	return true;
 }

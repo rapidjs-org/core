@@ -35,22 +35,26 @@ export class AsyncMutex {
 	 * as a callback to be succeeded by the unlock. If given a promise, the
 	 * unlock happens upon the respective resolve.
 	 * Invocation once context can be acquired.
-	 * @param {Function} callback Instructions callback
+	 * @param {Function|Promise} instructions Instructions callback or promise
 	 */
-	public async lock(instructions: (() => void)|Promise<void>) {
-		this.acquire().then(() => {
-			if(!(instructions instanceof Promise)) {
-				instructions = new Promise((resolve: () => void) => {
-					(instructions as Function)();
+	public async lock(instructions: (() => void)|Promise<unknown>): Promise<unknown> {
+		return new Promise((resolve: (unknown?) => void) => {
+			this.acquire().then(() => {
+				if(!(instructions instanceof Promise)) {
+					instructions = new Promise<unknown>((resolve: (unknown) => void) => {
+						const result: unknown = (instructions as Function)();
+						
+						resolve(result);
+					});
+				}
+				
+				instructions.then((result: unknown) => {
+					(this.acquireQueue.length > 0)
+						? this.acquireQueue.shift()()
+						: (this.isLocked = false);
 					
-					resolve();
+					resolve(result);
 				});
-			}
-			
-			instructions.then(() => {
-				(this.acquireQueue.length > 0)
-					? this.acquireQueue.shift()()
-					: (this.isLocked = false);
 			});
 		});
 	}
