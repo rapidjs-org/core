@@ -59,7 +59,6 @@ export function bindRequestProcessor(headersFilter: string[], initHandlerPath: s
 /**
  * Expose plug-in connection interface meant to be exposed from the
  * concrete interface as well defining the data parameter accordingly.
- * @param data 
  */
 export function plugin(...args: unknown[]) {
     workerBroadcast("onPlugin", args);

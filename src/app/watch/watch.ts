@@ -1,3 +1,9 @@
+/**
+ * Module containing an interface for registering partial file system
+ * watching in order to detect file changes and invoke a given callback
+ * in repsect. Each watch provokes the websocket server to provoke a
+ * client refresh.
+ */
 
 
 const config = {

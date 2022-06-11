@@ -1,3 +1,8 @@
+/**
+ * Module for initializing the concrete, thread defining server application.
+ */
+
+
 
 // Initialze configuration files (static access from Config class)
 import "./config/config.project";
@@ -12,10 +17,10 @@ import { watch } from "./watch/watch";
 initWatch();
 
 
-// Project directory top level (non-recursively)
+// Watch project directory top level (non-recursively)
 watch(PATH, () => {
     // TODO: Watch in detail with according modular reload?
 }, false);
 
-// Web file directory (recursively)
+// Watch web file directory (recursively)
 watch(Config["project"].read("directory", "web").string);   // TODO: Check why reload happens, but files are not updated!

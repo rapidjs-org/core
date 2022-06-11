@@ -4,12 +4,7 @@
  */
 
 
-import pluginHandler from "../plugin/handler";
-
-
-export function plugin(...args: unknown[]) {
-    pluginHandler.apply(args);
-}
+export { plugin } from "../../core/core";
 
 
 /* export const events = {

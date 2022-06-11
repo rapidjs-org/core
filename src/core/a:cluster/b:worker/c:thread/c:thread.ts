@@ -79,15 +79,9 @@ function handleBroadcast(broadcastMessage: BroadcastMessage|BroadcastMessage[]) 
 
                 // TODO: Concise error(s) if wrong interface usage?
                 break;
-            case "bindPlugin":
-                const pluginHandlerPath: string = message.data as string;
-                
-                // Bind singleton plug-in handler
-                boundPluginHandler = require(pluginHandlerPath).default;
-                break;
             case "onPlugin":
                 // Perform a plug-in handling process (triggering the bound handler)
-                boundPluginHandler.apply(message.data as unknown[]);
+                boundPluginHandler(...(message.data as unknown[]));
                 break;
         }
     });

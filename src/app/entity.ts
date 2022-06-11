@@ -1,8 +1,7 @@
 /**
- * Module containing a function for retrieving a request associated
- * ressource. Since plug-in requests are always being performed from
- * a certain dynamic page context, the retrieval must happen on the
- * origin URL.
+ * Module containing an evaluation and retrieval interface for request 
+ * individual information. Information to be evaulated (once) for each
+ * at a given entry point and retrieved when in an arbitrary context.
  */
 
 

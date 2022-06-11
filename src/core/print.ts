@@ -77,7 +77,7 @@ function write(message: string, channel: Channel, event: Event, omitAppPrefix: b
 		return;
 	}
 	
-	// Inmherently highlight numbers
+	// Inherently highlight numbers
 	message = message
 		.replace(/(^|((?!\x1b)(.)){3})([0-9]+)/g, `$1${print.format("$4", [
 			print.Format.FG_CYAN
@@ -97,6 +97,9 @@ function write(message: string, channel: Channel, event: Event, omitAppPrefix: b
 	// Emit respective log event (always also triggers the universal event)
 	printEventEmitter.emit(event, message.replace(/\x1b\[(;?[0-9]{1,3})+m/g, ""));	// TODO: Bubble up manually from threads in order to serve one interface
 }
+
+
+// TODO: Print bubble up interface to (cumulate multi thread output)
 
 
 export namespace print {

@@ -14,8 +14,6 @@ import { statSync, existsSync, readFileSync } from "fs";
 import { LimitDictionary, Cache, Config } from "../core/core";
 
 
-
-
 class VirtualFileSystem extends LimitDictionary<number, string> {
     
 	// TODO: Examine effect of cache proxy (temporary limited storage) in front of vfs

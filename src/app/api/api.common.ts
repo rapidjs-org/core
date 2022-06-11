@@ -7,6 +7,9 @@
 import { MODE } from "../../core/MODE";
 
 
-export const isDevMode = MODE.DEV;
+export { Cache, MutualClientError, MutualServerError } from "../../core/core";
+
+
+export const isDevMode = !!MODE.DEV;
  
-// TODO: Implement
+// TODO: Implement and reconsider scoping

@@ -1,3 +1,10 @@
+/**
+ * Module containing a web socket server initialized only in DEV MODE
+ * for maintaining client connections in order to be able to notify
+ * the clients of server changes and trigger a client view refresh.
+ * For a better using experience in development processes.
+ */
+
 
 import config from "../src.config.json";
 

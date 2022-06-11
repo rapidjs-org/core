@@ -1,3 +1,6 @@
+/**
+ * Module containing the core interface plug-in handler function.
+ */
 
 
 import config from "../src.config.json";
