@@ -3,21 +3,9 @@
  */
 
 
-import { dirname, isAbsolute, join } from "path";
+import { join } from "path";
 
-import { argument } from "./argument";
-
-
-// Initially construct absolute project root directory path.
-// Use directory at given working directory path (parameter)
-// or the actual working directory of the runtime otherwise.
-const wdPath: string = process.env.wd || dirname(process.argv[1]);
-const argPath: string = argument("path", "P").parameter;
-const projectPath: string = argPath
-? (!isAbsolute(argPath)
-    ? join(wdPath || "", argPath)  // Absolutize path
-    : argPath)
-: wdPath;
+import { PATH } from "./PATH";
 
 
 /**
@@ -26,7 +14,7 @@ const projectPath: string = argPath
  * @returns {string} Absolute project normalized path
  */
 export function projectNormalizePath(relativePath: string): string {
-	return join(projectPath, relativePath);
+	return join(PATH, relativePath);
 }
 
 /**

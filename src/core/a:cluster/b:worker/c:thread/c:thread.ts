@@ -19,7 +19,7 @@ import { MutualError } from "./MutualErrors";
 const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
 
 let boundReqHandler: (req: IRequest, res: IResponse) => IResponse = (_, res) => res;
-let boundPluginHandler: (data: unknown) => void;
+let boundPluginHandler: (...args: unknown[]) => void;
 
 
 parentPort.on("message", (tReq: IRequest) => {
@@ -54,24 +54,40 @@ function handleBroadcast(broadcastMessage: BroadcastMessage|BroadcastMessage[]) 
     .forEach((message: BroadcastMessage) => {
         switch(message.signal) {
             case "bindThread":
-                // Bind singleton thread functionality given a request handler
-                const reqHandlerPath: string = message.data as string;
+                const data = message.data as {
+                    initHandlerPath: string;
+                    reqHandlerPath: string;
 
-                // Require req handler module
+                    pluginHandlerPath?: string;
+                };
+
+                // Require initialization module (no exports / invocation)
+                data.initHandlerPath
+                && require(data.initHandlerPath);  
+
+                // Bind singleton request handler
                 // The handler module must export a default function with a
                 // '(req: IRequest, res: IResponse) => IResponse' signature
                 // in order to work accordingly (interfacves to be provided
                 // by the core application interface)
-                boundReqHandler = require(reqHandlerPath).default;  // TODO: Concise error if wrong interface?
+                boundReqHandler = require(data.reqHandlerPath).default;  
 
+                // Bind singleton plug-in handler (arbitrary data args signature)
+                boundPluginHandler = data.pluginHandlerPath
+                ? require(data.pluginHandlerPath).default
+                : null;
+
+                // TODO: Concise error(s) if wrong interface usage?
+                break;
+            case "bindPlugin":
+                const pluginHandlerPath: string = message.data as string;
+                
+                // Bind singleton plug-in handler
+                boundPluginHandler = require(pluginHandlerPath).default;
                 break;
             case "onPlugin":
-                // Bind singleton plug-in processing given a plug-in handler
-                boundPluginHandler = message.data as (data: unknown) => void;
-                break;
-            case "plugin":
-                // Perform a plug-in process (triggering the bound handler)
-                boundPluginHandler(message.data);
+                // Perform a plug-in handling process (triggering the bound handler)
+                boundPluginHandler.apply(message.data as unknown[]);
                 break;
         }
     });

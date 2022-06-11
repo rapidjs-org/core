@@ -8,6 +8,9 @@
  */
 
 
+// TODO: Repeated message (equal) combination (replace line with amount indicator)
+
+
 import config from "./src.config.json";
 
 import { EventEmitter } from "events";
@@ -40,10 +43,10 @@ type TUniversalEventListener = (eventName: string | symbol,  ...args) => void;
 
 class UniversalEventEmitter extends EventEmitter {
 	
-	private readonly omniListeners: TUniversalEventListener[] = [];
+	private readonly universalListeners: TUniversalEventListener[] = [];
 
 	public emit(eventName: string|symbol, ...args): boolean {
-		this.omniListeners.forEach((listenerCallback: TUniversalEventListener) => {
+		this.universalListeners.forEach((listenerCallback: TUniversalEventListener) => {
 			listenerCallback(eventName, ...args);
 		});
 
@@ -51,7 +54,7 @@ class UniversalEventEmitter extends EventEmitter {
 	}
 
 	public all(listenerCallback: TUniversalEventListener) {
-		this.omniListeners.push(listenerCallback);
+		this.universalListeners.push(listenerCallback);
 	}
 
 }
@@ -92,7 +95,7 @@ function write(message: string, channel: Channel, event: Event, omitAppPrefix: b
 		: ""}${message}`);
 	
 	// Emit respective log event (always also triggers the universal event)
-	printEventEmitter.emit(event, message);	// TODO: Bubble up manually from threads in order to serve one interface
+	printEventEmitter.emit(event, message.replace(/\x1b\[(;?[0-9]{1,3})+m/g, ""));	// TODO: Bubble up manually from threads in order to serve one interface
 }
 
 
@@ -163,7 +166,10 @@ export namespace print {
 	/**
 	 * Print event listener interface with extensive universal property.
 	 */
-	export const on = printEventEmitter.on;
-	export const all = printEventEmitter.all;
-
+	export const on = (...args) => {
+		printEventEmitter.on.apply(printEventEmitter, args);
+	};
+	export function all(...args) {	// TODO: "all" as event name?
+		printEventEmitter.all.apply(printEventEmitter, args);
+	}
 }

@@ -7,41 +7,23 @@
  */
 
 
-import { join, normalize } from "path";
+import { join, normalize as normalizePath } from "path";
 import { statSync, existsSync, readFileSync } from "fs";
-import { createHash } from "crypto";
 
 
-import { LimitDictionary, Cache, Config } from "../../core/core";
+import { LimitDictionary, Cache, Config } from "../core/core";
 
 
-interface IFileStamp {
-	contents: string;
-	eTag: string;
-
-	modified?: boolean;
-}
 
 
-class VirtualFileSystem extends LimitDictionary<number, IFileStamp> {
+class VirtualFileSystem extends LimitDictionary<number, string> {
     
 	// TODO: Examine effect of cache proxy (temporary limited storage) in front of vfs
-    private readonly cache: Cache<IFileStamp> = new Cache(null, normalize);
+    private readonly cache: Cache<string> = new Cache(null, normalizePath);
+	private readonly modifiedFilesSet: Set<string> = new Set();
 
     constructor() {
-    	super(null, normalize);
-    }
-	
-	/**
-	 * Compute the ETag value of a file given its contents.
-	 * The ETag value corresponds to the MD5 hashed file contents.
-	 * @param {string} fileContents File contents
-	 * @returns {string} ETag value
-	 */
-    private computeETag(fileContents: string): string {
-    	return createHash("md5")
-		.update(fileContents)
-		.digest("hex");
+    	super(null, normalizePath);
     }
 
 	/**
@@ -55,25 +37,14 @@ class VirtualFileSystem extends LimitDictionary<number, IFileStamp> {
     }
 
 	/**
-	 * Construct a file stamp object from file contents.
-	 * @param {string} fileContents File contents
-	 * @returns {IFileStamp} File stamp (contents and repsective ETag)
-	 */
-    private constructFileStamp(fileContents: string): IFileStamp {
-    	return {
-    		contents: fileContents,
-    		eTag: this.computeETag(fileContents)
-    	};
-    }
-
-	/**
 	 * Validate a current file existence attribute against the limit reference.
 	 * @param {number} mtimeMs Timestamp associated with a file existence attribute
 	 * @param {string} path Path to file to check validity for
 	 * @returns {boolean} Whether the limit has not been exceeded / file has not changed
 	 */
     protected validateLimitReference(mtimeMs: number, path: string): boolean {
-    	return (statSync(this.retrieveLocalPath(path)).mtimeMs == mtimeMs);
+		// TODO: Only validate once a defined window
+    	return (statSync(this.retrieveLocalPath(path)).mtimeMs === mtimeMs);
     }
 	
 	/**
@@ -93,8 +64,8 @@ class VirtualFileSystem extends LimitDictionary<number, IFileStamp> {
 	 * Read a specific physical web file.
 	 * @returns {IFileStamp} Related file stamp
 	 */
-    public read(path: string): IFileStamp {
-    	let data: IFileStamp = this.cache.read(path);
+    public read(path: string): string {
+    	let data: string = this.cache.read(path);
     	if(data) {
     		return data;
     	}
@@ -112,20 +83,21 @@ class VirtualFileSystem extends LimitDictionary<number, IFileStamp> {
 	 * @param {string} path Project relative path to web file
 	 * @returns {IFileStamp} Related (resulting) file stamp
 	 */
-    public write(path: string): IFileStamp {
+    public write(path: string): string {
     	const localPath: string = this.retrieveLocalPath(path);
     	if(!existsSync(localPath)) {
     		return null;
     	}
 
     	const fileContents = String(readFileSync(localPath));
-    	const fileStamp: IFileStamp = this.constructFileStamp(fileContents);
 
-    	super.write(path, fileStamp, statSync(localPath).mtimeMs);
+    	super.write(path, fileContents, statSync(localPath).mtimeMs);
 
-    	this.cache.write(path, fileStamp);
+    	this.cache.write(path, fileContents);
 
-    	return fileStamp;
+		this.modifiedFilesSet.delete(normalizePath(path));
+
+    	return fileContents;
     }
 
 	/**
@@ -135,22 +107,31 @@ class VirtualFileSystem extends LimitDictionary<number, IFileStamp> {
 	 * @param {string} modifiedFileContents Modified file contents to store
 	 * @returns {IFileStamp} Related (resulting) file stamp
 	 */
-    public modifyExistingFile(path: string, modifiedFileContents: string): IFileStamp {
-    	const currentStamp: IFileStamp = super.read(path);
+    public modifyExistingFile(path: string, modifiedFileContents: string): string {
+    	const currentStamp: string = super.read(path);
 
     	if(!currentStamp) {
     		return;
     	}
 		
-    	const fileStamp: IFileStamp = this.constructFileStamp(modifiedFileContents);
-    	fileStamp.modified = true;
-		
-    	super.update(path, fileStamp);
+    	super.update(path, modifiedFileContents);
 
-    	this.cache.write(path, fileStamp);
+    	this.cache.write(path, modifiedFileContents);
 
-    	return fileStamp;
+		this.modifiedFilesSet.add(normalizePath(path));
+
+    	return modifiedFileContents;
     }
+
+	/**
+	 * Check whether a certain web file has been virtually modified
+	 * using this.modifyExistingFile().
+	 * @param {string} path Project relative path to web file
+	 * @returns {boolean} Whether the file has been modified
+	 */
+	public wasModified(path: string): boolean {
+		return this.modifiedFilesSet.has(normalizePath(path));
+	}
 
 }
 

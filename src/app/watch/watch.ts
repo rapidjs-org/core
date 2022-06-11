@@ -1,18 +1,16 @@
-/* 
+
+
 const config = {
 	detectionFrequency: 1000
 };
 
-
 import { readdir, stat, lstatSync, existsSync, Dirent } from "fs";
 import { join } from "path";
 
-import { print } from "../../print";
+import { util, print, MODE } from "../../core/core";
 
-import { MODE } from "../../../A:app/MODE";
-import { projectNormalizePath } from "../../../A:app/util";
 
-import { proposeClientReload } from "./server.ws";
+import { proposeClientReload } from "./ws.server";
 
 
 interface IWatchEntity {
@@ -28,11 +26,12 @@ const watchRegistry: IWatchEntity[] = [];
 const curRunIndexLocks: Set<number> = new Set();
 
 
+
 // TODO: One line watch messaging?
 
-
 // Initialize detection interval
-MODE.DEV && setInterval(() => {
+MODE.DEV
+&& setInterval(() => {
 	curRunIndexLocks.clear();
 
 	// Scan registered directories / files respectively
@@ -49,7 +48,7 @@ function watchEntity(index: number, path: string, entity: IWatchEntity) {
 	}
 	
 	const fullPath: string = /^[^/]/.test(path)
-		? projectNormalizePath(path)
+		? util.projectNormalizePath(path)
 		: path;
 
 	if(!existsSync(fullPath)) {
@@ -111,4 +110,4 @@ export function watch(path: string, callback?: () => void, scanRecursively: bool
 		messageIndicator,
 		scanRecursively
 	});
-} */
+}

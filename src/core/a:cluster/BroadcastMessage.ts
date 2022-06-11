@@ -5,7 +5,7 @@
  */
 
 
-export type TBroadcastSignal = "bindWorker" | "bindThread" | "onPlugin" | "plugin";
+export type TBroadcastSignal = "bindWorker" | "bindThread" | "bindPlugin" | "onPlugin";
 
 
 export class BroadcastMessage {

@@ -1,10 +1,20 @@
 {
     "appIdentifier": "rapidJS",
+    "appClientModuleName": "rapidjs.base",
+	"compoundPageIndicator": "#",
     "configFileNamePlugins": "plugins",
+	"clientModuleReferenceName": {
+		"public": "PUBLIC",
+		"shared": "SHARED"
+	},
+    "defaultEndpointName": "::default",
     "dynamicFileExtension": "html",
     "indexPageName": "index",
 	"liveWsPort": 5757,
+	"pluginConfigIdentifier": "pluginConfig",
+	"pluginNameSeparator": "+",
 	"pluginRequestPrefix": "plug-in::",
 	"pluginRequestSeparator": "+",
-	"privateWebFilePrefix": "_"
+	"privateWebFilePrefix": "_",
+	"thisRetainerIdentifier": "$this"
 }

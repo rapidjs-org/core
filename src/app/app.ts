@@ -11,13 +11,12 @@
 
 import { bindRequestProcessor } from "../core/core";
 
-// Initialze configuration files (static access from Config class)
-import "./config/config.project";
-import "./config/config.plugins";
-
 
 // Bind the application concrete behavior via thread request handler
 bindRequestProcessor([
     "Authorization",
     "If-None-Match"
-], "./handler/handler");
+], "./init", "./req/handler", "./plugin/handler");
+
+
+export * from "./api/api.app";

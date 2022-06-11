@@ -1,4 +1,4 @@
-/* 
+
 import config from "../src.config.json";
 
 import http from "http";
@@ -30,13 +30,14 @@ export function initWatch() {
 	 * Add request to list of connections.
 	 * @param {IncomingMessage} req Incoming request
 	 */
-	/*wsServer.on("request", req => {
+	wsServer.on("request", req => {
 		connections.push(req.accept(null, req.origin));
 	});
 }
+
 
 export function proposeClientReload() {
 	connections.forEach(connection => {
 		connection.sendUTF("1");
 	});
-} */
+}

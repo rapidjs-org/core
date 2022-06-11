@@ -10,17 +10,19 @@
 
 
 import { join, dirname } from "path";
+import { appendFile } from "fs";
 
+import { Config } from "./config/Config";
 import { print } from "./print";
-import { MODE } from "./MODE";
-
 import { initCluster, workerBroadcast } from "./a:cluster/a:cluster";
+import { MODE } from "./MODE";
 
 
 // Pass through interface
 export * from "./argument"; // TODO: Needed?
 export * from "./print";
 export * from "./MODE";
+export * from "./PATH";
 
 export * from "./config/Config"
 
@@ -35,29 +37,50 @@ export { MutualClientError, MutualServerError } from "./a:cluster/b:worker/c:thr
 
 
 // Request/response processor bind interface
-export function bindRequestProcessor(headersFilter: string[], reqHandlerPath: string) {
+/**
+ * Bind an application specific request handler.
+ * @param {string[]} headersFilter Array of relevant header names to write to each thread requesobject
+ * @param {string} reqHandlerPath Application local request handler module path (requires default export with handler signature (see thread c:thread))
+ */
+export function bindRequestProcessor(headersFilter: string[], initHandlerPath: string, reqHandlerPath: string, pluginHandlerPath?: string) {
     print.info(`Running ${print.format(`${MODE.DEV ? "DEV" : "PROD"} MODE`, [MODE.DEV ? print.Format.FG_RED : 0, print.Format.T_BOLD])}`);
 
     initCluster();
 
     workerBroadcast("bindWorker", headersFilter);
-    workerBroadcast("bindThread", join(dirname(module.parent.filename), reqHandlerPath));   // TODO: Reconsider
+    workerBroadcast("bindThread", {
+        initHandlerPath: join(dirname(module.parent.filename), initHandlerPath),
+        reqHandlerPath: join(dirname(module.parent.filename), reqHandlerPath),
+        pluginHandlerPath: pluginHandlerPath ? join(dirname(module.parent.filename), pluginHandlerPath) : null
+    });
     // TODO: How to prevent context mixing
 }
 
-// Plug-in interface
 /**
- * Define handler to invoke upon each plug-in process.
- * @param {Function} pluginHandler Plug-in handler getting passed the plug-in data
+ * Expose plug-in connection interface meant to be exposed from the
+ * concrete interface as well defining the data parameter accordingly.
+ * @param data 
  */
-export function onPlugin(pluginHandler: (data: unknown) => void) {
-    workerBroadcast("onPlugin", pluginHandler);
+export function plugin(...args: unknown[]) {
+    workerBroadcast("onPlugin", args);
 }
 
+
 /**
- * Perform plug-in process.
- * @param {*} data Plug-in data 
+ * Set up log file behavior.
  */
-export function plugin(data: unknown) {
-    workerBroadcast("plugin", data);
-}
+Config["project"].read("directory", "log").string
+&& print.all((_, message: string) => {
+    // Write to log file if log directory path given via argument
+    const date: Date = new Date();
+    const day: string = date.toISOString().split("T")[0];
+    const time: string = date.toLocaleTimeString();
+
+    appendFile(join(Config["project"].read("directory", "log").string, `${day}.log`),
+    `[${time}]: ${message}\n`,
+    err => {
+        if(err) {
+            throw err;
+        };
+    });
+});

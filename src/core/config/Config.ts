@@ -89,8 +89,8 @@ export class Config {
 		: this.memory.get(keys);
 		
     	return {
-    		string: (value !== undefined) ? String(value) : undefined,
-    		number: !isNaN(Number(value)) ? Number(value) : 0,
+    		string: value ? String(value) : undefined,
+    		number: !isNaN(Number(value)) ? Number(value) : undefined,
     		boolean: (value === true || value === "true") ? true : false,
     		object: Object.assign({}, value || {}) as TObject	// Prevent modification through call-by-reference
     	};

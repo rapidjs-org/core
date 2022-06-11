@@ -1,5 +1,5 @@
 /**
- * Type declarations for relevant HTTP request/response entity coding.
+ * Reusable/module overlapping interface declarations.
  */
 
 
