@@ -84,7 +84,6 @@ function richResponse(req: IAppRequest, res: IResponse): IResponse {
 	const mime: string = Config["project"].read("mimes", req.extension || config.dynamicFileExtension).string;
 	if(mime) {
 		res.headers.set("Content-Type", mime);
-		res.headers.set("X-Content-Type-Options", "nosniff");
 	}
 
     return res;

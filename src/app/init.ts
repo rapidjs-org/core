@@ -3,7 +3,6 @@
  */
 
 
-
 // Initialze configuration files (static access from Config class)
 import "./config/config.project";
 import "./config/config.plugins";

@@ -1,9 +1,6 @@
 const { join } = require("path");
 
-
-// MEM 0
-
-const { mergeObj, absolutizePath } = require("../../debug/util");
+const { mergeObj, absolutizePath } = require("../../debug/core/util");
 
 const mergeObjTest = new UnitTest("Object merge tests", mergeObj);
 
@@ -53,30 +50,14 @@ mergeObjTest
     d: 3
 });
 
-const absolutizePathTest = new UnitTest("Absolutize path tests", absolutizePath);
 
-absolutizePathTest
-.conduct("Absolutize relative path (root appendix)")
-.check("./def/ghj.txt", "/abc")
-.for("/abc/def/ghj.txt");
+const { normalizeExtension } = require("../../debug/app/util");
 
-absolutizePathTest
-.conduct("Absolutize absolute path (unchanged)")
-.check("/def", "/abc")
-.for("/def");
+const normalizeExtensionTest = new UnitTest("Normalize file extension tests", normalizeExtension);
 
-// MEM A
+normalizeExtensionTest
+.conduct("Normalize file extension path")
+.check(".html")
+.for("html");
 
-const { projectNormalizePath } = require("../../debug/A:app/util");
-
-const projectNormalizePathTest = new UnitTest("Project normalize path tests", projectNormalizePath);
-
-projectNormalizePathTest
-.conduct("Project normalize relative path")
-.check("./test")
-.for(join(__dirname, "../../scripts/test"));
-
-projectNormalizePathTest
-.conduct("Project normalize absolute path")
-.check("/test")
-.for(join(__dirname, "../../scripts/test"));
+// TODO: Complete

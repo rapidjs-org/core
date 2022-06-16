@@ -8,6 +8,7 @@ import { IRequest, IResponse } from "../../core/core";
 import { EStatus } from "./EStatus";
 
 import assetHandler from "./handler.asset";
+import pluginHandler from "./handler.plugin";
 
 
 /**
@@ -24,8 +25,17 @@ export default function(req: IRequest, res: IResponse): IResponse {
         return res;
     }
 
-    res = assetHandler(req, res);
-
+    switch(req.method) {
+        case "GET":
+            res = assetHandler(req, res);
+            break;
+        case "POST":
+            res = pluginHandler(req, res);
+            break;
+    }
+    
+    res.headers.has("Content-Type")
+    && res.headers.set("X-Content-Type-Options", "nosniff");
 
     return res;
 }

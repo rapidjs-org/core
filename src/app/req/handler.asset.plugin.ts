@@ -6,12 +6,13 @@ import { join } from "path";
 
 import { IResponse } from "../../core/core";
 
+import { substituteMark } from "../util";
 import { retireveClientModuleScript } from "../plugin/registry";
 
 import { EStatus } from "./EStatus";
 
 
-const appClientModuleText: string = String(readFileSync(join(__dirname, "./app.client.js")));
+const appClientModuleText: string = substituteMark(readFileSync(join(__dirname, "./app.client.js")), "APP_IDENTIFIER", config.appIdentifier); // With configured websocket port (mark substitution)
 
 
 /**

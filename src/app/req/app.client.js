@@ -1,6 +1,6 @@
 const rapidJS = {};
 
-rapidJS.core = (_ => {
+rapidJS["@APP_IDENTIFIER"] = (_ => {
 	let isCompound;
 
 	document.addEventListener("DOMContentLoaded", _ => {

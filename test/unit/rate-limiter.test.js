@@ -1,6 +1,6 @@
 
 
-const rateLimiter = new (require("../../debug/A:app/B:worker/RateLimiter").RateLimiter)(2, 1000);
+const rateLimiter = new (require("../../debug/core/a:cluster/b:worker/RateLimiter").RateLimiter)(2, 1000);
 
 const rateLimiterTest = new UnitTest("Rate limiter tests", rateLimiter.exceeded);
 

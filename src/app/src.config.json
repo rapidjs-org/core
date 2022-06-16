@@ -1,6 +1,6 @@
 {
     "appIdentifier": "rapidJS",
-    "appClientModuleName": "rapidjs.base",
+    "appClientModuleName": "rapidJS",
 	"compoundPageIndicator": "#",
     "configFileNamePlugins": "plugins",
 	"clientModuleReferenceName": {

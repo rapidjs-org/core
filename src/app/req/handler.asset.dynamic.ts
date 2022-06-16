@@ -8,6 +8,7 @@ import { IResponse, MODE } from "../../core/core";
 
 import { ICompoundInfo } from "../interfaces";
 import { VFS } from "../VFS";
+import { substituteMark } from "../util";
 import { evalCompoundInfo, retrieveCompoundInfo } from "../entity";
 import { retrieveIntegrationPluginNames } from "../plugin/registry";
 
@@ -15,8 +16,7 @@ import { EStatus } from "./EStatus";
 
 
 const pluginReferenceSourceRegexStr: string = `/${config.pluginRequestPrefix}((@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*(\\${config.pluginRequestSeparator}(@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*)*)?`;
-const wsClientModuleText: string = String(readFileSync(join(__dirname, "../watch/ws.client.js")))
-								   .replace(/@WS_PORT/, String(config.liveWsPort));	// With configured websocket port (mark substitution)
+const wsClientModuleText: string = substituteMark(readFileSync(join(__dirname, "../watch/ws.client.js")), "WS_PORT", config.liveWsPort); // With configured websocket port (mark substitution)
 
 const errorPageMapping: Map<string, string> = new Map();	// TODO: Limit size? Rebuild/associater regularly?
 

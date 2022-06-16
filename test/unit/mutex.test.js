@@ -1,5 +1,5 @@
 
-const mutex = new (require("../../debug/A:app/AsyncMutex").AsyncMutex)();
+const mutex = new (require("../../debug/core/a:cluster/AsyncMutex").AsyncMutex)();
 
 
 let referenceVar = false;

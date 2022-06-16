@@ -162,7 +162,7 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
         ${config.appIdentifier}["${associatedPluginName}"] = (() => {
             const ${config.thisRetainerIdentifier} = {
                 endpoint: (body, options = {}) => {
-                    return ${config.appClientModuleName}["${config.appClientModuleName}"].mediateEndpoint("${associatedPluginName}", body, options.name, options.progressHandler);
+                    return ${config.appIdentifier}["${config.appClientModuleName}"].mediateEndpoint("${associatedPluginName}", body, options.name, options.progressHandler);
 				},
 				
                 ${config.clientModuleReferenceName.public}: {},
