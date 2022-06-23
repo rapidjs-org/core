@@ -1,3 +1,11 @@
+
+$this.render(markup => {
+    return markup.replace(/@RENDER/g, "<b>RENDERING WORKS</b>");
+}, {
+    static: true
+});
+
+
 const names = {
     first: [
         "Daring",

@@ -2,6 +2,8 @@
  * Reusable/module overlapping interface declarations.
  */
 
+import { TEndpointHandler } from "./plugin/types";
+
 
 export interface IEntityInfo {
     auth: THeaderValue;
@@ -21,7 +23,7 @@ export interface ICompoundInfo {
 export interface IPluginOptions {
     alias?: string;
     integrateManually?: boolean;
-    muteRendering?: boolean;
+    muteRenders?: boolean;
     muteEndpoints?: boolean;
 }
 
@@ -29,4 +31,12 @@ export interface IEndpointHandlerResult {
 	status: number;
 
 	data?: unknown;
+}
+
+export interface IPluginFeatureData<H> {
+	handler: H;
+}
+
+export interface IPluginEndpointData extends IPluginFeatureData<TEndpointHandler> {
+	cacheable: boolean;
 }

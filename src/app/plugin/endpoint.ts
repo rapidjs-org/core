@@ -12,16 +12,13 @@ import { TEndpointHandler } from "./types";
 import { activePluginRegistry } from "./registry";
 
 
-interface IEndpointOptions {
-    name?: string;
-	cacheable?: boolean;
-}
-
-
 const endpointCache: Cache<unknown> = new Cache();
 
 
-export function defineEndpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: IEndpointOptions = {}) {
+export function defineEndpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: {
+    name?: string;
+	cacheable?: boolean;
+} = {}) {
 	const pluginObj = activePluginRegistry.get(associatedPluginName);
 
 	if(pluginObj.muteEndpoints) {

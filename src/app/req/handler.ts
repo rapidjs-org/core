@@ -24,7 +24,7 @@ export default function(req: IRequest, res: IResponse): IResponse {
         
         return res;
     }
-
+    
     switch(req.method) {
         case "GET":
             res = assetHandler(req, res);

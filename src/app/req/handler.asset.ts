@@ -25,10 +25,10 @@ import config from"../src.config.json";
 import { extname } from "path";
 import { createHash } from "crypto";
 
-import { IRequest, IResponse, Config } from "../../core/core";
+import { IRequest, IResponse, Config, util, IS_SECURE } from "../../core/core";
 
 import { normalizeExtension } from "../util";
-import { evalEntityInfo } from "../entity";
+import { evalEntityInfo, retrieveEntityInfo } from "../entity";
 
 import { EStatus } from "./EStatus";
 import handlePluginClientModule from "./handler.asset.plugin";
@@ -89,6 +89,13 @@ function richResponse(req: IAppRequest, res: IResponse): IResponse {
     return res;
 }
 
+function redirectResponse(location: string, res: IResponse, origUrl): IResponse {
+    res.headers.set("Location", `${location}${origUrl.hash ? `#${origUrl.hash}` : ""}${origUrl.searchString ? `?${origUrl.searchString}` : ""}` || "/");
+    
+    res.status = EStatus.REDIRECT;
+    
+    return res;
+}
 
 /**
  * Handle asset request accordingly.
@@ -117,17 +124,28 @@ export default function(req: IRequest, res: IResponse): IResponse {
 
     // Redirect extension explicit dynamic asset request to implicit variant
     if(implicitRedirectRegex.test(appReq.url.pathname)) {
-        res.headers.set("Location", `${appReq.url.pathname.replace(implicitRedirectRegex, "")}${appReq.url.hash ? `#${appReq.url.hash}` : ""}${appReq.url.searchString ? `?${appReq.url.searchString}` : ""}` || "/");
-        
-        res.status = EStatus.REDIRECT;
-
-        return res;
+        return redirectResponse(appReq.url.pathname.replace(implicitRedirectRegex, ""), res, appReq.url);
     }
 
     const isDynamic: boolean = (appReq.extension.length === 0);
     
-    isDynamic
-    && evalEntityInfo(req);
+    if(isDynamic) {
+        evalEntityInfo(req);
+
+        // Enforce www subdomain strategy (if defined)
+        const wwwStrategy: string = Config["project"].read("www").string;
+        if(wwwStrategy !== undefined) {
+            const hasWWWSubdomain: boolean = util.arrayify(retrieveEntityInfo().subdomain)[0] === "www";
+
+            if(hasWWWSubdomain && wwwStrategy === "no") {
+                return redirectResponse(`http${IS_SECURE ? "s" : ""}://${appReq.url.hostname.replace(/^www\./, "")}`, res, appReq.url);
+            }
+            if(!hasWWWSubdomain && wwwStrategy === "yes") {
+                console.log(`www.${appReq.url.hostname}${appReq.url.pathname}`)
+                return redirectResponse(`http${IS_SECURE ? "s" : ""}://www.${appReq.url.hostname}${appReq.url.pathname}`, res, appReq.url);
+            }
+        }
+    }
 
     // Handle type 2, 3 asset accordingly
     return richResponse(appReq, isDynamic

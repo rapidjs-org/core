@@ -7,8 +7,10 @@ import { dirname, join } from "path";
 
 import { Config, print } from "../../core/core";
 
+import { IPluginFeatureData, IPluginEndpointData } from "../interfaces";
+
 import * as commonInterface from "../api/api.common";
-import { TEndpointHandler } from "./types";
+import { TEndpointHandler, TRenderHandler } from "./types";
 
 
 // TODO: Refactor and optimize plug-in modularity
@@ -26,14 +28,15 @@ export const activePluginRegistry = new Map<string, {
 	integrateManually: boolean;
 	moduleDirPath: string;
 	muteEndpoints: boolean;
-	muteRendering: boolean;
-
+	muteRenders: boolean;
+	endpoints: Map<string, IPluginEndpointData>;
+	renders: {
+		static: IPluginFeatureData<TRenderHandler>[];
+		dynamic: IPluginFeatureData<TRenderHandler>[];
+	};	// s.a.
+	
 	clientModuleText?: string;
 	compoundOnly?: boolean;
-	endpoints?: Map<string, {
-		handler: TEndpointHandler;
-		cacheable: boolean;
-	}>
 }>();
 
 
@@ -107,7 +110,12 @@ export function registerPlugin(name: string, modulePath, options) {
 		integrateManually: !!options.integrateManually,
 		moduleDirPath: dirname(modulePath),
 		muteEndpoints: !!options.muteEndpoints,	// TODO: Reconsider
-		muteRendering: !!options.muteRendering,
+		muteRenders: !!options.muteRenders,
+		endpoints: new Map(),
+		renders: {
+			static: [],
+			dynamic: []
+		}
 	});
 	
 	evalPluginModule(name, modulePath);
@@ -172,7 +180,6 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 	// Register client module in order to be integrated into pages upon request
 	pluginObj.clientModuleText = `${modularClientScript[0]}${bareClientScript}${(bareClientScript.slice(-1) != ";") ? ";" : ""}${modularClientScript[1]}`;
 	pluginObj.compoundOnly = compoundOnly;
-	pluginObj.endpoints = new Map();
 
 	activePluginRegistry.set(associatedPluginName, pluginObj);
 	

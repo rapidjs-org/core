@@ -11,6 +11,7 @@ import { VFS } from "../VFS";
 import { substituteMark } from "../util";
 import { evalCompoundInfo, retrieveCompoundInfo } from "../entity";
 import { retrieveIntegrationPluginNames } from "../plugin/registry";
+import { activateRender } from "../plugin/render";
 
 import { EStatus } from "./EStatus";
 
@@ -67,15 +68,16 @@ export default function handleDynamic(pathname: string, res: IResponse): IRespon
 			: res.message;
 
 		// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
-		
-		// TODO: Write statically prepared dynamic file back to VFS for better performance?
-		VFS.modifyExistingFile(filePath, res.message);
-		
+
+		// Apply static renders (once, with writeback)
+		res.message = activateRender(res.message, true);
 	}
 	
-	// Rendering (individual request dependent)
-	// TODO: Implement
-	// TODO: Catch errors for error page response routine activation
+	// Write statically prepared dynamic file back to VFS for better performance (plug-in references and renders)
+	VFS.modifyExistingFile(filePath, res.message);
+
+	// Apply dynamic renders (for each request individually; possibly client individual)
+	res.message = activateRender(res.message, false);
 	
     return res;
 }

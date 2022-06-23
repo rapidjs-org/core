@@ -29,6 +29,7 @@ export * from "./config/Config"
 export * from "./a:cluster/b:worker/HeadersMap";    // TODO: Expose? Or demand use of provided res object?
 export * from "./a:cluster/b:worker/LimitDictionary";
 export * from "./a:cluster/b:worker/Cache";
+export * from "./a:cluster/IS_SECURE";
 
 export * as util from "./util";
 
