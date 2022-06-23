@@ -9,7 +9,7 @@
 
 export { bindClientModule as clientModule } from "../plugin/registry";
 export { defineEndpoint as endpoint } from "../plugin/endpoint";
-export { defineRenderer as render } from "../plugin/render";
+export { defineRender as render } from "../plugin/render";
 
 
 /* export function readPageFile(associatedPluginName: string, name: string): string {

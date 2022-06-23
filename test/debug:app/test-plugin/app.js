@@ -34,7 +34,7 @@ $this.endpoint((body) => {
 });
 
 $this.endpoint((_, req) => {
-    console.log(req.ip);
+    console.log(req);
 
     return `${retrieveName(names.first)} ${retrieveName(names.last)} (fixed: ${fixed})`;
 }, {

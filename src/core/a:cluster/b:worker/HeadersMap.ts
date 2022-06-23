@@ -6,12 +6,12 @@
  */
 
 
-export class HeadersMap extends Map<string, string|string[]> {
+export class HeadersMap extends Map<string, THeaderValue> {
 
 	/**
-	 * @param {Record<string, string|string[]>} [dictionaryRec] Single level key-value pair object for initial map derivation.
+	 * @param {Record<string, THeaderValue>} [dictionaryRec] Single level key-value pair object for initial map derivation.
 	 */
-	constructor(dictionaryRec?: Record<string, string|string[]>) {
+	constructor(dictionaryRec?: Record<string, THeaderValue>) {
 		super(Object.entries(dictionaryRec || {}));
 	}
 
@@ -36,9 +36,9 @@ export class HeadersMap extends Map<string, string|string[]> {
 	/**
 	 * Get a specific header value from the map if exists.
 	 * @param {string} name Header name
-	 * @returns {string|string[]} Respective header value
+	 * @returns {THeaderValue} Respective header value
 	 */
-	public get(name: string): string|string[] {
+	public get(name: string): THeaderValue {
 		return super.get(this.normalizeName(name));
 	}
 

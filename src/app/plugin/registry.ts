@@ -8,7 +8,7 @@ import { dirname, join } from "path";
 import { Config, print } from "../../core/core";
 
 import * as commonInterface from "../api/api.common";
-import { TEndpointHandler } from "./TEndpointHandler";
+import { TEndpointHandler } from "./types";
 
 
 // TODO: Refactor and optimize plug-in modularity

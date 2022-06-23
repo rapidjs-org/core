@@ -4,13 +4,13 @@
 
 
 export interface IEntityInfo {
-    auth: string;
+    auth: THeaderValue;
     cookies: Map<string, string>;
     ip: string;
     isCompound: boolean;
     pathname: string;
-    searchParams: URLSearchParams;
-    subdomain: string|string[];
+    searchParams: TObject;
+    subdomain: THeaderValue;
 }
 
 export interface ICompoundInfo {

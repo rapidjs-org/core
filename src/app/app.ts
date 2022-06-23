@@ -1,5 +1,5 @@
 /**
- * rapidJS (concrete) asset/app server application.
+ * rapidJS (concrete) asset / app server application.
  * 
  * @copyright (c) Thassilo Martin Schiepanski / t-ski@GitHub
  * 

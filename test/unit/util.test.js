@@ -1,6 +1,4 @@
-const { join } = require("path");
-
-const { mergeObj, absolutizePath } = require("../../debug/core/util");
+const { mergeObj } = require("../../debug/core/util");
 
 const mergeObjTest = new UnitTest("Object merge tests", mergeObj);
 
@@ -51,13 +49,16 @@ mergeObjTest
 });
 
 
-const { normalizeExtension } = require("../../debug/app/util");
+const { arrayify } = require("../../debug/core/util");
 
-const normalizeExtensionTest = new UnitTest("Normalize file extension tests", normalizeExtension);
+const arrayifyTest = new UnitTest("Arrayify value tests", arrayify);
 
-normalizeExtensionTest
-.conduct("Normalize file extension path")
-.check(".html")
-.for("html");
+arrayifyTest
+.conduct("Arrayify array")
+.check([1, 2])
+.for([1, 2]);
 
-// TODO: Complete
+arrayifyTest
+.conduct("Arrayify atomic number")
+.check(1)
+.for([1]);

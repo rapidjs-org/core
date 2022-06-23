@@ -1,14 +1,9 @@
-
-
-const rateLimiter = new (require("../../debug/core/a:cluster/b:worker/RateLimiter").RateLimiter)(2, 1000);
+/* const rateLimiter = new (require("../../debug/core/a:cluster/b:worker/RateLimiter").RateLimiter)(2, 1000);
 
 const rateLimiterTest = new UnitTest("Rate limiter tests", rateLimiter.exceeded);
 
-
 const IP_AUGMENT = "ip";
 
-
-// TODO: Re-implement once framework supports object property passing
 /* rateLimiterTest
 .conduct("Negatively check against rate limiter")
 .check(IP_AUGMENT).for(false);

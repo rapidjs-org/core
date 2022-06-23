@@ -8,7 +8,9 @@ import { IRequest, IResponse } from "../../core/core";
 
 import { IEndpointHandlerResult } from "../interfaces";
 import { evalEntityInfo } from "../entity";
-import { activateEndpoint } from "../plugin/registry";
+import { activateEndpoint } from "../plugin/endpoint";
+
+import { EStatus } from "./EStatus";
 
 
 interface IPluginPayload {
@@ -28,7 +30,13 @@ export default function(req: IRequest, res: IResponse): IResponse {
     evalEntityInfo(req);
 	
     const payload: IPluginPayload = req.body as unknown as IPluginPayload;
-	console.log(payload)
+	
+	if(!payload) {
+		res.status = EStatus.PRECONDITION_FAILED;
+
+		return res;
+	}
+
 	res.headers.set("Content-Type", "application/json");
 	
 	const handlerResult: IEndpointHandlerResult|number = activateEndpoint(payload.pluginName, payload.body, payload.endpointName);

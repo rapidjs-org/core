@@ -8,7 +8,7 @@ import { IEndpointHandlerResult } from "../interfaces";
 import { EStatus } from "../req/EStatus";
 import { retrieveEntityInfo } from "../entity";
 
-import { TEndpointHandler } from "./TEndpointHandler";
+import { TEndpointHandler } from "./types";
 import { activePluginRegistry } from "./registry";
 
 

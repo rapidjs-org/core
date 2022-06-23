@@ -1,5 +1,7 @@
 
-const cache = new (require("../../debug/core/a:cluster/b:worker/Cache").Cache)(500, key => {
+// TODO: Outsource and complete test framework
+
+/* const cache = new (require("../../debug/core/a:cluster/b:worker/Cache").Cache)(500, key => {
     return key.toLowerCase();
 });
 
@@ -8,8 +10,7 @@ const cacheReadTest = new UnitTest("Cache reading tests", cache.read);
 const PIVOT_KEY = "Key";
 const PIVOT_VALUE = "Value";
 
-// TODO: Re-implement once framework supports object property passing
-/* cacheReadTest
+cacheReadTest
 .conduct("Negatively check against cache entry existence")
 .check(PIVOT_KEY).for(false);
 

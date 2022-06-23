@@ -1,4 +1,11 @@
 
+import { TRenderHandler } from "./types";
+
+
+interface IRenderOptions {
+	cacheable?: boolean;
+}
+
 
 // TODO:
 // • Pre-render
@@ -6,6 +13,6 @@
 // • Cache render?
 // ... auto deduction???
 
-export function defineRenderer() {
-    
+export function defineRender(associatedPluginName: string, renderHandler: TRenderHandler, options: IRenderOptions = {}) {
+
 }

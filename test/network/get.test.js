@@ -21,7 +21,7 @@ getRequestTest
     status: 200,
     headers: {
         "server": "rapidJS",
-        "content-length": 547
+        "content-length": 550
     }
 });
 
@@ -74,7 +74,7 @@ getRequestTest
 .for({
     status: 301,
     headers: {
-        "location": "http://localhost/test/page"
+        "location": "/test/page"
     }
 });
 
@@ -84,7 +84,7 @@ getRequestTest
 .for({
     status: 301,
     headers: {
-        "location": "http://localhost/"
+        "location": "/"
     }
 });
 
@@ -94,7 +94,7 @@ getRequestTest
 .for({
     status: 301,
     headers: {
-        "location": "http://localhost/test/"
+        "location": "/test"
     }
 });
 

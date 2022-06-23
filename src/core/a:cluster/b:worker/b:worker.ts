@@ -62,7 +62,7 @@ const socketOptions: TObject = {
  * @param {string} compressionType Compression type to check for acceptance
  * @returns 
  */
- function checkCompressionAccepted(compressionHeader: string|string[], compressionType: string): string {
+ function checkCompressionAccepted(compressionHeader: THeaderValue, compressionType: string): string {
 	for(const header in arrayify(compressionHeader)) {
 		if(header.match(new RegExp(`(^|,)[ ]*${compressionType}[ ]*($|,)`, "i"))) {
 			return compressionType;
@@ -198,7 +198,7 @@ function parseRequestBody(oReq: http.IncomingMessage): Promise<TObject> {
 		}
 
 		// Construct thread-filtered request object
-		const headers: Record<string, string|string[]> = {};
+		const headers: Record<string, THeaderValue> = {};
 		boundHeadersFilter.forEach((name: string) => {
 			headers[name] = oReq.headers[name];
 		});
