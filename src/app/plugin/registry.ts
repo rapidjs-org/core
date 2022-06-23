@@ -5,59 +5,43 @@ import config from "../src.config.json";
 import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 
-import { Cache, Config, print } from "../../core/core";
+import { Config, print } from "../../core/core";
 
-import { IEndpointHandlerResult, IEntityInfo } from "../interfaces";
-import { EStatus } from "../req/EStatus";
-import { retrieveEntityInfo } from "../entity";
 import * as commonInterface from "../api/api.common";
+import { TEndpointHandler } from "./TEndpointHandler";
 
 
 // TODO: Refactor and optimize plug-in modularity
 
 
-type TEndpointHandler = (body: TObject, req: IEntityInfo) => unknown;
-
-interface IEndpointOptions {
-    name?: string;
-	useCache?: boolean;
-}
-
-
 const apiModulePath: string = require.resolve("../api/api.plugin");
 
-const endpointCache: Cache<unknown> = new Cache();
 
-const activePluginRegistry = {
-	dict: new Map<string, {
-        integrateManually: boolean;
-        moduleDirPath: string;
-		muteEndpoints: boolean;
-		muteRendering: boolean;
-
-        clientModuleText?: string;
-        compoundOnly?: boolean;
-		endpoints?: Map<string, {
-			handler: TEndpointHandler;
-			useCache: boolean;
-		}>;
-	}>(),
-	genericIntegrationList: {
-		any: new Set<string>(),
-		compoundOnly: new Set<string>()
-	}
+const genericIntegrationList = {
+	any: new Set<string>(),
+	compoundOnly: new Set<string>()
 };
 
+export const activePluginRegistry = new Map<string, {
+	integrateManually: boolean;
+	moduleDirPath: string;
+	muteEndpoints: boolean;
+	muteRendering: boolean;
 
-function unrequireModule(reference: string) {
-	if(require.cache[reference]) {
-		delete require.cache[reference];
-	}
-}
+	clientModuleText?: string;
+	compoundOnly?: boolean;
+	endpoints?: Map<string, {
+		handler: TEndpointHandler;
+		cacheable: boolean;
+	}>
+}>();
+
 
 function requirePluginModule(name: string, modulePath: string) {
 	// Empty module cache (for eventual re-evaluation; live behavior in DEV MODE)
-	unrequireModule(modulePath);
+	if(require.cache[modulePath]) {
+		delete require.cache[modulePath];
+	}
 
 	const Module = require("module");   // for runtime dynamic module wrapping
     
@@ -119,7 +103,7 @@ function evalPluginModule(name: string, modulePath: string) {
 
 
 export function registerPlugin(name: string, modulePath, options) {
-    activePluginRegistry.dict.set(name, {
+    activePluginRegistry.set(name, {
 		integrateManually: !!options.integrateManually,
 		moduleDirPath: dirname(modulePath),
 		muteEndpoints: !!options.muteEndpoints,	// TODO: Reconsider
@@ -134,19 +118,19 @@ export function reloadActivePlugin(name: string, modulePath: string) {
 }
 
 export function retireveClientModuleScript(pluginName: string): string {
-	return (activePluginRegistry.dict.get(pluginName) || {}).clientModuleText;
+	return (activePluginRegistry.get(pluginName) || {}).clientModuleText;
 }
 
 export function retrieveIntegrationPluginNames(isCompound: boolean): Set<string> {
 	return isCompound
-		? new Set([...activePluginRegistry.genericIntegrationList.any, ...activePluginRegistry.genericIntegrationList.compoundOnly])
-		: activePluginRegistry.genericIntegrationList.any;
+		? new Set([...genericIntegrationList.any, ...genericIntegrationList.compoundOnly])
+		: genericIntegrationList.any;
 }
 
 export function bindClientModule(associatedPluginName: string, relativePath: string, sharedProperties?: TObject, compoundOnly?: boolean) {
 	// TODO: Swap shared and compound argument as of usage frequency (keep backwards compatibility with type check augmented overload)
 
-	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
+	const pluginObj = activePluginRegistry.get(associatedPluginName);
 	
 	// Construct path to plugin client script file
 	const clientModuleFilePath: string = join(pluginObj.moduleDirPath, relativePath).replace(/(\.js)?$/, ".js");
@@ -190,69 +174,11 @@ export function bindClientModule(associatedPluginName: string, relativePath: str
 	pluginObj.compoundOnly = compoundOnly;
 	pluginObj.endpoints = new Map();
 
-	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
+	activePluginRegistry.set(associatedPluginName, pluginObj);
 	
 	// Manipulate generic integration set according to integration option
-	activePluginRegistry.genericIntegrationList
+	genericIntegrationList
 		.compoundOnly[(!pluginObj.integrateManually && compoundOnly) ? "add" : "delete"](associatedPluginName);
-	activePluginRegistry.genericIntegrationList
+	genericIntegrationList
 		.any[(!pluginObj.integrateManually && !compoundOnly) ? "add" : "delete"](associatedPluginName);
-}
-
-export function defineEndpoint(associatedPluginName: string, endpointHandler: TEndpointHandler, options: IEndpointOptions = {}) {
-	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
-
-	if(pluginObj.muteEndpoints) {
-		return;
-	}
-
-	if(!(endpointHandler instanceof Function) && typeof(endpointHandler) !== "function") {
-		throw new SyntaxError(`Given endpoint handler argument of type ${typeof(endpointHandler)}, expecting Function`);
-	}
-
-	pluginObj.endpoints.set(options.name || config.defaultEndpointName, {
-		handler: endpointHandler,
-		useCache: !!options.useCache
-	});
-
-	activePluginRegistry.dict.set(associatedPluginName, pluginObj);
-}
-
-export function activateEndpoint(associatedPluginName: string, requestBody?: TObject, endpointName?: string): IEndpointHandlerResult|number {
-	const pluginObj = activePluginRegistry.dict.get(associatedPluginName);
-	
-	if(!pluginObj) {
-		print.debug(`Endpoint request of undefined plug-in '${associatedPluginName}'`);
-
-		return EStatus.NOT_FOUND;
-	}
-
-	const endpoint = pluginObj.endpoints.get(endpointName || config.defaultEndpointName);
-
-	if(!endpoint) {
-		print.debug(`Undefined ${endpointName ? `'${endpointName}'` : "default"} endpoint request of plug-in '${associatedPluginName}'`);
-
-		return EStatus.NOT_FOUND;
-	}
-
-	const cacheKey = `${associatedPluginName}+${endpointName || ""}`;	// Plug-in / endpoint unique key due to name distinctive concatenation symbol
-
-	let handlerData: unknown;
-	if(endpoint.useCache
-	&& endpointCache.has(cacheKey)) {
-		return {
-			status: EStatus.SUCCESS,
-			data: endpointCache.read(cacheKey)
-		};
-	}
-	
-	handlerData = endpoint.handler(requestBody, retrieveEntityInfo());
-
-	endpoint.useCache
-	&& endpointCache.write(cacheKey, handlerData);
-
-	return {
-		status: EStatus.SUCCESS,
-		data: handlerData
-	};
 }

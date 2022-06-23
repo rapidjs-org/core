@@ -7,11 +7,10 @@
 // TODO: Implement
 
 
-export { bindClientModule as clientModule, defineEndpoint as endpoint } from "../plugin/registry";
+export { bindClientModule as clientModule } from "../plugin/registry";
+export { defineEndpoint as endpoint } from "../plugin/endpoint";
+export { defineRenderer as render } from "../plugin/render";
 
-export function render(associatedPluginName: string) {
-	// TODO: Implement? Move to plug-in context?
-}
 
 /* export function readPageFile(associatedPluginName: string, name: string): string {
 	return "";
