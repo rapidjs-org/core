@@ -3,7 +3,7 @@
  */
 
 
-import { Config } from "../../config/Config";
+import { Config } from "./config/Config";
 
 import { LimitDictionary } from "./LimitDictionary";
 

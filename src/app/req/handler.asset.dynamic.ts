@@ -45,40 +45,44 @@ export default function handleDynamic(pathname: string, res: IResponse): IRespon
 
     res.message = VFS.read(filePath);
 
-	// Perform implicit, static page modifications and write back to VFS to keep constant effort (once for each file identity)
-    let fileWasModified: boolean = VFS.wasModified(filePath);
-	if(!fileWasModified) {
-		// Ensure head tag exists for following injections
-		// TODO: Improve injection steps / routine
-		res.message = embedHead(res.message);
+	try {
+		// Perform implicit, static page modifications and write back to VFS to keep constant effort (once for each file identity)
+		let fileWasModified: boolean = VFS.wasModified(filePath);
+		if(!fileWasModified) {
+			// Ensure head tag exists for following injections
+			// TODO: Improve injection steps / routine
+			res.message = embedHead(res.message);
 
-		// Integrate plug-in reference accordingly	
-		const pluginIntegrationSequence = retrieveIntegrationPluginNames(!!compoundInfo);
-		// TODO: What about manually integrated compound only plug-ins? Allow for mutual usage?
-		res.message = injectPluginReferenceIntoMarkup(res.message, pluginIntegrationSequence);
+			// Integrate plug-in reference accordingly	
+			const pluginIntegrationSequence = retrieveIntegrationPluginNames(!!compoundInfo);
+			// TODO: What about manually integrated compound only plug-ins? Allow for mutual usage?
+			res.message = injectPluginReferenceIntoMarkup(res.message, pluginIntegrationSequence);
 
-		// Inject compound base tag (in order to keep relative references in markup alive)
-		res.message = compoundInfo
-			? injectCompoundBaseIntoMarkup(res.message, pathname.slice(0, -(compoundInfo.args.join("/").length)))
-			: res.message;
+			// Inject compound base tag (in order to keep relative references in markup alive)
+			res.message = compoundInfo
+				? injectCompoundBaseIntoMarkup(res.message, pathname.slice(0, -(compoundInfo.args.join("/").length)))
+				: res.message;
 
-		// Inject live ws client module script if environment is in DEV MODE
-		res.message = MODE.DEV
-			? injectLiveWsClientModuleIntoMarkup(res.message)
-			: res.message;
+			// Inject live ws client module script if environment is in DEV MODE
+			res.message = MODE.DEV
+				? injectLiveWsClientModuleIntoMarkup(res.message)
+				: res.message;
+			
+			// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
 
-		// TODO: Provide alternative way for manual plug-in integration (e.g. via @directive)?
+			// Apply static renders (once, with writeback)
+			res.message = activateRender(res.message, true);
+		}
+		
+		// Write statically prepared dynamic file back to VFS for better performance (plug-in references and renders)
+		VFS.modifyExistingFile(filePath, res.message);
 
-		// Apply static renders (once, with writeback)
-		res.message = activateRender(res.message, true);
+		// Apply dynamic renders (for each request individually; possibly client individual)
+		res.message = activateRender(res.message, false);
+	} catch(err) {
+		return handleDynamicError(pathname, res, err.status || 500);
 	}
-	
-	// Write statically prepared dynamic file back to VFS for better performance (plug-in references and renders)
-	VFS.modifyExistingFile(filePath, res.message);
 
-	// Apply dynamic renders (for each request individually; possibly client individual)
-	res.message = activateRender(res.message, false);
-	
     return res;
 }
 

@@ -18,11 +18,11 @@ import { Config } from "../../config/Config";
 import { mergeObj } from "../../util";
 import { MODE } from "../../MODE";
 
-import { IS_SECURE } from "../IS_SECURE";
+import { IS_SECURE } from "../../IS_SECURE";
 
 import { IContext, IResponse } from "./interfaces";
 import { EStatus } from "./EStatus";
-import { Cache } from"./Cache";
+import { Cache } from"../../Cache";
 import { HeadersMap } from "./HeadersMap";
 import { POOL_SIZE } from "./POOL_SIZE";
 
@@ -112,13 +112,8 @@ export async function respond(param: number|IResponse|unknown, resId: number = c
 	tRes.headers.set("Content-Length", Buffer.byteLength(tRes.message || "", "utf-8"));
 	
 	// Write modified cookies to header
-	/* const cookiesArray: string[] = [];
-	tRes.cookies.forEach((modCookie: IModCookie, name: string) => {
-		// TODO:  ; path=${}
-		cookiesArray.push(`${name}=${modCookie.value}; ${modCookie.maxAge ? `; Max-Age=${modCookie.maxAge}` : ""}${IS_SECURE ? "; SameSite=Strict; Secure; HttpOnly" : ""}`);
-	});
-	tRes.headers.set("Set-Cookie", cookiesArray.join()); */
-	
+	tRes.headers.set("Set-Cookie", tRes.cookies.stringify());
+
 	// Write headers to response
 	// Add optional and custom headers with process internal headers overrides
 	const finalHeadersObj: TObject = mergeObj({

@@ -10,6 +10,7 @@ import { parentPort, BroadcastChannel, workerData } from "worker_threads";
 import { arrayify } from "../../../util";
 
 import { IRequest, IResponse } from "../interfaces";
+import { CookiesMap } from "../CookiesMap";
 import { HeadersMap } from "../HeadersMap";
 import { BroadcastMessage } from "../../BroadcastMessage";
 
@@ -25,6 +26,7 @@ let boundPluginHandler: (...args: unknown[]) => void;
 parentPort.on("message", (tReq: IRequest) => {
     let tRes: IResponse = {
         cacheable: true,    // Use cache by default
+        cookies: new CookiesMap(),
         headers: new HeadersMap(),
         message: null,
         status: 200

@@ -23,7 +23,7 @@ export function projectNormalizePath(relativePath: string): string {
  * @param {Record} source Object 2 (overriding)
  * @returns {Record} Merged object.
  */
- export function mergeObj(...objs: TObject[]): TObject {
+export function mergeObj(...objs: TObject[]): TObject {
 	if(objs.length === 1) {
 		return objs[0];
 	}

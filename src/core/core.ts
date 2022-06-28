@@ -21,15 +21,12 @@ import { MODE } from "./MODE";
 // Pass through interface
 export * from "./argument"; // TODO: Needed?
 export * from "./print";
+export * from "./LimitDictionary";
+export * from "./Cache";
 export * from "./MODE";
 export * from "./PATH";
-
+export * from "./IS_SECURE";
 export * from "./config/Config"
-
-export * from "./a:cluster/b:worker/HeadersMap";    // TODO: Expose? Or demand use of provided res object?
-export * from "./a:cluster/b:worker/LimitDictionary";
-export * from "./a:cluster/b:worker/Cache";
-export * from "./a:cluster/IS_SECURE";
 
 export * as util from "./util";
 

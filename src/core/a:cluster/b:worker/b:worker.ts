@@ -14,7 +14,7 @@ import { Config } from "../../config/Config";
 import { print } from "../../print";
 import { arrayify, projectNormalizePath } from "../../util";
 
-import { IS_SECURE } from "../IS_SECURE";
+import { IS_SECURE } from "../../IS_SECURE";
 
 import { IRequest } from "./interfaces";
 import { EStatus } from "./EStatus";
@@ -200,11 +200,23 @@ function parseRequestBody(oReq: http.IncomingMessage): Promise<TObject> {
 		// Construct thread-filtered request object
 		const headers: Record<string, THeaderValue> = {};
 		boundHeadersFilter.forEach((name: string) => {
-			headers[name] = oReq.headers[name];
+			headers[name] = oReq.headers[name.toLowerCase()];
+		});
+
+		// Parse cookies
+		const cookies: Map<string, string> = new Map();
+		arrayify(oReq.headers["cookie"]).forEach((cookie: string) => {
+			cookie.split(";")
+			.filter(cookie => (cookie.length > 0))
+			.forEach(cookie => {
+				const parts = cookie.split("=");
+				cookies.set(parts.shift().trim(), decodeURI(parts.join("=")));
+			});
 		});
 
 		const tReq: IRequest = {
 			ip: ip,
+			cookies: cookies,
 			headers: new HeadersMap(headers),
 			method: method,
 			url: {

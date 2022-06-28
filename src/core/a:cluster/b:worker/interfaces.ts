@@ -5,6 +5,7 @@
 
 import { ServerResponse } from "http";
 
+import { CookiesMap } from "./CookiesMap";
 import { HeadersMap } from "./HeadersMap";
 
 
@@ -18,6 +19,7 @@ export interface ISimpleURL {
 
 export interface IRequest {
     headers: HeadersMap;
+    cookies: Map<string, string>;
     ip: string;
     method: string;
     url: ISimpleURL;
@@ -27,6 +29,7 @@ export interface IRequest {
 
 export interface IResponse {
     cacheable?: boolean;
+    cookies?: CookiesMap;
     headers?: HeadersMap;
     message?: string|Buffer;
     status?: number;
@@ -38,5 +41,3 @@ export interface IContext {
 	oRes: ServerResponse;
     url: string;
 }
-
-// TODO: Cookies?

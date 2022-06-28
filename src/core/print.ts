@@ -13,9 +13,11 @@
 
 import config from "./src.config.json";
 
+import cluster from "cluster";
 import { EventEmitter } from "events";
 
 import { argument } from "./argument";
+import { MODE } from "./MODE";
 
 
 /**
@@ -61,7 +63,10 @@ class UniversalEventEmitter extends EventEmitter {
 
 
 const printEventEmitter = new UniversalEventEmitter();
-
+let lastPrimaryMessage: {
+	str: string;
+	count: number;
+} = null;
 
 /**
  * Write a message to the console.
@@ -71,31 +76,52 @@ const printEventEmitter = new UniversalEventEmitter();
  * @param {string} message Log message
  * @returns 
  */
-function write(message: string, channel: Channel, event: Event, omitAppPrefix: boolean = false) {
+function write(message: string, channel: Channel, event: Event, noFormatting: boolean = false) {
 	if(argument("mute", "M").parameter) {
 		// No output if application is muted
 		return;
 	}
-	
+
+	if(cluster.isPrimary && (channel === Channel.LOG)
+	&& (lastPrimaryMessage || {}).str === (message || "")) {
+		message = message
+		.replace(/\n$/, ` ${print.format(`(${++lastPrimaryMessage.count})`, [print.Format.FG_RED])}`);
+		
+		// Clear last line (for count update)
+		// TODO: How to detect console lines from outside (to keep it)
+		process.stdout.moveCursor(0, -1);
+  		process.stdout.clearLine(1);
+	} else {
+		lastPrimaryMessage = {
+			str: message,
+			count: 1
+		};
+
+		message = message.replace(/\n$/, "");
+	}
+	// Apply formatting (iff not disabled)
+	// Preprend message by application prefix
 	// Inherently highlight numbers
-	message = message
-		.replace(/(^|((?!\x1b)(.)){3})([0-9]+)/g, `$1${print.format("$4", [
+	message = !noFormatting
+	? `${print.format(config.cliPrefix, [
+		print.Format.T_BOLD,
+		print.Format.T_DIM,
+		print.Format.T_ITALIC,
+		print.Format.BG_YELLOW
+	])} ${
+		message.replace(/(^|((?!\x1b)(.)){3})([0-9]+)/g, `$1${print.format("$4", [
 			print.Format.FG_CYAN
-		])}`);
+		])}`)
+	}`
+	: message;
 	// TODO: Extensive type based formatting?
 	
 	// Write message to std channel preprended by application prefix (if not omitted)
-	console[channel](`${!omitAppPrefix
-		? `${print.format(config.cliPrefix, [
-			print.Format.T_BOLD,
-			print.Format.T_DIM,
-			print.Format.T_ITALIC,
-			print.Format.BG_YELLOW
-		])} `
-		: ""}${message}`);
+	process[`std${(channel === Channel.LOG) ? "out" : "err"}`].write(`${message}\n`);
 	
 	// Emit respective log event (always also triggers the universal event)
-	printEventEmitter.emit(event, message.replace(/\x1b\[(;?[0-9]{1,3})+m/g, ""));	// TODO: Bubble up manually from threads in order to serve one interface
+	cluster.isPrimary
+	&& printEventEmitter.emit(event, message.replace(/\x1b\[(;?[0-9]{1,3})+m/g, "")); // Bubble up manually from threads in order to serve one interface
 }
 
 
@@ -113,7 +139,7 @@ export namespace print {
 		T_ITALIC = 3,
 
 		FG_GRAY = 90,
-		FG_RED = 91,
+		FG_RED = "38;2;255;90;90",
 		FG_YELLOW = "38;2;250;245;150",
 		FG_CYAN = 96,
 		
@@ -133,31 +159,35 @@ export namespace print {
 	/**
 	 * Print info message to console.
 	 * @param {string} message Info message
-	 * @param {boolean} [omitAppPrefix] Whether to omit the application log prefix
+	 * @param {boolean} [noFormatting] Whether to omit the application log prefix
 	 */
-	export function info(message: string, omitAppPrefix?: boolean) {
+	export function info(message: string, noFormatting?: boolean) {
 		// TODO: Message type cumulation argument? Ass bottom margin after type groups?
-		write(message, Channel.LOG, Event.INFO, omitAppPrefix);
+		write(message, Channel.LOG, Event.INFO, noFormatting);
 	}
 
 	/**
 	 * Print debug message to console.
 	 * @param {string} message Debug message
-	 * @param {boolean} [omitAppPrefix] Whether to omit the application log prefix
+	 * @param {boolean} [noFormatting] Whether to omit the application log prefix
 	 */
-	export function debug(message: string, omitAppPrefix?: boolean) {
-		write(message, Channel.LOG, Event.DEBUG, omitAppPrefix);
+	export function debug(message: string, noFormatting?: boolean) {
+		if(!MODE.DEV) {
+			return;
+		}
+		
+		write(message, Channel.LOG, Event.DEBUG, noFormatting);
 	}
 
 	/**
 	 * Print error message to console. Output types differ based on given error entity type.
 	 * @param {Error|string} errEntity Error entity (typed either error object or message)
-	 * @param {boolean} [omitAppPrefix] Whether to omit the application log prefix
+	 * @param {boolean} [noFormatting] Whether to omit the application log prefix
 	 */
-	export function error(errEntity: Error|string, omitAppPrefix?: boolean) {
+	export function error(errEntity: Error|string, noFormatting?: boolean) {
 		write(format((errEntity instanceof Error) ? errEntity.message : String(errEntity), [
 			Format.FG_RED
-		]), Channel.ERROR, Event.ERROR, omitAppPrefix);
+		]), Channel.ERROR, Event.ERROR, noFormatting);
 		
 		(errEntity instanceof Error) && console.log(format(errEntity.stack, [ Format.FG_GRAY ]));
 

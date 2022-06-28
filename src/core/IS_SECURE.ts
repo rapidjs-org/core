@@ -4,7 +4,7 @@
  */
 
 
-import { Config } from "../config/Config";
+import { Config } from "./config/Config";
 
 
 // Whether the server is maintaining a secure connection environment

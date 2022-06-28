@@ -53,7 +53,7 @@ export class Config {
     	// Retrieve custom config object (depending on mode)
     	const customConfigPath = projectNormalizePath(`${config.configFilePrefix}.${this.name}${suffix}.json`);
         
-		//unrequireModule(customConfigPath);
+		//unrequireModule(customConfigPath);	
 
     	return existsSync(customConfigPath)
     		? require(customConfigPath)

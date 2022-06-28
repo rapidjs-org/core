@@ -20,7 +20,7 @@ import { Config } from "../config/Config";
 import { AsyncMutex } from "./AsyncMutex";
 import { ErrorControl } from "./ErrorControl";
 import { BroadcastMessage, TBroadcastSignal } from "./BroadcastMessage";
-import { IS_SECURE } from "./IS_SECURE";
+import { IS_SECURE } from "../IS_SECURE";
 
 
 // TODO: IPC only plug-ins and ...?
@@ -80,10 +80,10 @@ function createWorker() {
 
 		// Pipe worker output to master (this context)
 		worker.process.stdout.on("data", (printData: string) => {
-			process.stdout.write(printData);
+			print.info(String(printData), true);
 		});
 		worker.process.stderr.on("data", (printData: string) => {
-			process.stderr.write(printData);
+			print.error(printData, true);
 		});
 	});
 }

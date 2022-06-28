@@ -22,7 +22,7 @@ export function defineRender(associatedPluginName: string, renderHandler: TRende
 	if(pluginObj.muteRenders) {
 		return;
 	}
-
+	
 	if(!(renderHandler instanceof Function) && typeof(renderHandler) !== "function") {
 		throw new SyntaxError(`Given render handler argument of type ${typeof(renderHandler)}, expecting Function`);
 	}
