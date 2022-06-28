@@ -81,7 +81,7 @@ function write(message: string, channel: Channel, event: Event, noFormatting: bo
 		// No output if application is muted
 		return;
 	}
-
+	
 	if(cluster.isPrimary && (channel === Channel.LOG)
 	&& (lastPrimaryMessage || {}).str === (message || "")) {
 		message = message
@@ -99,6 +99,7 @@ function write(message: string, channel: Channel, event: Event, noFormatting: bo
 
 		message = message.replace(/\n$/, "");
 	}
+
 	// Apply formatting (iff not disabled)
 	// Preprend message by application prefix
 	// Inherently highlight numbers
@@ -109,11 +110,12 @@ function write(message: string, channel: Channel, event: Event, noFormatting: bo
 		print.Format.T_ITALIC,
 		print.Format.BG_YELLOW
 	])} ${
-		message.replace(/(^|((?!\x1b)(.)){3})([0-9]+)/g, `$1${print.format("$4", [
+		message.replace(/(^|[ ,.:])([0-9]+)([ ,.]|$)/g, `$1${print.format("$2", [
 			print.Format.FG_CYAN
 		])}`)
 	}`
 	: message;
+	
 	// TODO: Extensive type based formatting?
 	
 	// Write message to std channel preprended by application prefix (if not omitted)
