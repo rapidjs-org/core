@@ -16,7 +16,7 @@ import { arrayify, projectNormalizePath } from "../../util";
 
 import { IS_SECURE } from "../../IS_SECURE";
 
-import { IRequest } from "./interfaces";
+import { IRequest } from "../../interfaces";
 import { EStatus } from "./EStatus";
 import { HeadersMap } from"./HeadersMap";
 import { RateLimiter } from "./RateLimiter";
@@ -180,7 +180,7 @@ function parseRequestBody(oReq: http.IncomingMessage): Promise<TObject> {
 			return;
 		}
 		
-		const ip: string = arrayify(oReq.headers["x-forwarded-for"])[0] || oReq.connection.remoteAddress;
+		const ip: string = (arrayify(oReq.headers["x-forwarded-for"])[0] as string) || oReq.connection.remoteAddress;
 
 		// Rate (request limit) exceeded
 		if(rateLimiter.validateClient(ip)) {

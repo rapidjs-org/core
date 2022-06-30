@@ -14,15 +14,16 @@ import { arrayify } from "../../util";
 
 import { AsyncMutex } from "../AsyncMutex";
 
-import { IRequest, IResponse } from "./interfaces";
+import { IRequest, IResponse } from "../../interfaces";
 import { EStatus } from"./EStatus";
 import { BroadcastMessage } from "../BroadcastMessage";
 import { respond } from"./response";
 import { bindHeadersFilter } from "./b:worker";
-import { POOL_SIZE } from "./POOL_SIZE";
+import { POOL_SIZE } from "../POOL_SIZE";
 
 
 // TODO: Dynamic thread pool size strategy (burst times, ...)
+// TODO: Print inform thread pool soze adaptions
 
 
 interface IPendingReq {
@@ -64,8 +65,6 @@ function createThread() {
 			argv: process.argv.slice(2),	// Pass through CLI arguments
 			workerData: BroadcastMessage.history	// Provide new thread with IPC history to replicate state
 		});
-		
-		//thread.on("online", resolve);	// Insufficient for listening for complete thread module evaluation
 		
 		// Response listener (message provision)
 		thread.on("message", () => {
@@ -187,13 +186,13 @@ export function activateThread(tReq: IRequest, resId: number) {
  * @returns {boolean} Whether the message has been addressed to a worker
  */
  function handleBroadcast(broadcastMessage: BroadcastMessage|BroadcastMessage[]): boolean {
-	broadcastMessage = arrayify(broadcastMessage);
+	const broadcastMessageArray = arrayify(broadcastMessage) as BroadcastMessage[];
 
-	if(broadcastMessage.length === 0) {
+	if(broadcastMessageArray.length === 0) {
 		return true;
 	}
 
-    for(const message of broadcastMessage) {
+    for(const message of broadcastMessageArray) {
         switch(message.signal) {
             case "bindWorker":
 				// Initialize worker functionality given an array of header names to

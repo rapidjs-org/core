@@ -9,12 +9,12 @@ import { parentPort, BroadcastChannel, workerData } from "worker_threads";
 
 import { arrayify } from "../../../util";
 
-import { IRequest, IResponse } from "../interfaces";
+import { IRequest, IResponse } from "../../../interfaces";
 import { CookiesMap } from "../CookiesMap";
 import { HeadersMap } from "../HeadersMap";
 import { BroadcastMessage } from "../../BroadcastMessage";
 
-import { MutualError } from "./MutualErrors";
+import { MutualError } from "../../../MutualErrors";
 
 
 const broadcastChannel: BroadcastChannel = new BroadcastChannel(config.threadsBroadcastChannelName);
@@ -42,7 +42,7 @@ parentPort.on("message", (tReq: IRequest) => {
         tRes.message = err.message;
         tRes.status = err.status;
     }
-    
+        
     parentPort.postMessage(tRes);
 });
 

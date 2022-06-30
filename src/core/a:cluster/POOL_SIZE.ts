@@ -5,7 +5,7 @@
 
 import { cpus } from "os";
 
-import { MODE } from "../../MODE";
+import { MODE } from "../MODE";
 
 
  // Pool size calculation (1 in DEV MODE, |CPUS| - 1 in PROD MODE)

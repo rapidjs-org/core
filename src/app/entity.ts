@@ -14,19 +14,48 @@ import { IEntityInfo, ICompoundInfo } from "./interfaces";
 import { VFS } from "./VFS";
 
 
+interface IParsedLocale {
+	country?: string;
+	language?: string;
+	updatedSequence?: string;
+}
+
+
 // Store currently effective entity information (thread activation singleton)
 let effectiveCompoundInfo: ICompoundInfo;
 let effectiveEntity: IEntityInfo;
 
 
 // TODO: Always fetch generic single part TLD and only match multi part TLDs against existence in map
-
 const registeredMostSignificantParts: string[] = [];
 registeredMostSignificantParts.push("localhost");
 
 // Known subdomain patterns for instant look up
 const knownSubdomainPatterns: Map<string, THeaderValue> = new Map();
 
+function parseLocale(sequence: string): IParsedLocale {
+    // Match locale information to update internal URL representation
+    // TODO: Implement
+
+	const match: string[] = sequence.match(/^(([a-z]{2})(\-([A-Z]{2}))?|([A-Z]{2}))/);
+	
+	if(!match) {
+		return;
+	}
+
+	const country: string = match[4] || match[5];
+	const language: string = match[2];
+	
+	//if(country && country) {	// TODO: How to code / config supported locale? (and defaults?)
+		return;
+	//}
+
+	return {
+		country,
+		language,
+		updatedSequence: sequence.slice(match[0].length)
+	}
+}
 
 // TODO: Improve runtime
 function parseSubdomain(hostname: string): THeaderValue {
@@ -134,7 +163,7 @@ function parseCompoundInfo(path: string, noTraversal: boolean = false) {
 				args: args
 			};	// TODO: Expose compound page info to user? Provide plug-in specific directory from project root?
 		}
-
+		
 		if(noTraversal) {
 			return undefined;
 		}
@@ -155,11 +184,17 @@ export function evalCompoundInfo(path: string, noTraversal?: boolean) {
 export function evalEntityInfo(req: IRequest) {
 	evalCompoundInfo(req.url.pathname);
 
+	const parsedLocale: IParsedLocale = parseLocale(req.url.pathname) || {};	// TODO: Subdomain
+
     effectiveEntity = {
         auth: req.headers.get("Authorization"),
-        cookies: null,
+        cookies: null,	// TODO: Allow for manipulation
         ip: req.ip,
-        pathname: req.url.pathname,
+		locale: {
+			country: parsedLocale.country,
+			language: parsedLocale.language
+	 	},
+        pathname: parsedLocale.updatedSequence || req.url.pathname,	// TODO: Only if not from subdomain
         searchParams: req.url.searchParams,
         subdomain: parseSubdomain(req.url.hostname),
         isCompound: !!retrieveCompoundInfo()

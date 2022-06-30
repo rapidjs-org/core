@@ -59,8 +59,10 @@ export function mergeObj(...objs: TObject[]): TObject {
  * @param {*} value Value to arrayify
  * @returns {*[]} Arrayified value
  */
-export function arrayify(value: unknown|unknown[]) {
+export function arrayify(value: unknown|unknown[]): unknown[] {
 	return !Array.isArray(value)
-	? [value]
+	? (value
+		? [value]
+		: [])
 	: value;
 }

@@ -5,8 +5,8 @@
 
 import { ServerResponse } from "http";
 
-import { CookiesMap } from "./CookiesMap";
-import { HeadersMap } from "./HeadersMap";
+import { CookiesMap } from "./a:cluster/b:worker/CookiesMap";
+import { HeadersMap } from "./a:cluster/b:worker/HeadersMap";
 
 
 export interface ISimpleURL {

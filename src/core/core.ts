@@ -30,8 +30,8 @@ export * from "./config/Config"
 
 export * as util from "./util";
 
-export { IRequest, IResponse } from "./a:cluster/b:worker/interfaces";
-export { MutualClientError, MutualServerError } from "./a:cluster/b:worker/c:thread/MutualErrors";
+export { IRequest, IResponse } from "./interfaces";
+export { MutualClientError, MutualServerError } from "./MutualErrors";
 
 
 // Request/response processor bind interface
@@ -81,3 +81,6 @@ Config["project"].read("directory", "log").string
         };
     });
 });
+
+
+process.on("uncaughtException", _ => {});   // TODO: Why throws error in print.error()?

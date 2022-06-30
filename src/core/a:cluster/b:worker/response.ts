@@ -15,16 +15,17 @@ import { gzipSync, deflateSync } from "zlib";
 import { ServerResponse, STATUS_CODES } from "http";
 
 import { Config } from "../../config/Config";
+import { Cache } from"../../Cache";
 import { mergeObj } from "../../util";
 import { MODE } from "../../MODE";
-
 import { IS_SECURE } from "../../IS_SECURE";
 
-import { IContext, IResponse } from "./interfaces";
+import { POOL_SIZE } from "../POOL_SIZE";
+
+import { IContext, IResponse } from "../../interfaces";
 import { EStatus } from "./EStatus";
-import { Cache } from"../../Cache";
+import { CookiesMap } from "./CookiesMap";
 import { HeadersMap } from "./HeadersMap";
-import { POOL_SIZE } from "./POOL_SIZE";
 
 
 interface IOpenRes {
@@ -110,10 +111,10 @@ export async function respond(param: number|IResponse|unknown, resId: number = c
 	: tRes.message;
 
 	tRes.headers.set("Content-Length", Buffer.byteLength(tRes.message || "", "utf-8"));
-	
-	// Write modified cookies to header
-	tRes.headers.set("Set-Cookie", tRes.cookies.stringify());
 
+	// Write modified cookies to header
+	tRes.headers.set("Set-Cookie", CookiesMap.from(tRes.cookies).stringify());	// Re-objectify cookies map (lost on IPC)
+	
 	// Write headers to response
 	// Add optional and custom headers with process internal headers overrides
 	const finalHeadersObj: TObject = mergeObj({

@@ -1,5 +1,5 @@
 /**
- * Reusable/module overlapping interface declarations.
+ * Reusable / module overlapping interface declarations.
  */
 
 import { TEndpointHandler } from "./plugin/types";
@@ -10,6 +10,10 @@ export interface IEntityInfo {
     cookies: Map<string, string>;
     ip: string;
     isCompound: boolean;
+    locale: {
+        country: string;
+        language: string;
+    }
     pathname: string;
     searchParams: TObject;
     subdomain: THeaderValue;

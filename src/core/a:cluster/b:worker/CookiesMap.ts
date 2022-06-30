@@ -15,7 +15,17 @@ interface ICookie {
 
 export class CookiesMap {
 
-	private readonly cookiesMap: Map<string, ICookie> = new Map();
+	public readonly cookiesMap: Map<string, ICookie>;
+
+	static from(obj: {
+		cookiesMap?: Map<string, ICookie>;
+	}) {
+		return new CookiesMap((obj.cookiesMap));
+	}
+	
+	constructor(cookiesMap?: Map<string, ICookie>) {
+		this.cookiesMap = cookiesMap || new Map();
+	}
 
 	/**
 	 * Set a cookie for response.

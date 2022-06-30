@@ -41,6 +41,7 @@ const implicitRedirectRegex: RegExp = new RegExp(`(\\/${config.indexPageName}(\\
 
 
 interface IAppRequest extends IRequest {
+
     extension?: string;
 }
 
@@ -105,7 +106,7 @@ function redirectResponse(location: string, res: IResponse, origUrl): IResponse 
  */
 export default function(req: IRequest, res: IResponse): IResponse {
     const appReq: IAppRequest = { ...req };
-
+    
     // Plug-in client module request
     if((new RegExp(`^${pluginReferenceSourceRegexStr}$`, "i")).test(appReq.url.pathname)) {
         appReq.extension = "js";
@@ -146,7 +147,7 @@ export default function(req: IRequest, res: IResponse): IResponse {
             }
         }
     }
-
+    
     // Handle type 2, 3 asset accordingly
     return richResponse(appReq, isDynamic
     ? handleDynamic(appReq.url.pathname, res)

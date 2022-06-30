@@ -8,10 +8,12 @@
  */
 
 
-// TODO: Repeated message (equal) combination (replace line with amount indicator)
+const config = {
+	...require("./src.config.json"),
 
-
-import config from "./src.config.json";
+	initialSingleMessageWindow: 1500,
+	repeatedMessageCumulationWindow: 5000
+};
 
 import cluster from "cluster";
 import { EventEmitter } from "events";
@@ -62,18 +64,27 @@ class UniversalEventEmitter extends EventEmitter {
 }
 
 
+let inInitialMessageWindow: boolean = true;
 const printEventEmitter = new UniversalEventEmitter();
 let lastPrimaryMessage: {
-	str: string;
 	count: number;
+	str: string;
+	time?: number;
 } = null;
+
+
+setTimeout(() => {
+	inInitialMessageWindow = false;
+}, config.initialSingleMessageWindow);
+
 
 /**
  * Write a message to the console.
  * Eemit a respective event and optionally write to log file.
+ * @param {string} message Log message
  * @param {Channel} channel Log channel
  * @param {Event} event Log event
- * @param {string} message Log message
+ * @param {boolean} [noFormatting] Whether to not format the output (no app prefix and highlighting)
  * @returns 
  */
 function write(message: string, channel: Channel, event: Event, noFormatting: boolean = false) {
@@ -82,24 +93,32 @@ function write(message: string, channel: Channel, event: Event, noFormatting: bo
 		return;
 	}
 	
-	if(cluster.isPrimary && (channel === Channel.LOG)
-	&& (lastPrimaryMessage || {}).str === (message || "")) {
+	// Identical message cumulation
+	if(cluster.isPrimary && (channel === Channel.LOG) && lastPrimaryMessage
+	&& lastPrimaryMessage.str === (message || "")
+	&& (Date.now() - config.repeatedMessageCumulationWindow) <= lastPrimaryMessage.time) {
+		// No cumulative messages in initialization window (assuming uniform threads initialization logs)
+		if(inInitialMessageWindow) {
+			return;
+		}
+
 		message = message
 		.replace(/\n$/, ` ${print.format(`(${++lastPrimaryMessage.count})`, [print.Format.FG_RED])}`);
-		
+
 		// Clear last line (for count update)
 		// TODO: How to detect console lines from outside (to keep it)
 		process.stdout.moveCursor(0, -1);
   		process.stdout.clearLine(1);
 	} else {
 		lastPrimaryMessage = {
-			str: message,
-			count: 1
+			count: 1,
+			str: message
 		};
 
 		message = message.replace(/\n$/, "");
 	}
-
+	lastPrimaryMessage.time = Date.now();
+	
 	// Apply formatting (iff not disabled)
 	// Preprend message by application prefix
 	// Inherently highlight numbers
@@ -112,7 +131,7 @@ function write(message: string, channel: Channel, event: Event, noFormatting: bo
 	])} ${
 		message.replace(/(^|[ ,.:])([0-9]+)([ ,.]|$)/g, `$1${print.format("$2", [
 			print.Format.FG_CYAN
-		])}`)
+		])}$3`)
 	}`
 	: message;
 	
@@ -163,8 +182,7 @@ export namespace print {
 	 * @param {string} message Info message
 	 * @param {boolean} [noFormatting] Whether to omit the application log prefix
 	 */
-	export function info(message: string, noFormatting?: boolean) {
-		// TODO: Message type cumulation argument? Ass bottom margin after type groups?
+	export function info(message: string, noFormatting?: boolean) {	// Core interface without last arg (useless)
 		write(message, Channel.LOG, Event.INFO, noFormatting);
 	}
 

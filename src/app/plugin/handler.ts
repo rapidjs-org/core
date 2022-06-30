@@ -61,7 +61,7 @@ export default function(reference: string, options: IPluginOptions = {}) {
             modulePath
         } as IPassivePlugin);
     }, true, `Plug-in: ${name}`); */
-
+    
     // TODO: Connection message
     print.info(`↴ Plug-in '${name}'`);
 }

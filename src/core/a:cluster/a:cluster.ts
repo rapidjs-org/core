@@ -15,12 +15,14 @@ import { cpus } from "os";
 import { join, dirname } from "path";
 
 import { print } from "../print";
-
 import { Config } from "../config/Config";
+import { IS_SECURE } from "../IS_SECURE";
+import { MODE } from "../MODE";
+
 import { AsyncMutex } from "./AsyncMutex";
 import { ErrorControl } from "./ErrorControl";
 import { BroadcastMessage, TBroadcastSignal } from "./BroadcastMessage";
-import { IS_SECURE } from "../IS_SECURE";
+import { POOL_SIZE } from "./POOL_SIZE";
 
 
 // TODO: IPC only plug-ins and ...?
@@ -58,6 +60,10 @@ function createWorker() {
 			print.info(`HTTP${IS_SECURE ? "s" : ""} server cluster started listening on port ${Config["project"].read("port", `http${IS_SECURE ? "s" : ""}`).number}`);
 			IS_SECURE
 			&& print.info(`HTTP to HTTPS redirection enabled (:${Config["project"].read("port", "http").number} -> :${Config["project"].read("port", "https").number})`);
+			if(!MODE.DEV) {
+				print.info(`Initialized ${clusterSize} cluster processes`);
+				print.info(`Request processing thread pool size per cluster process: ${POOL_SIZE}`);
+			}
 
 			worker.removeAllListeners("listening");
 		});
@@ -65,25 +71,16 @@ function createWorker() {
 		// Provide new worker with IPC history to replicate state
 		worker.send(BroadcastMessage.history);
 
-		/* worker.on("message", message => {
-			if(message === 1) {
-				cluster.removeAllListeners("exit");
-
-				// Worker requested termination
-				for(const workerProcess of Object.entries(cluster.workers)) {
-					workerProcess[1].kill();
-				}
-
-				process.exit(1);
-			}
-		}); */
-
 		// Pipe worker output to master (this context)
 		worker.process.stdout.on("data", (printData: string) => {
-			print.info(String(printData), true);
+			print.info(String(printData), {
+				noFormatting: true
+			});
 		});
 		worker.process.stderr.on("data", (printData: string) => {
-			print.error(printData, true);
+			print.error(printData, {
+				noFormatting: true
+			});
 		});
 	});
 }

@@ -10,7 +10,7 @@ import { Config, print } from "../../core/core";
 import { IPluginFeatureData, IPluginEndpointData } from "../interfaces";
 
 import * as commonInterface from "../api/api.common";
-import { TEndpointHandler, TRenderHandler } from "./types";
+import { TRenderHandler } from "./types";
 
 
 // TODO: Refactor and optimize plug-in modularity
