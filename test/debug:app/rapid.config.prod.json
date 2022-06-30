@@ -3,13 +3,14 @@
     "customHeaders": {
         "Additional-Custom-Header": "test"
     },
-    "locale": [
-        "en",
-        {
-            "language": "de",
-            "countries": ["GB", "DE"]
+    "locale": {
+        "defaultStrategy": "implicit",
+        "useSubdomain": false,
+        "supported": {
+            "en": [ "GB", "US" ],
+            "de": "any"
         }
-    ],
+    },
     "limit": {
         "requestsPerMin": 0
     },

@@ -5,9 +5,13 @@
  */
 
 
-import config from "./src.config.json";
+const config = {
+	...require("./src.config.json"),
 
-import { IRequest } from "../core/core";
+	localeAnyValue: "any"
+};
+
+import { IRequest, Config, util } from "../core/core";
 
 import tlds from "./tlds.json";
 import { IEntityInfo, ICompoundInfo } from "./interfaces";
@@ -21,7 +25,19 @@ interface IParsedLocale {
 }
 
 
+const localeConfig = {
+	defaultStrategy: Config["project"].read("locale", "defaultStrategy").string,
+	supported: Config["project"].read("locale", "supported").object,
+	useSubdomain: Config["project"].read("locale", "useSubdomain").boolean
+};
+
 // Store currently effective entity information (thread activation singleton)
+let parsedInfo: {
+	subdomain: string|string[];
+	locale: IParsedLocale;
+	updatedPathname: string;
+
+};
 let effectiveCompoundInfo: ICompoundInfo;
 let effectiveEntity: IEntityInfo;
 
@@ -34,26 +50,48 @@ registeredMostSignificantParts.push("localhost");
 const knownSubdomainPatterns: Map<string, THeaderValue> = new Map();
 
 function parseLocale(sequence: string): IParsedLocale {
-    // Match locale information to update internal URL representation
-    // TODO: Implement
+	if(!sequence) {
+		return;
+	}
 
-	const match: string[] = sequence.match(/^(([a-z]{2})(\-([A-Z]{2}))?|([A-Z]{2}))/);
+	/**
+	 * Locale config:
+	 * "locale": {
+	 *     "defaultStrategy": { "implicit", "redirect", "none" },
+	 *     "supported": {
+	 *         "en": [ "GB", "US" ],
+	 *         "de": "any"
+	 *     },
+	 *     "useSubdomain": boolean,
+	 * 	   >> "pattern": ...?
+	 * }
+	 */
+
+    // Match locale information to update internal URL representation
+	const match: string[] = sequence.match(/^\/((([a-z]{2})(\-([A-Z]{2})?))|([A-Z]{2}))\//);
 	
 	if(!match) {
 		return;
 	}
 
-	const country: string = match[4] || match[5];
-	const language: string = match[2];
-	
-	//if(country && country) {	// TODO: How to code / config supported locale? (and defaults?)
+	const country: string = match[5] || match[6];
+	const language: string = match[3];
+
+	if(language && !Array.isArray(localeConfig.supported[language])) {
 		return;
-	//}
+	}
+	if(country && !localeConfig.supported[!language
+	? config.localeAnyValue
+	: language].includes(country)) {
+		return;
+	}
+
+	// TODO: Default strategy (with redirect)
 
 	return {
 		country,
 		language,
-		updatedSequence: sequence.slice(match[0].length)
+		updatedSequence: sequence.slice(match[0].length - 1)
 	}
 }
 
@@ -177,6 +215,24 @@ function parseCompoundInfo(path: string, noTraversal: boolean = false) {
 }
 
 
+export function parseInfo(req: IRequest) {
+	const parsedSubdomain: string|string[] = localeConfig.useSubdomain
+	? parseSubdomain(req.url.hostname)
+	: null;
+	const parsedLocale: IParsedLocale = parseLocale(localeConfig.useSubdomain
+	? ((util.arrayify(parsedSubdomain) || []) as string[])[0]
+	: req.url.pathname) || {};
+	const updatedPathname: string = (!localeConfig.useSubdomain ? parsedLocale.updatedSequence : null) || req.url.pathname;
+
+	parsedInfo = {
+		locale: parsedLocale,
+		subdomain: parsedSubdomain,
+		updatedPathname: updatedPathname
+	};
+	
+	return updatedPathname;
+}
+
 export function evalCompoundInfo(path: string, noTraversal?: boolean) {
 	effectiveCompoundInfo = parseCompoundInfo(path, noTraversal);
 }
@@ -184,19 +240,17 @@ export function evalCompoundInfo(path: string, noTraversal?: boolean) {
 export function evalEntityInfo(req: IRequest) {
 	evalCompoundInfo(req.url.pathname);
 
-	const parsedLocale: IParsedLocale = parseLocale(req.url.pathname) || {};	// TODO: Subdomain
-
     effectiveEntity = {
         auth: req.headers.get("Authorization"),
         cookies: null,	// TODO: Allow for manipulation
         ip: req.ip,
 		locale: {
-			country: parsedLocale.country,
-			language: parsedLocale.language
+			country: parsedInfo.locale.country,
+			language: parsedInfo.locale.language
 	 	},
-        pathname: parsedLocale.updatedSequence || req.url.pathname,	// TODO: Only if not from subdomain
+        pathname: parsedInfo.updatedPathname,	// TODO: Only if not from subdomain
         searchParams: req.url.searchParams,
-        subdomain: parseSubdomain(req.url.hostname),
+        subdomain: parsedInfo.subdomain || parseSubdomain(req.url.hostname),
         isCompound: !!retrieveCompoundInfo()
     };
 }

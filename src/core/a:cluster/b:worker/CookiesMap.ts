@@ -53,7 +53,7 @@ export class CookiesMap {
 			cookiesArray.push(`${name}=${cookie.value}; ${cookie.maxAge ? `; Max-Age=${cookie.maxAge}` : ""}${IS_SECURE ? "; SameSite=Strict; Secure; HttpOnly" : ""}`);
 		});
 
-		return cookiesArray.join();
+		return (cookiesArray.length > 0) ? cookiesArray.join() : null;
 	}
 	
 }

@@ -83,4 +83,4 @@ Config["project"].read("directory", "log").string
 });
 
 
-process.on("uncaughtException", _ => {});   // TODO: Why throws error in print.error()?
+//process.on("uncaughtException", _ => {});   // TODO: Why throws error in print.error()?

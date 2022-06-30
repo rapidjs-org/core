@@ -5,6 +5,8 @@
 
 import { IRequest, IResponse } from "../../core/core";
 
+import { parseInfo } from "../entity";
+
 import { EStatus } from "./EStatus";
 
 import assetHandler from "./handler.asset";
@@ -24,6 +26,8 @@ export default function(req: IRequest, res: IResponse): IResponse {
         
         return res;
     }
+    
+    req.url.pathname = parseInfo(req);
     
     switch(req.method) {
         case "GET":

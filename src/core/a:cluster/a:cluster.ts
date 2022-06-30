@@ -73,14 +73,10 @@ function createWorker() {
 
 		// Pipe worker output to master (this context)
 		worker.process.stdout.on("data", (printData: string) => {
-			print.info(String(printData), {
-				noFormatting: true
-			});
+			print.info(String(printData), true);
 		});
 		worker.process.stderr.on("data", (printData: string) => {
-			print.error(printData, {
-				noFormatting: true
-			});
+			print.error(printData, true);
 		});
 	});
 }

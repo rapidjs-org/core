@@ -30,14 +30,18 @@ export class Config {
     constructor(name: string, alias?: string, defaultConfig?: TObject) {
     	this.name = name;
 
-    	Object.keys(MODE)
+    	[""]	// Shared / common config
+		.concat(Object.keys(MODE)
 		.filter((name: string) => {
 			return (MODE[name] === true);
 		})
+		.map((name: string) => {
+			return `.${name}`;
+		}))
 		.forEach((name: string) => {
-    		this.configObj = mergeObj(this.configObj, this.readFile(`.${name}`));
+			this.configObj = mergeObj(this.configObj, this.readFile(name));
     	});
-
+		
 		this.mergeInDefault(defaultConfig);
 
 		// Create static property for each config object for project wide access

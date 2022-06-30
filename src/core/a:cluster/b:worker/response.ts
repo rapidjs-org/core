@@ -113,7 +113,8 @@ export async function respond(param: number|IResponse|unknown, resId: number = c
 	tRes.headers.set("Content-Length", Buffer.byteLength(tRes.message || "", "utf-8"));
 
 	// Write modified cookies to header
-	tRes.headers.set("Set-Cookie", CookiesMap.from(tRes.cookies).stringify());	// Re-objectify cookies map (lost on IPC)
+	const cookieString: string = CookiesMap.from(tRes.cookies).stringify();
+	cookieString && tRes.headers.set("Set-Cookie", cookieString);	// Re-objectify cookies map (lost on IPC)
 	
 	// Write headers to response
 	// Add optional and custom headers with process internal headers overrides

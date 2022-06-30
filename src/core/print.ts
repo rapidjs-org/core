@@ -11,7 +11,7 @@
 const config = {
 	...require("./src.config.json"),
 
-	initialSingleMessageWindow: 1500,
+	initialSingleMessageWindow: 2500,
 	repeatedMessageCumulationWindow: 5000
 };
 

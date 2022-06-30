@@ -58,6 +58,9 @@ interface IAppRequest extends IRequest {
     .digest("hex");
 }
 
+// TODO: Cross origin option
+// res.headers.set("Access-Control-Allow-Origin", "*"); ...
+
 
 /**
  * Enrich a thread response object asset generically.
@@ -81,7 +84,7 @@ function richResponse(req: IAppRequest, res: IResponse): IResponse {
 
 		return res;
 	}
-	
+
 	const mime: string = Config["project"].read("mimes", req.extension || config.dynamicFileExtension).string;
 	if(mime) {
 		res.headers.set("Content-Type", mime);
@@ -142,7 +145,6 @@ export default function(req: IRequest, res: IResponse): IResponse {
                 return redirectResponse(`http${IS_SECURE ? "s" : ""}://${appReq.url.hostname.replace(/^www\./, "")}`, res, appReq.url);
             }
             if(!hasWWWSubdomain && wwwStrategy === "yes") {
-                console.log(`www.${appReq.url.hostname}${appReq.url.pathname}`)
                 return redirectResponse(`http${IS_SECURE ? "s" : ""}://www.${appReq.url.hostname}${appReq.url.pathname}`, res, appReq.url);
             }
         }
