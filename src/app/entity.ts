@@ -8,7 +8,10 @@
 const config = {
 	...require("./src.config.json"),
 
-	localeAnyValue: "any"
+	localeAnyValue: "any",
+	localeDefaultStrategyImplicit: "implicit",
+	localeDefaultStrategyNone: "none",
+	localeDefaultStrategyRedirect: "redirect"
 };
 
 import { IRequest, Config, util } from "../core/core";
@@ -37,6 +40,7 @@ let parsedInfo: {
 	locale: IParsedLocale;
 	updatedPathname: string;
 
+	redirectLocaleUrl?: string;
 };
 let effectiveCompoundInfo: ICompoundInfo;
 let effectiveEntity: IEntityInfo;
@@ -49,13 +53,15 @@ registeredMostSignificantParts.push("localhost");
 // Known subdomain patterns for instant look up
 const knownSubdomainPatterns: Map<string, THeaderValue> = new Map();
 
-function parseLocale(sequence: string): IParsedLocale {
-	if(!sequence) {
+function parseLocale(sequence: string = ""): IParsedLocale {
+	// Locale disabled (not configured) 
+	if(!localeConfig.supported) {
 		return;
 	}
 
 	/**
 	 * Locale config:
+	 * 
 	 * "locale": {
 	 *     "defaultStrategy": { "implicit", "redirect", "none" },
 	 *     "supported": {
@@ -65,6 +71,8 @@ function parseLocale(sequence: string): IParsedLocale {
 	 *     "useSubdomain": boolean,
 	 * 	   >> "pattern": ...?
 	 * }
+	 * 
+	 * See module config obj for actual values.
 	 */
 
     // Match locale information to update internal URL representation
@@ -77,16 +85,23 @@ function parseLocale(sequence: string): IParsedLocale {
 	const country: string = match[5] || match[6];
 	const language: string = match[3];
 
-	if(language && !Array.isArray(localeConfig.supported[language])) {
-		return;
-	}
-	if(country && !localeConfig.supported[!language
+	// No valid locale coding found
+	if(language && !Array.isArray(localeConfig.supported[language])
+	|| country && !localeConfig.supported[!language
 	? config.localeAnyValue
 	: language].includes(country)) {
+		// Default strategy
+		switch(localeConfig.defaultStrategy) {
+			case config.localeDefaultStrategyNone:
+				
+				break;
+		}
+
 		return;
 	}
 
-	// TODO: Default strategy (with redirect)
+
+	// TODO: Accept lang header?
 
 	return {
 		country,

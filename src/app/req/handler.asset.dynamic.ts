@@ -30,7 +30,7 @@ const errorPageMapping: Map<string, string> = new Map();	// TODO: Limit size? Re
  */
 export default function handleDynamic(pathname: string, res: IResponse): IResponse {   // TODO: Store req/res globally?	
     res.cacheable = false;  // TODO: Eval whtther is cacheable (consider rendering!)
-
+    
     const compoundInfo: ICompoundInfo = retrieveCompoundInfo();
 
     // Construct project (web file) local path representation (possibly (re-)add default names)
@@ -43,7 +43,7 @@ export default function handleDynamic(pathname: string, res: IResponse): IRespon
 		return handleDynamicError(pathname, res, EStatus.NOT_FOUND);
 	}
 
-    res.message = VFS.read(filePath);
+    res.message = VFS.read(filePath, true);
 
 	try {
 		// Perform implicit, static page modifications and write back to VFS to keep constant effort (once for each file identity)

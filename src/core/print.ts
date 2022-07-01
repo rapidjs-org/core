@@ -107,8 +107,10 @@ function write(message: string, channel: Channel, event: Event, noFormatting: bo
 
 		// Clear last line (for count update)
 		// TODO: How to detect console lines from outside (to keep it)
-		process.stdout.moveCursor(0, -1);
-  		process.stdout.clearLine(1);
+		try {
+			process.stdout.moveCursor(0, -1);
+  			process.stdout.clearLine(1);
+		} catch {}
 	} else {
 		lastPrimaryMessage = {
 			count: 1,

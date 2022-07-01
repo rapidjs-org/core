@@ -61,8 +61,8 @@ function createWorker() {
 			IS_SECURE
 			&& print.info(`HTTP to HTTPS redirection enabled (:${Config["project"].read("port", "http").number} -> :${Config["project"].read("port", "https").number})`);
 			if(!MODE.DEV) {
-				print.info(`Initialized ${clusterSize} cluster processes`);
-				print.info(`Request processing thread pool size per cluster process: ${POOL_SIZE}`);
+				print.info(`Instantiated ${clusterSize} cluster processes`);
+				print.info(`Initialized ${POOL_SIZE} request processing threads per cluster process`);	// TODO: (burst variable)
 			}
 
 			worker.removeAllListeners("listening");

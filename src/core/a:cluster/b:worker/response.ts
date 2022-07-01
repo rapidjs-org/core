@@ -84,7 +84,6 @@ export async function respond(param: number|IResponse|unknown, resId: number = c
 	tRes.headers = tRes.headers || new HeadersMap();
 
 	tRes.headers.set("Cache-Control", Config["project"].read("cache", "client").number ? `public, max-age=${Config["project"].read("cache", "client").number}, must-revalidate` : null);
-	tRes.headers.set("Referrer-Policy", "no-referrer-when-downgrade");
 	tRes.headers.set("Strict-Transport-Security", IS_SECURE ? `max-age=${Config["project"].read("cachingDuration", "client")}; includeSubDomains` : null);
 	tRes.headers.set("X-XSS-Protection", "1; mode=block");
 	

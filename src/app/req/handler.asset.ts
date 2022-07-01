@@ -116,7 +116,7 @@ export default function(req: IRequest, res: IResponse): IResponse {
 
         return richResponse(appReq, handlePluginClientModule(appReq.url.pathname, res));
     }
-
+    
     // Restrict access to files marked privat using an indicating underscore
     if((new RegExp(`/${config.privateWebFilePrefix}`)).test(appReq.url.pathname)) {
         res.status = EStatus.FORBIDDEN;

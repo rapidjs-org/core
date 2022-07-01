@@ -24,7 +24,7 @@ export class Cache<D> extends LimitDictionary<number, D> {
 	 * @returns {boolean} Whether the entry is still valid
 	 */
 	protected validateLimitReference(timestamp: number): boolean {
-		return ((timestamp + this.limitDelta) <= Date.now());	// TODO: Check operator (>?)
+		return ((timestamp + this.limitDelta) >= Date.now());
 	}
 
 	/**

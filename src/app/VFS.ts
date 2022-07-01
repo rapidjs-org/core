@@ -60,15 +60,17 @@ class VirtualFileSystem extends LimitDictionary<number, string> {
 
 	/**
 	 * Read a specific physical web file.
+	 * @param {string} path Project relative path to web file
+	 * @param {boolean} [renew] Whether to renew an existing entry (perform initial read)
 	 * @returns {IFileStamp} Related file stamp
 	 */
-    public read(path: string): string {
+    public read(path: string, renew: boolean = false): string {
     	let data: string = this.cache.read(path);
     	if(data) {
     		return data;
     	}
 		
-    	if(!(data = super.read(path))) {
+    	if(renew || !(data = super.read(path))) {
     		// Try to write if intially not found
     		data = this.write(path);
     	}
