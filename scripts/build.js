@@ -1,49 +1,30 @@
+// TODO: To GitHub as remote dependency?
 
 const { join } = require("path");
-const { readdir, readFileSync, writeFileSync } = require("fs");
+const { readFileSync, readdirSync, writeFileSync } = require("fs");
 
 
-let buildDirPath = process.argv.slice(2)[0];
-if(!buildDirPath) {
-    throw new SyntaxError("Specify path to build directory");
-}
-buildDirPath = (buildDirPath.charAt(0) != "/")
-? join(process.cwd(), buildDirPath)
-: buildDirPath;
-
-const CODE_SIGNATURE = readFileSync(join(__dirname, "./code-signature"));
-
-const count = {
-    dir: 0,
-    file: 0
-};
+const signature = String(readFileSync(join(__dirname, "./signature.txt")));
 
 
-process.on("exit", _ => {
-    console.log(`Build successful (${count.file} files in ${count.dir} directories).`);
-});
+buildDir(join(__dirname, "../dist/"));
 
-// TODO: Copy method signature (JSDoc) comments from source to keep IDE info
+console.log(`\n\x1b[34mDIST BUILT SUCCESSFUL\x1b[0m`);
 
 
-function buildDirectory(dirPath) {
-    readdir(dirPath, {
+function buildDir(path) {
+    readdirSync(path, {
         withFileTypes: true
-    }, (_, dirents) => {
-        (dirents || []).forEach(dirent => {
-            const curFilePath = join(dirPath, dirent.name);
+    })
+    .forEach(dirent => {
+        const subPath = join(path, dirent.name);
 
-            if(dirent.isDirectory()) {
-                buildDirectory(curFilePath);
-                count.dir++;
+        if(dirent.isDirectory()) {
+            buildDir(subPath);
 
-                return;
-            }
-
-            writeFileSync(curFilePath, `${CODE_SIGNATURE}\n\n${readFileSync(curFilePath)}`);
-            count.file++;
-        });
+            return;
+        }
+        
+        writeFileSync(subPath, `${signature}\n${String(readFileSync(subPath))}`);
     });
 }
-
-buildDirectory(buildDirPath);
