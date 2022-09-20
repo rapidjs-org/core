@@ -3,22 +3,24 @@ const { join } = require("path");
 const { exec, execSync } = require("child_process");
 
 
-let tsLogGroupOpen;
+const activeLangs = [ "TypeScript" ];
+!process.argv.slice(2).includes("--ts")
+&& activeLangs.push("C++");
 
 
-log("• WATCH COMPILE { C++, TypeScript }");
+log(`• WATCH COMPILE { ${activeLangs.join(", ")} }`);
+
 
 // Create /debug files directory
 createDir(join(__dirname, "../debug/"));
 createDir(join(__dirname, "../debug/shared-memory/"));
 
-// Initially compile C++ source
-compileCPP();
-
 // Create hard link to compiled module in source in order to keep updates
 const linkDest = join(__dirname, "../debug/shared-memory/shared-memory.node");
 !existsSync(linkDest)
 && linkSync(join(__dirname, "../src/shared-memory/build/Release/shared_memory.node"), );
+
+let tsLogGroupOpen;
 
 // Start TypeScript compiler (sub-)process in background
 const child = exec(`tsc -w --preserveWatchOutput --outDir ${join(__dirname, "../debug/")}`);
@@ -29,8 +31,12 @@ setTimeout(_ => {
             return;
         }
         
-        !tsLogGroupOpen && logBadge("TypeScript Compile");
-        console.log(data.trim())
+        !tsLogGroupOpen
+        && logBadge("TypeScript", [ 23, 155, 231 ]);
+        console.log(`${
+            (tsLogGroupOpen && !/[0-9]{2}:[0-9]{2}:[0-9]{2} \-/.test(data))
+            ? "\n" : ""
+        }${data.trim()}`);
 
         tsLogGroupOpen = true;
     });
@@ -56,13 +62,16 @@ setInterval(_ => {
 	}
 }, detectionFrequency);
 
+// Initially compile C++ source
+compileCPP();
+
 
 function log(message) {
     console.log(`\x1b[2m${message}\n${Array.from({ length: message.length }, _ => "‾").join("")}\x1b[0m`);
 }
 
-function logBadge(message) {
-    console.log(`\x1b[1m\x1b[46m\x1b[38;2;255;255;255m ${message} \x1b[0m\n`);
+function logBadge(message, colorRgb) {
+    console.log(`\n\x1b[1m\x1b[48;2;${colorRgb[0]};${colorRgb[1]};${colorRgb[2]}m\x1b[38;2;255;255;255m ${message} \x1b[0m\n`);
 }
 
 function createDir(path) {
@@ -70,14 +79,18 @@ function createDir(path) {
 }
 
 function compileCPP() {
-    logBadge("C++ Compile");
+    if(!activeLangs.includes("C++")) {
+        return;
+    }
+
+    logBadge("C++", [ 220, 65, 127 ]);
 
     try {
         execSync("node-gyp build", {
             cwd: shmPath,
             stdio: "inherit"
         });
-    } catch { /**/ }
+    } catch(err) { /**/ }
 
     tsLogGroupOpen = false;
 }
