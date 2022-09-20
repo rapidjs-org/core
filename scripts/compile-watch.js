@@ -6,7 +6,7 @@ const { exec, execSync } = require("child_process");
 let tsLogGroupOpen;
 
 
-log("COMPILE WATCH { C++, TypeScript }");
+log("• WATCH COMPILE { C++, TypeScript }");
 
 // Create /debug files directory
 createDir(join(__dirname, "../debug/"));
@@ -29,7 +29,7 @@ setTimeout(_ => {
             return;
         }
         
-        !tsLogGroupOpen && log("> TypeScript COMPILE");
+        !tsLogGroupOpen && logBadge("TypeScript Compile");
         console.log(data.trim())
 
         tsLogGroupOpen = true;
@@ -58,7 +58,11 @@ setInterval(_ => {
 
 
 function log(message) {
-    console.log(`\n\x1b[34m${message}\n${Array.from({ length: message.length }, _ => "‾").join("")}\x1b[0m`);
+    console.log(`\x1b[2m${message}\n${Array.from({ length: message.length }, _ => "‾").join("")}\x1b[0m`);
+}
+
+function logBadge(message) {
+    console.log(`\x1b[1m\x1b[46m\x1b[38;2;255;255;255m ${message} \x1b[0m\n`);
 }
 
 function createDir(path) {
@@ -66,7 +70,7 @@ function createDir(path) {
 }
 
 function compileCPP() {
-    log("> C++ COMPILE");
+    logBadge("C++ Compile");
 
     try {
         execSync("node-gyp build", {

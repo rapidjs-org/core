@@ -1,9 +1,8 @@
 .DS_Store
-.np-config.json
+
 package-lock.json
 
 node_modules/
 debug/
 dist/
-tmp/
-test/debug:app/log/
+src/shared-memory/build/
