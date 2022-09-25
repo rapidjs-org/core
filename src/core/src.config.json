@@ -1,7 +1,0 @@
-{
-    "appIdentifier": "rapidJS",
-    "configFilePrefix": "rapid",
-    "configFileNameProject": "config",
-    "cliPrefix": "rJS",
-    "threadsBroadcastChannelName": "rapidJS::bc"
-}

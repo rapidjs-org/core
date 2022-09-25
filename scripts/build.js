@@ -9,7 +9,7 @@ const signature = String(readFileSync(join(__dirname, "./signature.txt")));
 
 buildDir(join(__dirname, "../dist/"));
 
-console.log(`\n\x1b[34mDIST BUILT SUCCESSFUL\x1b[0m`);
+console.log(`\n\x1b[2m• Distributable built with \x1b[0m\x1b[32msuccess\x1b[2m.\x1b[0m\n`);
 
 
 function buildDir(path) {

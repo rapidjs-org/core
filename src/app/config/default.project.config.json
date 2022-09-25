@@ -1,9 +1,0 @@
-{
-    "mimes": {
-        "html": "text/html",
-        "js": "text/javascript"
-    },
-    "directory": {
-        "web": "web"
-    }
-}
