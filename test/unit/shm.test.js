@@ -1,4 +1,4 @@
+const { getAppKey } = require("../../debug/shared-memory/shared-memory-api");
 
-assert("Simple integral sum (success)", ((a, b) => a + b)(1, 2), 3);
 
-assert("Positive promise resolve", (_ => new Promise(r => r(5)))(), 5);
+assert("Get unique SHM app key", getAppKey(), 1234567890);

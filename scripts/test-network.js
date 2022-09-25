@@ -1,7 +1,25 @@
+const { join } = require("path");
+const { existsSync } = require("fs");
+const { fork } = require("child_process");
 const https = require("https");
 
 
-require("./test-framework.js")("./network/", "Network Tests", [ 45, 120, 240 ], assert);
+const envFilePath = {
+    setup: join(__dirname, "../test/network.setup.js"),
+    cleanup: join(__dirname, "../test/network.cleanup.js")
+};
+
+
+const setupEnvProcess = runEnvironmentalScript(envFilePath.setup, "SETUP");
+
+process.on("exit", _ => {
+    setupEnvProcess.kill();
+
+    runEnvironmentalScript(envFilePath.cleanup, "CLEANUP");
+});
+
+
+require("./test-framework.js")("./network/", "Network Tests", [ 45, 120, 240 ], assert, true);
 
 function assert(actual, expected) { // actual := endpoint information
     return new Promise(resolve => {
@@ -112,6 +130,35 @@ function assert(actual, expected) { // actual := endpoint information
             resolve(false);
         });
     });
+}
+
+
+function runEnvironmentalScript(path, caption) {
+    if(!existsSync(path)) {
+        return null;
+    }
+
+    console.log(`\n\x1b[2m+ ENV \x1b[1m${caption}\x1b[0m\n`);
+
+    const child = fork(path, [], {
+        stdio: "pipe"
+    }); // TODO: Mode; [ "--dev" ] ?
+
+    child.stdout.on("data", data => {
+        console.group();
+        console.log(`\x1b[2m--- ENV log ---`);
+        console.log(String(data));
+        console.groupEnd("\x1b[0m");
+    });
+
+    child.stderr.on("data", data => {
+        console.group();
+        console.log(`\x1b[2m--- ENV \x1b[31merror\x1b[30m ---`);
+        console.error(String(data));
+        console.groupEnd("\x1b[0m");
+    });
+
+    return child;
 }
 
 function performRequest(endpoint) {
