@@ -1,4 +1,4 @@
-const { existsSync, mkdirSync, copyFileSync, statSync, readdirSync, rmSync } = require("fs");
+const { existsSync, mkdirSync, linkSync, copyFileSync, statSync, readdirSync, rmSync } = require("fs");
 const { join } = require("path");
 const { exec, execSync } = require("child_process");
 
@@ -14,6 +14,9 @@ log(`• WATCH COMPILE { ${activeLangs.join(", ")} }`);
 // Create /debug files directory
 createDir(join(__dirname, "../debug/"));
 createDir(join(__dirname, "../debug/shared-memory/"));
+
+linkSync(join(__dirname, "../src/help.txt"), join(__dirname, "../debug/help.txt"));
+
 
 let tsLogGroupOpen;
 

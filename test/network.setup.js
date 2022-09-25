@@ -1,3 +1,1 @@
-
-
-console.log(21423);
+// TODO: Run application integration server here
