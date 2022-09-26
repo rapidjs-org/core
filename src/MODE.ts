@@ -8,5 +8,5 @@ export const MODE = {
     DEV: devFlagSet,
     PROD: !devFlagSet
     
-    // TODO: More modes (all-explicit activation; PROD as default)
+    // TODO: Open for more modes (all-explicit activation; PROD as default / fallback?)
 };

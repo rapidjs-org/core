@@ -19,20 +19,6 @@ enum EColorMode {
 type TColor = [ number, number, number, EColorMode? ];
 
 
-function highlight(str: string, color: TColor|TColor[], styles?: number|number[]) {
-    return `${
-        ((typeof(color[0]) === "number"
-        ? [ color ]
-        : color) as TColor[])
-        .map((c: TColor) => {
-            return `\x1b[${(c.length > 3) ? c.pop() : EColorMode.FG};2;${c.join(";")}m`
-        })
-        .join("")
-    }${
-        styles ? [ styles ].flat().map(s => `\x1b[${s}m`).join("") : ""
-    }${str}\x1b[0m`;
-}
-
 function write(channel: EStdChannel, message: string) {
     process[channel].write(`${
         highlight(` ${devConfig.appNameShort} `, [
@@ -45,6 +31,20 @@ function logToFile(message: string) {
     // TODO: Implement
 }
 
+
+export function highlight(str: string, color: TColor|TColor[], styles?: number|number[]) {
+    return `${
+        ((typeof((color || [])[0]) === "number"
+        ? [ color ]
+        : color || []) as TColor[])
+        .map((c: TColor) => {
+            return `\x1b[${(c.length > 3) ? c.pop() : EColorMode.FG};2;${c.join(";")}m`
+        })
+        .join("")
+    }${
+        styles ? [ styles ].flat().map(s => `\x1b[${s}m`).join("") : ""
+    }${str}\x1b[0m`;
+}
 
 export function info(message: string) {
     write(EStdChannel.OUT, message);
@@ -65,6 +65,9 @@ export function error(err: Error|string) {
         return;
     }
     
-    write(EStdChannel.ERR, err.message);
-    err.stack && console.error(err.stack);
+    const message: string = `${err.name}: ${err.message}`;
+
+    write(EStdChannel.ERR, highlight(message, [ 224, 0, 0 ]));
+    err.stack
+    && console.error(highlight(err.stack.replace(message, "").trim(), null, 2));
 }

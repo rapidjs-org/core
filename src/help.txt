@@ -1,8 +1,8 @@
-Usage: ...
+Usage: <start-command> [--dev|-D]
 
 Flags:
 
--D, --dev       Run DEV MODE
+--dev, -D   Run DEV MODE
 
 Options:
 

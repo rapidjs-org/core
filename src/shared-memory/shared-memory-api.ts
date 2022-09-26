@@ -39,8 +39,8 @@ export function getAppKey(): number {
 export async function write(purposeKey: string, purposeData: string): Promise<void> {
     return new Promise((resolve, reject) => {
         if(!sharedMemoryActive.write) {
-            reject(new EvalError("Shared memory access has been disabled due to preceding error"));
-
+            reject();
+            
             return;
         }
 
@@ -48,8 +48,8 @@ export async function write(purposeKey: string, purposeData: string): Promise<vo
             sharedMemory.write(purposeKey, Buffer.from(purposeData, "utf-8"));
             
             resolve();
-        } catch(err) {
-            reject(err);
+        } catch {
+            reject();
 
             sharedMemoryActive.write = false; // TODO: Distinguish errors?
         }
@@ -58,7 +58,7 @@ export async function write(purposeKey: string, purposeData: string): Promise<vo
 
 export function read(purposeKey: string): string {
     if(!sharedMemoryActive.read) {
-        throw new EvalError("Shared memory access has been disabled due to preceding error");   // TODO: null ?
+        return null;
     }
     
     try {

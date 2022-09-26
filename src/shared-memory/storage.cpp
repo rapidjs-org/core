@@ -65,9 +65,9 @@ void* attach_segment(const std::string purpose_key, int shm_id) {
 char Storage::write(const uint32_t* app_key, const std::string purpose_key, const uint8_t* buffer, const size_t buffer_size) {
     uint32_t unique_key = compute_unique_key(app_key, purpose_key);
 
-    sem = sem_open((char*)(unique_key), O_CREAT, 0644, 0);
+    sem = sem_open((char*)(unique_key), O_CREAT, 0644, 0);  // TODO: Use write type signals to abort on similar write occurrences?
 
-    int shm_id = shmget(unique_key, buffer_size + (size_t)sizeof(size_t), IPC_CREAT | 0644);
+    int shm_id = shmget(unique_key, buffer_size + (size_t)sizeof(size_t), IPC_CREAT | 0644);    // TODO: Collision strategy (occpuancy)
     if(shm_id == -1) {
         return close_with_failure<char>(-1);
     }
