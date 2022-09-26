@@ -1,4 +1,4 @@
-const { Cache } = require("../../debug/cache/Cache");
+const { Cache } = require("../../debug/storage/Cache");
 
 const pivot = new Cache(500);
 

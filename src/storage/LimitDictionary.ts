@@ -13,8 +13,6 @@ export abstract class LimitDictionary<K, V, L> {
 
     private readonly id: number;
     private readonly intermediateMemory: Map<K, ILimitEntry<V, L>> = new Map();
-    private readonly limitReferenceCallback: (key: K) => L;
-    private readonly limitValidatorCallback: (key: K, limitReference: L) => boolean;
     private readonly normalizeKeyCallback: (key: K) => K;
 
     private lastExistenceLookupValue: {
@@ -22,13 +20,14 @@ export abstract class LimitDictionary<K, V, L> {
         value: V;
     };
 
-    constructor(limitReferenceCallback: (key: K) => L, limitValidatorCallback: (key: K, limitReference: L) => boolean, normalizeKeyCallback?: (key: K) => K) {
-        this.limitReferenceCallback = limitReferenceCallback;
-        this.limitValidatorCallback = limitValidatorCallback;
-        this.normalizeKeyCallback = normalizeKeyCallback || (k => k);   // Identity function by default
+    constructor(normalizeKeyCallback?: (key: K) => K) {
+        this.normalizeKeyCallback = normalizeKeyCallback || (k => k);   // Identity by default
         
         this.id = LimitDictionary.instances++;
     }
+
+    protected abstract retrieveReferenceCallback(key: K): L;
+    protected abstract validateLimitCallback(reference: L, current: L): boolean;
 
     private getInternalKey(key: K): string {
         return `${this.id}${this.normalizeKeyCallback(key).toString()}`;
@@ -37,7 +36,7 @@ export abstract class LimitDictionary<K, V, L> {
     public write(key: K, value: V): Promise<void> {
         const entry: ILimitEntry<V, L> = {
             value: value,
-            limitReference: this.limitReferenceCallback(key)
+            limitReference: this.retrieveReferenceCallback(key)
         };
         
         // TODO: Benchmark w and w/o enabled top layer intermediate memory (-> Dict <-> intermediate <-> SHM)
@@ -76,7 +75,7 @@ export abstract class LimitDictionary<K, V, L> {
 
     public exists(key: K): boolean {
         // TODO: Implement intermediate
-        
+
         const serializedData: string = sharedMemory.read(this.getInternalKey(key).toString());
 
         if(!serializedData) {
@@ -85,7 +84,7 @@ export abstract class LimitDictionary<K, V, L> {
         
         const dynamicData: ILimitEntry<V, L> = JSON.parse(serializedData);
         
-        if(!this.limitValidatorCallback(key, dynamicData.limitReference)) {
+        if(!this.validateLimitCallback(dynamicData.limitReference, this.retrieveReferenceCallback(key))) {
             return false;
         }
         

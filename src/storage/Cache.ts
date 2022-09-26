@@ -6,13 +6,17 @@ export class Cache<K, V> extends LimitDictionary<K, V, number> {
     private readonly duration: number;
 
     constructor(duration: number, normalizeKeyCallback?: (key: K) => K) { // TODO: Default from config
-        super(() => {
-            return Date.now();
-        }, (_, limitReference: number) => {
-            return ((Date.now() - limitReference) <= this.duration);
-        }, normalizeKeyCallback);
+        super(normalizeKeyCallback);
 
         this.duration = duration;
+    }
+
+    protected retrieveReferenceCallback(): number {
+        return Date.now();
+    }
+
+    protected validateLimitCallback(reference: number, current: number): boolean {
+        return ((current - reference) <= this.duration);
     }
 
 }
