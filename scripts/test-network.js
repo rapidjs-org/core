@@ -9,11 +9,13 @@ const envFilePath = {
     cleanup: join(__dirname, "../test/network.cleanup.js")
 };
 
-
 const setupEnvProcess = runEnvironmentalScript(envFilePath.setup, "SETUP");
 
+
 process.on("exit", _ => {
-    setupEnvProcess.kill();
+    try {
+        setupEnvProcess.kill();
+    } catch { /**/ }
 
     runEnvironmentalScript(envFilePath.cleanup, "CLEANUP");
 });
@@ -138,7 +140,7 @@ function runEnvironmentalScript(path, caption) {
         return null;
     }
 
-    console.log(`\n\x1b[2m+ ENV \x1b[1m${caption}\x1b[0m\n`);
+    console.log(`\x1b[2m+ ENV \x1b[1m${caption}\x1b[0m\n`);
 
     const child = fork(path, [], {
         stdio: "pipe"

@@ -16,7 +16,7 @@ const testCounter = {
 };
 
 const testRange = {
-    queue: [],
+    callQueue: [],
     stackSize: 0
 };
 
@@ -52,12 +52,12 @@ function logBadge(message, colorRgb, suffix) {
     console.log(`${fgDirective}\x1b[1m\x1b[48;2;${colorRgb[0]};${colorRgb[1]};${colorRgb[2]}m ${message} \x1b[0m${suffix ? ` ${suffix}` : ""}\n`);
 }
 
-function run(path, captionMessage, captionColorRgb, specificAssert, useTimeout = false) {
+function run(path, captionMessage, captionColorRgb, specificAssert, useTimeout) {
     clearTimeout(exitTimeout);
 
     if(testRange.stackSize > 0) {
-        testRange.queue.push([ path, captionMessage, captionColorRgb, specificAssert ]);
-
+        testRange.callQueue.push([ path, captionMessage, captionColorRgb, specificAssert ]);
+        
         return;
     }
     
@@ -65,7 +65,7 @@ function run(path, captionMessage, captionColorRgb, specificAssert, useTimeout =
 
     global.assert = (caption, actual, expected) => { // =: assert equals
         testRange.stackSize++;
-
+        
         const specificResult = specificAssert(actual, expected);
         
         (!(specificResult instanceof Promise)
@@ -73,7 +73,7 @@ function run(path, captionMessage, captionColorRgb, specificAssert, useTimeout =
         : specificResult)
         .then(specificResult => {
             const hasSucceeded = specificResult.hasSucceeded ?? specificResult;
-
+            
             logBadge(`Case ${(testCounter.failed + testCounter.succeeded + 1)}`, [ 255, 249, 194 ], `${commonSubstring[hasSucceeded ? "tick" : "cross"]} \x1b[2m${caption}\x1b[0m`);
 
             testCounter[hasSucceeded ? "succeeded" : "failed"]++;
@@ -93,9 +93,8 @@ function run(path, captionMessage, captionColorRgb, specificAssert, useTimeout =
                 console.groupEnd();
             }
             
-            if(--testRange.stackSize === 0
-            && testRange.queue.length > 0) {
-                run.apply(null, testRange.queue.shift());
+            if(--testRange.stackSize === 0 && testRange.callQueue.length) {
+                run.apply(null, testRange.callQueue.shift());
             } else if(useTimeout) {
                 exitTimeout = setTimeout(_ => process.exit(), exitTimeoutLength);
             }

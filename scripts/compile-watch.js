@@ -15,7 +15,8 @@ log(`• WATCH COMPILE { ${activeLangs.join(", ")} }`);
 createDir(join(__dirname, "../debug/"));
 createDir(join(__dirname, "../debug/shared-memory/"));
 
-linkSync(join(__dirname, "../src/help.txt"), join(__dirname, "../debug/help.txt"));
+!existsSync(join(__dirname, "../debug/help.txt"))
+&& linkSync(join(__dirname, "../src/help.txt"), join(__dirname, "../debug/help.txt"));
 
 
 let tsLogGroupOpen;
