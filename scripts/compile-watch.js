@@ -50,7 +50,8 @@ const shmDirents = readdirSync(shmPath, {
 .filter(dirent => dirent.isFile())
 .filter(dirent => !/\.ts$/.test(dirent.name));
 
-setInterval(_ => {
+activeLangs.includes("C++")
+&& setInterval(_ => {
     for(const dirent of shmDirents) {
         if(!shmFileModified(join(shmPath, dirent.name))) {
             continue;
@@ -79,10 +80,6 @@ function createDir(path) {
 }
 
 function compileCPP() {
-    if(!activeLangs.includes("C++")) {
-        return;
-    }
-
     logBadge("C++", [ 220, 65, 127 ]);
 
     try {

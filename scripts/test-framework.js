@@ -24,6 +24,9 @@ const exitTimeoutLength = 3000;
 let exitTimeout = null;
 
 
+// TODO: Mark app log / separate
+
+
 process.on("exit", code => {
     const resultIndicatorSubstring = "\x1b[2m➞  \x1b[0m";
 
