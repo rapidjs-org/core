@@ -15,9 +15,10 @@ export abstract class LimitDictionary<K, V, L> {
     private readonly intermediateMemory: Map<K, ILimitEntry<V, L>> = new Map();
     private readonly normalizeKeyCallback: (key: K) => K;
 
-    private lastExistenceLookupValue: {
+    private existenceLookupValue: {
         key: K;
         value: V;
+        timestamp: number;
     };
 
     constructor(normalizeKeyCallback?: (key: K) => K) {
@@ -31,6 +32,14 @@ export abstract class LimitDictionary<K, V, L> {
 
     private getInternalKey(key: K): string {
         return `${this.id}${this.normalizeKeyCallback(key).toString()}`;
+    }
+
+    protected setExistenceLookup(key: K, value: V) {
+        this.existenceLookupValue = {
+            key: this.normalizeKeyCallback(key),
+            value: value,
+            timestamp: Date.now()
+        };
     }
 
     public write(key: K, value: V): Promise<void> {
@@ -58,7 +67,8 @@ export abstract class LimitDictionary<K, V, L> {
     public read(key: K): V {
         // TODO: Implement intermediate
 
-        if((this.lastExistenceLookupValue || {}).key !== key) { // TODO: Check for outdating (eventual insufficience) / Require immediate read after existence check?
+        if((this.existenceLookupValue || {}).key !== this.normalizeKeyCallback(key)
+        || (Date.now() - ((this.existenceLookupValue || {}).timestamp || 0)) > 1000) {    // TODO: Define timeout threshold (from config?)
             const exists: boolean = this.exists(key);
 
             if(!exists) {
@@ -66,10 +76,10 @@ export abstract class LimitDictionary<K, V, L> {
             }
         }
         
-        const retrievedValue: V = this.lastExistenceLookupValue.value;
+        const retrievedValue: V = this.existenceLookupValue.value;
         
-        this.lastExistenceLookupValue = null;
-
+        this.existenceLookupValue = null;
+        
         return retrievedValue;  
     }   // Async interface { read, readSync } ?
 
@@ -83,15 +93,19 @@ export abstract class LimitDictionary<K, V, L> {
         }
         
         const dynamicData: ILimitEntry<V, L> = JSON.parse(serializedData);
-        
-        if(!this.validateLimitCallback(dynamicData.limitReference, this.retrieveReferenceCallback(key))) {
+
+        let reference: L;
+        try {
+            reference = this.retrieveReferenceCallback(key);
+        } catch {
             return false;
         }
         
-        this.lastExistenceLookupValue = {
-            key: key,
-            value: dynamicData.value
-        };
+        if(!this.validateLimitCallback(dynamicData.limitReference, reference)) {
+            return false;
+        }
+        
+        this.setExistenceLookup(key, dynamicData.value);
 
         return true;
     }

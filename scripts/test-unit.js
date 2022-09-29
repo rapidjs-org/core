@@ -1,4 +1,6 @@
-require("./test-framework.js")("./unit/", "Unit Tests", [ 139, 106, 220 ], assert);
+const { run, deepIsEqual } = require("./test-framework.js");
+
+run("./unit/", "Unit Tests", [ 139, 106, 220 ], assert);
 
 function assert(actual, expected) {
     return new Promise(resolve => {
@@ -7,7 +9,7 @@ function assert(actual, expected) {
         : actual)
         .then(actual => {
             resolve({
-                hasSucceeded: (actual === expected),
+                hasSucceeded: deepIsEqual(actual, expected),
                 actual, expected
             });
         });

@@ -21,7 +21,9 @@ process.on("exit", _ => {
 });
 
 
-require("./test-framework.js")("./network/", "Network Tests", [ 45, 120, 240 ], assert, true);
+const { run, isObject, deepIsEqual } = require("./test-framework.js");
+
+run("./network/", "Network Tests", [ 45, 120, 240 ], assert, true);
 
 function assert(actual, expected) { // actual := endpoint information
     return new Promise(resolve => {
@@ -199,11 +201,6 @@ function performRequest(endpoint) {
     });
 }
 
-function isObject(value) {
-    return !Array.isArray(value)
-    && !["string", "number", "boolean"].includes(typeof(value));
-}
-
 function wrap(str, code){
     return `${
         (!Array.isArray(code) ? [ code ] : code)
@@ -260,26 +257,4 @@ function formatDisplayObj(displayObj) {
     }`);
     
     return log.join("\n\n");
-}
-
-function deepIsEqual(value1, value2) {
-    const arrayIsEqual = (array1, array2) => {
-        return (JSON.stringify(array1.sort()) === JSON.stringify(array2.sort()));
-    };
-    
-    if(!isObject(value1) && !isObject(value2)) {
-        return Array.isArray(value1)
-        ? arrayIsEqual(value1, value2)
-        : (value1 === value2);
-    }
-
-    for(const key in value1) {
-        if((isObject(value1[key]) && !this.deepIsEqual(value1[key], value2[key]))
-        || (Array.isArray(value1[key]) && !this.arraysEqual(value1[key], value2[key]))
-        || value1[key] !== value2[key]) {
-            return false;
-        }
-    }
-
-    return true;
 }

@@ -7,7 +7,7 @@ export class Cache<K, V> extends LimitDictionary<K, V, number> {
 
     constructor(duration: number, normalizeKeyCallback?: (key: K) => K) { // TODO: Default from config
         super(normalizeKeyCallback);
-
+        
         this.duration = duration;
     }
 
