@@ -1,20 +1,23 @@
 const { AsyncMutex } = require("../../debug/AsyncMutex");
 
-const pivot = new AsyncMutex();
+const testMutex = new AsyncMutex();
+
 
 let reference = false;
 
 
-pivot.lock(_ => {
+assert("Check for correct eventual mutex lock", testMutex.lock(_ =>{
     return new Promise(resolve => {
         setTimeout(_ => {
-            reference = true;
+            reference = false;
 
-            resolve();
-        }, 500);
+            resolve(reference);
+        }, 200);
     });
-});
+}), false);
 
-pivot.lock(_ => {   // Has to wait for previous lock to have evaluated / resolved
-    assert("Check for correct mutex locked eventual reference assignment", reference, true);
-});
+assert("Check for correct immediate mutex lock", testMutex.lock(_ =>{
+    reference = true;
+    
+    return(reference);
+}), true);

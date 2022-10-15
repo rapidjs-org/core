@@ -1,7 +1,7 @@
 import { statSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { join, normalize } from "path";
 
-import { PATH } from "../PATH";
+import { PATH } from "../../PATH";
 
 import { LimitDictionary } from "./LimitDictionary";
 
@@ -95,7 +95,7 @@ export class VFS extends LimitDictionary<string, IFileStamp, IFileReference> {
         if(exists) {
             return true;
         }
-
+        
         const pathOnDisc = this.getAbsolutePath(path);
         
         if(!existsSync(pathOnDisc)) {

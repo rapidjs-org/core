@@ -9,6 +9,7 @@
         "allowJs": true
     },
     "include": [
-        "src"
+        "src/**/*.ts",
+        "src/**/*.json"
     ]
 }

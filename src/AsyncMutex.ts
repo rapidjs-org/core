@@ -4,32 +4,29 @@ export class AsyncMutex {
 
 	private isLocked: boolean = false;
 
-	private acquire() {
-		if(!this.isLocked) {
+	private acquire(prioritize: boolean) {
+		 if(!this.isLocked) {
 			this.isLocked = true;
-
+			
 			return Promise.resolve();
 		}
-
+		
 		return new Promise(resolve => {
-			this.acquireQueue.push(resolve);
+			this.acquireQueue[prioritize ? "unshift" : "push"](resolve);
 		});
 	}
 
-	public async lock(instructions: (() => void)|Promise<unknown>): Promise<unknown> {
+	public lock(instructions: (() => void)|Promise<unknown>, prioritize: boolean = false): Promise<unknown> {
 		return new Promise(resolve => {
-			this.acquire().then(() => {
+			this.acquire(prioritize)
+			.then(() => {
 				(!(instructions instanceof Promise)
-				? new Promise<unknown>(resolve => {
-                    const result: unknown = (instructions as (() => void))();
-
-                    resolve(result);
-                })
+				? new Promise<unknown>(resolve => resolve(instructions()))
 				: instructions)
                 .then((result: unknown) => {
-					(this.acquireQueue.length > 0)
-						? this.acquireQueue.shift()()
-						: (this.isLocked = false);
+					this.acquireQueue.length
+					? this.acquireQueue.shift()()
+					: (this.isLocked = false);
 					
 					resolve(result);
 				});

@@ -4,12 +4,17 @@ const { join } = require("path");
 
 const configObjects = {
     shared: {
-        foo: "!!!",
-        bar: true,
-        baz: 1,
-        qux: [
-            1, 2, 3
-        ]
+        ...{
+            port: 12345
+        },
+        ...{
+            foo: "!!!",
+            bar: true,
+            baz: 1,
+            qux: [
+                1, 2, 3
+            ]
+        }
     },
     prod: {
         foo: "Hello world",
@@ -25,30 +30,26 @@ writeFileSync(join(__dirname, "../.tmp/rapidjs.config.prod.json"), JSON.stringif
 
 
 const { ETypeConstraint, APP_CONFIG, constrain } = require("../../debug/Config/APP_CONFIG");
-console.log(APP_CONFIG);    // TODO: Fix deep equal issue
 
 assert("Read app config", APP_CONFIG, {
     ...configObjects.shared,
     ...configObjects.prod
 });
 
-let constrainingSucceeded;
-try {
+assertSuccess("Constrain app config", _ => {
     constrain({
         foo: {
             type: ETypeConstraint.STRING,
-            pattern: /[a-z ]+/
+            pattern: /^[a-z ]+$/i
         },
         bar: ETypeConstraint.BOOLEAN,
         baz: ETypeConstraint.NUMBER,
         qux: ETypeConstraint.ARRAY_NUMBER,
-        fred: {
-            type: ETypeConstraint.ANY,
-            required: false
+        quux: {
+            foo: {
+                type: ETypeConstraint.ANY,
+                optional: false
+            }
         }
     });
-
-    constrainingSucceeded = true;
-} catch { /**/ }
-
-assert("Constrain app config", constrainingSucceeded, true);
+});

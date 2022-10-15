@@ -10,27 +10,27 @@ const fileContents = {
 }
 
 
-const { VFS } = require("../../debug/storage/VFS");
+const { VFS } = require("../../debug/b:instance/storage/VFS");
 
-const pivot = new VFS("./");
+const testVFS = new VFS("./");
 
 
-assert("Check if non-existing file exists", pivot.exists(tmpFile), false);
+assert("Check if non-existing file exists", testVFS.exists(tmpFile), false);
 
 writeFileSync(tmpFilePath, fileContents.initial);
 
-assert("Check if existing file exists on disc", pivot.exists(tmpFile), true);
+assert("Check if existing file exists on disc", testVFS.exists(tmpFile), true);
 
-assert("Read existing file contents from VFS", pivot.read(tmpFile).data, fileContents.initial);
+assert("Read existing file contents from VFS", testVFS.read(tmpFile).data, fileContents.initial);
 
-pivot.writeVirtual(tmpFile, fileContents.eventual);
+testVFS.writeVirtual(tmpFile, fileContents.eventual);
 
-assert("Read virtually modified file contents from VFS", pivot.read(tmpFile).data, fileContents.eventual);
+assert("Read virtually modified file contents from VFS", testVFS.read(tmpFile).data, fileContents.eventual);
 
 assert("Verify persistent file contents from disc (fs module)", String(readFileSync(tmpFilePath)), fileContents.initial);
 
-pivot.writeDisc(tmpFile, fileContents.eventual);
+testVFS.writeDisc(tmpFile, fileContents.eventual);
 
-assert("Read disc modified file contents from VFS", pivot.read(tmpFile).data, fileContents.eventual);
+assert("Read disc modified file contents from VFS", testVFS.read(tmpFile).data, fileContents.eventual);
 
 assert("Verify persistent file contents from disc (fs module)", String(readFileSync(tmpFilePath)), fileContents.eventual);

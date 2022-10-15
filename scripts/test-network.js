@@ -1,38 +1,16 @@
-const { join } = require("path");
-const { existsSync } = require("fs");
-const { fork } = require("child_process");
+const { URL } = require("url");
+const http = require("http");
 const https = require("https");
 
 
-const envFilePath = {
-    setup: join(__dirname, "../test/network.setup.js"),
-    cleanup: join(__dirname, "../test/network.cleanup.js")
-};
+const { run } = require("./test-framework.js");
 
-const setupEnvProcess = runEnvironmentalScript(envFilePath.setup, "SETUP");
-
-
-process.on("exit", _ => {
-    try {
-        setupEnvProcess.kill();
-    } catch { /**/ }
-
-    runEnvironmentalScript(envFilePath.cleanup, "CLEANUP");
-});
-
-
-const { run, isObject, deepIsEqual } = require("./test-framework.js");
-
-run("./network/", "Network Tests", [ 45, 120, 240 ], assert, true);
+run("./network/", "Network", [ 45, 120, 240 ], assert, true);
 
 function assert(actual, expected) { // actual := endpoint information
     return new Promise(resolve => {
         performRequest(actual)
         .then(actual => {
-            actual.message = {json:_=>{
-                return {"abc": 123}
-            }};
-
             if((!expected.headers || Object.keys(expected.headers).length === 0)
             && !expected.status && !expected.message) {
                 return false;
@@ -70,7 +48,7 @@ function assert(actual, expected) { // actual := endpoint information
 
                     displayActual.message = wrapTypeIndicator("TEXT");
                     displayExpected.message = wrapTypeIndicator("OBJECT");
-                } else if(!deepIsEqual(actual.message, expected.message)) {
+                } else if(JSON.stringify(actual.message) !== JSON.stringify(expected.message)) {
                     hasSucceeded = false;
                     
                     if(asText) {
@@ -131,45 +109,30 @@ function assert(actual, expected) { // actual := endpoint information
         .catch(err => {
             console.error(`Request error: ${err.message}`);
 
-            resolve(false);
+            resolve({
+                hasSucceeded: false,
+                actual: `\x1b[31m${err.message}\x1b[0m`,
+                expected: formatDisplayObj(expected)
+            });
         });
     });
 }
 
-
-function runEnvironmentalScript(path, caption) {
-    if(!existsSync(path)) {
-        return null;
-    }
-
-    console.log(`\x1b[2m+ ENV \x1b[1m${caption}\x1b[0m\n`);
-
-    const child = fork(path, [], {
-        stdio: "pipe"
-    }); // TODO: Mode; [ "--dev" ] ?
-
-    child.stdout.on("data", data => {
-        console.group();
-        console.log(`\x1b[2m--- ENV log ---`);
-        console.log(String(data));
-        console.groupEnd("\x1b[0m");
-    });
-
-    child.stderr.on("data", data => {
-        console.group();
-        console.log(`\x1b[2m--- ENV \x1b[31merror\x1b[30m ---`);
-        console.error(String(data));
-        console.groupEnd("\x1b[0m");
-    });
-
-    return child;
+    
+function isObject(value) {
+    return !Array.isArray(value)
+    && !["string", "number", "boolean"].includes(typeof(value));
 }
 
 function performRequest(endpoint) {
-    url = new URL(endpoint.url);
+    const url = new URL(endpoint.url
+        .replace(/^(http(s)?:\/\/)?(localhost)?(\/|:)/, "http$2://localhost$4"));
     
     return new Promise((resolve, reject) => {
-        const req = https.request({
+        const req = ((url.protocol.toLowerCase() === "https")
+        ? https
+        : http)
+        .request({
             hostname: url.hostname,
             port: url.port,
             path: url.href,

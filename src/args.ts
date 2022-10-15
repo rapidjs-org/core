@@ -37,7 +37,10 @@ export function parseOption(name: string, shorthand?: string): {
 } {
     let index: number = getNameIndex(name, shorthand);
     if(index < 0 || ++index >= args.length) {
-        return undefined;
+        return {
+            string: undefined,
+            number: undefined
+        };
     }
 
     /*

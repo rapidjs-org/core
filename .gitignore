@@ -6,3 +6,4 @@ node_modules/
 debug/
 dist/
 src/shared-memory/build/
+test/.tmp/

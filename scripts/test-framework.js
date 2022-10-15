@@ -1,5 +1,6 @@
 const { join } = require("path");
 const { existsSync, mkdirSync, rmSync, readdirSync } = require("fs");
+const { fork } = require("child_process");
 
 
 const commonSubstring = {
@@ -22,21 +23,38 @@ const testRange = {
 
 const exitTimeoutLength = 3000;
 let exitTimeout = null;
+let timeoutEnabled = false;
 
 const tmpDirPath = join(__dirname, "../test/.tmp/");
+
+const envProcesses = [];
 
 
 !existsSync(tmpDirPath)
 && mkdirSync(tmpDirPath);
 
 
+process.on("uncaughtException", err => {
+    console.error(err);
+
+    process.exit(1);
+});
+
 process.on("exit", code => {
+    try {
+        envProcesses.forEach(process => process.kill());
+    } catch { /**/ }
+
     const resultIndicatorSubstring = "\x1b[2m➞  \x1b[0m";
 
     if(code !== 0) {
         console.log(`\n${resultIndicatorSubstring}${commonSubstring.cross} Test run has tertminated due to runtime error.\n`);
 
         return code;
+    }
+
+    if((testCounter.succeeded + testCounter.failed) === 0) {
+        return;
     }
 
     const ratioSubstring = `(${testCounter.succeeded}/${testCounter.failed + testCounter.succeeded})`;
@@ -64,6 +82,36 @@ process.argv.push("../test/.tmp");  // Set working directory arguments
 // TODO: Mark app log / separate
 
 
+function runEnvironmentalScript(name, env) {
+    const path = join(__dirname, "../test/", `${name.toLowerCase()}.${env}.js`);
+
+    if(!existsSync(path)) {
+        return null;
+    }
+
+    console.log(`\x1b[2m+ ENV \x1b[1m${env.toUpperCase()}\x1b[0m\n`);
+
+    const child = fork(path, [], {
+        stdio: "pipe"
+    }); // TODO: Mode; [ "--dev" ] ?
+
+    child.stdout.on("data", data => {
+        console.group();
+        console.log(`\x1b[2m--- ENV log ---`);
+        console.log(String(data));
+        console.groupEnd("\x1b[0m");
+    });
+
+    child.stderr.on("data", data => {
+        console.group();
+        console.log(`\x1b[2m--- ENV \x1b[31merror\x1b[30m ---`);
+        console.error(String(data));
+        console.groupEnd("\x1b[0m");
+    });
+
+    return child;
+}
+
 function cleanUp() {
     existsSync(tmpDirPath)
     && rmSync(tmpDirPath, {
@@ -78,82 +126,126 @@ function logBadge(message, colorRgb, suffix) {
     console.log(`${fgDirective}\x1b[1m\x1b[48;2;${colorRgb[0]};${colorRgb[1]};${colorRgb[2]}m ${message} \x1b[0m${suffix ? ` ${suffix}` : ""}\n`);
 }
 
-function isObject(value) {
-    return !Array.isArray(value)
-    && !["string", "number", "boolean"].includes(typeof(value));
-}
+function minAssert(caption, specificAssert, actualExpression, expected) {   // TODO: Call lists?
+    testRange.stackSize++;
 
+    let specificResult;
 
-module.exports.isObject = isObject;
-
-module.exports.deepIsEqual = function(value1, value2) {
-    if(!value1 || !value2) {
-        return (value1 === value2);
-    }
-    if(!isObject(value1) && !isObject(value2)) {
-        return Array.isArray(value1)
-        ? (JSON.stringify(value1.sort()) === JSON.stringify(value2.sort()))
-        : (value1 === value2);
-    }
-
-    for(const key in value1) {
-        if((isObject(value1[key]) && !this.deepIsEqual(value1[key], value2[key]))
-        || (Array.isArray(value1[key]) && !this.arraysEqual(value1[key], value2[key]))
-        || value1[key] !== value2[key]) {
-            return false;
+    const catchError = err => {
+        if(specificAssert) {
+            throw err;
         }
-    }
 
-    return true;
+        specificResult = {
+            hasSucceeded: false,
+            actual: `\x1b[31m${err.stack || err.name}\x1b[0m`,
+            expected: "No error"
+        }
+    };
+
+    const complete = _ => {
+        const hasSucceeded = (specificResult !== undefined)
+        ? (specificResult.hasSucceeded ?? specificResult)
+        : true;
+        
+        logBadge(`Case ${(testCounter.failed + testCounter.succeeded + 1)}`, [ 255, 249, 194 ], `${commonSubstring[hasSucceeded ? "tick" : "cross"]} \x1b[2m${caption}\x1b[0m`);
+
+        testCounter[hasSucceeded ? "succeeded" : "failed"]++;
+
+        if(!hasSucceeded) {
+            console.group();
+            
+            const logValue = (caption, value) => {
+                console.log(`\x1b[48:5:253m\x1b[38;2;255;255;255m ${caption} \x1b[0m\n`);
+                console.log(value);
+                console.log("");
+            };
+            
+            logValue("Expected", specificResult.expected || expected);
+            logValue("Actual", specificResult.actual || actualExpression);
+            
+            console.groupEnd();
+        }
+        
+        if(--testRange.stackSize === 0 && testRange.callQueue.length) {
+            run.apply(null, testRange.callQueue.shift());
+        } else if(timeoutEnabled) {
+            exitTimeout = setTimeout(_ => process.exit(), exitTimeoutLength);
+        }
+    };
+
+    try {
+        actualExpression = (actualExpression instanceof Function)
+        ? actualExpression()
+        : actualExpression;
+    } catch(err) {
+        catchError(err);
+
+        complete();
+
+        return;
+    }
+    
+    specificResult = specificAssert
+    ? specificAssert(actualExpression, expected)
+    : actualExpression;
+    
+    (!(specificResult instanceof Promise)
+    ? new Promise(r => r(specificResult))
+    : specificResult)
+    .then(result => {
+        specificResult = result;
+    })
+    .catch(catchError)
+    .finally(complete);
 }
 
-module.exports.run = function(path, captionMessage, captionColorRgb, specificAssert, useTimeout) {
+
+global.assertSuccess = function(caption, actualExpression) {
+    minAssert(caption, null, actualExpression, null);
+};
+
+
+module.exports.run = async function(path, caption, captionColorRgb, specificAssert, useTimeout = false) {
+    const envProcess = runEnvironmentalScript(caption, "setup");
+    if(envProcess) {
+        envProcesses.push(envProcess);
+
+        const envTimeout = setTimeout(_ => {
+            throw new RangeError(`Environmenatal setup has timed out '${caption.toLowerCase()}.setup.js'`);
+        }, 10000);
+
+        await new Promise(resolve => {
+            envProcess.on("message", code => {
+                if(code !== 0) {
+                    reject(new EvalError(`Environmenatal setup terminated with error code ${code} '${caption}.setup.js'`));
+                }
+
+                resolve();
+            });
+        });
+
+        clearTimeout(envTimeout);
+    }
+
+    process.on("exit", _ => {
+        runEnvironmentalScript(caption, "cleanup");
+    });
+
+    timeoutEnabled = useTimeout;
+    
     clearTimeout(exitTimeout);
 
     if(testRange.stackSize > 0) {
-        testRange.callQueue.push([ path, captionMessage, captionColorRgb, specificAssert ]);
+        testRange.callQueue.push([ path, caption, captionColorRgb, specificAssert ]);
         
         return;
     }
     
-    logBadge(captionMessage.toUpperCase(), captionColorRgb);
+    logBadge(`${caption.toUpperCase()} Tests`, captionColorRgb);
 
-    global.assert = (caption, actual, expected) => { // =: assert equals
-        testRange.stackSize++;
-        
-        const specificResult = specificAssert(actual, expected);
-        
-        (!(specificResult instanceof Promise)
-        ? new Promise(r => r(specificResult))
-        : specificResult)
-        .then(specificResult => {
-            const hasSucceeded = specificResult.hasSucceeded ?? specificResult;
-            
-            logBadge(`Case ${(testCounter.failed + testCounter.succeeded + 1)}`, [ 255, 249, 194 ], `${commonSubstring[hasSucceeded ? "tick" : "cross"]} \x1b[2m${caption}\x1b[0m`);
-
-            testCounter[hasSucceeded ? "succeeded" : "failed"]++;
-
-            if(!hasSucceeded) {
-                console.group();
-                
-                const logValue = (caption, value) => {
-                    console.log(`\x1b[48:5:253m\x1b[38;2;255;255;255m ${caption} \x1b[0m\n`);
-                    console.log(value);
-                    console.log("");
-                };
-
-                logValue("Expected", specificResult.expected || expected);
-                logValue("Actual", specificResult.actual || actual);
-                
-                console.groupEnd();
-            }
-            
-            if(--testRange.stackSize === 0 && testRange.callQueue.length) {
-                run.apply(null, testRange.callQueue.shift());
-            } else if(useTimeout) {
-                exitTimeout = setTimeout(_ => process.exit(), exitTimeoutLength);
-            }
-        });
+    global.assert = (caption, actualExpression, expected) => { // =: assert equals
+        minAssert(caption, specificAssert, actualExpression, expected);
     };
 
     path = join(__dirname, "../test/", path);
@@ -165,8 +257,6 @@ module.exports.run = function(path, captionMessage, captionColorRgb, specificAss
         try {
             require(join(path, dirent.name));
         } catch(err) {
-            console.error(err);
-
             process.exit(1);
         }
     });

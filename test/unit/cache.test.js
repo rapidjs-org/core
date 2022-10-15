@@ -1,18 +1,18 @@
-const { Cache } = require("../../debug/storage/Cache");
+const { Cache } = require("../../debug/b:instance/storage/Cache");
 
-const pivot = new Cache(500);
+const testCache = new Cache(500);
 
 
-assert("Check for existence of non-existing cache entry", pivot.exists("foo"), false);
+assert("Check for existence of non-existing cache entry", testCache.exists("foo"), false);
 
-assert("Read non-existing cache entry", pivot.read("foo"), null);
+assert("Read non-existing cache entry", testCache.read("foo"), null);
 
-pivot.write("foo", "bar");
+testCache.write("foo", "bar");
 
-assert("Check for existence of existing cache entry", pivot.exists("foo"), true);
+assert("Check for existence of existing cache entry", testCache.exists("foo"), true);
 
-assert("Read existing entry from cache", pivot.read("foo"), "bar");
+assert("Read existing entry from cache", testCache.read("foo"), "bar");
 
 assert("Check for existence of limit exceeding existing cache entry", new Promise(resolve => {
-    setTimeout(_ => resolve(pivot.exists("foo")), 550);
+    setTimeout(_ => resolve(testCache.exists("foo")), 550);
 }), false);

@@ -14,10 +14,10 @@ if(process.argv.slice(2).includes("--read")) {
     // READ PARTY
     setTimeout(_ => {
         try {
-            const dataExisting = sharedMemory.read("existing");
+            const dataExisting = sharedMemory.readSync("existing");
             log(`[ SHM : ${sharedMemory.getAppKey()} : "existing" ] READ -> '${dataExisting}'`);
 
-            const dataNonExisting = sharedMemory.read("nonExisting");
+            const dataNonExisting = sharedMemory.readSync("nonExisting");
             log(`[ SHM : ${sharedMemory.getAppKey()} : "nonExisting" ] READ -> ${dataNonExisting}`);
 
             process.send(
@@ -30,13 +30,9 @@ if(process.argv.slice(2).includes("--read")) {
     }, 1000);
 } else {
     // WRITE PARTY
-    sharedMemory.write("existing", referenceData.existing)
-    .then(_ => {
-        log(`[ SHM : ${sharedMemory.getAppKey()} : "existing" ] WRITE -> '${referenceData.existing}'`);
-    })
-    .catch(err => {
-        console.error(err);
-    });
+    sharedMemory.writeSync("existing", referenceData.existing)
+    
+    log(`[ SHM : ${sharedMemory.getAppKey()} : "existing" ] WRITE -> '${referenceData.existing}'`);
 }
 
 

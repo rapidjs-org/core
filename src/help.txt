@@ -1,9 +1,9 @@
 Usage: <start-command> [--dev|-D]
 
 Flags:
-
 --dev, -D   Run DEV MODE
 
 Options:
+--path, -P  Specify application working directory
 
-...
+Visit https://rapidjs.org for more information.

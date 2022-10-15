@@ -1,4 +1,5 @@
-import * as sharedMemory from "../shared-memory/shared-memory-api";
+import * as sharedMemory from "../../shared-memory/shared-memory-api";
+import * as print from "../../print";
 
 
 interface ILimitEntry<V, L> {
@@ -8,6 +9,8 @@ interface ILimitEntry<V, L> {
 
 
 export abstract class LimitDictionary<K, V, L> {
+    
+    private static readonly keyPrefix: string = "LD:";
     
     private static instances: number = 0;
 
@@ -24,14 +27,14 @@ export abstract class LimitDictionary<K, V, L> {
     constructor(normalizeKeyCallback?: (key: K) => K) {
         this.normalizeKeyCallback = normalizeKeyCallback || (k => k);   // Identity by default
         
-        this.id = LimitDictionary.instances++;
+        this.id = LimitDictionary.instances++;  // Consistent among processes due to same order of instance creation (assuming no race consitions)
     }
 
     protected abstract retrieveReferenceCallback(key: K): L;
     protected abstract validateLimitCallback(reference: L, current: L): boolean;
 
     private getInternalKey(key: K): string {
-        return `${this.id}${this.normalizeKeyCallback(key).toString()}`;
+        return `${LimitDictionary.keyPrefix}${this.id}${this.normalizeKeyCallback(key).toString()}`;
     }
 
     protected setExistenceLookup(key: K, value: V) {
@@ -51,16 +54,15 @@ export abstract class LimitDictionary<K, V, L> {
         // TODO: Benchmark w and w/o enabled top layer intermediate memory (-> Dict <-> intermediate <-> SHM)
 
         // TODO: Note values are serialized (JSON.stringify() in order to be stored in SHM)
-        const serializedData: string = JSON.stringify(entry);
-        
+
         return new Promise(resolve => {
-            sharedMemory.write(this.getInternalKey(key), serializedData)   // TODO: Note key is stringified implicitly (requires unambiguos serialization)
+            sharedMemory.write(this.getInternalKey(key), entry)   // TODO: Note key is stringified implicitly (requires unambiguos serialization)
             .catch(() => {
                 this.intermediateMemory.set(key, entry);
             })
             .finally(() => {
                 resolve();
-            })
+            });
         });
     }
 
@@ -86,14 +88,17 @@ export abstract class LimitDictionary<K, V, L> {
     public exists(key: K): boolean {
         // TODO: Implement intermediate
 
-        const serializedData: string = sharedMemory.read(this.getInternalKey(key).toString());
-
-        if(!serializedData) {
+        let limitEntry: ILimitEntry<V, L>;
+        try {
+            limitEntry = sharedMemory.readSync<ILimitEntry<V, L>>(this.getInternalKey(key));
+        } catch(err) {
+            limitEntry = this.intermediateMemory.get(key);
+        }
+        
+        if(!limitEntry) {
             return false;
         }
         
-        const dynamicData: ILimitEntry<V, L> = JSON.parse(serializedData);
-
         let reference: L;
         try {
             reference = this.retrieveReferenceCallback(key);
@@ -101,11 +106,11 @@ export abstract class LimitDictionary<K, V, L> {
             return false;
         }
         
-        if(!this.validateLimitCallback(dynamicData.limitReference, reference)) {
+        if(!this.validateLimitCallback(limitEntry.limitReference, reference)) {
             return false;
         }
         
-        this.setExistenceLookup(key, dynamicData.value);
+        this.setExistenceLookup(key, limitEntry.value);
 
         return true;
     }

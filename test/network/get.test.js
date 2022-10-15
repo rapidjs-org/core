@@ -1,5 +1,5 @@
 assert("Simple GET request (example.org)", {
-    url: "https://example.org/test"
+    url: "/foo.html"
 }, {
     status: 404,
     headers: {

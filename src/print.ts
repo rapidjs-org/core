@@ -2,9 +2,11 @@ import { MODE } from "./MODE";
 
 
 const devConfig = {
-	...require("./dev.config.json")
+    "appNameShort": "rJS"
 };
 
+
+type TColor = [ number, number, number, EColorMode? ];
 
 enum EStdChannel {
     OUT = "stdout",
@@ -16,8 +18,6 @@ enum EColorMode {
     BG = "48"
 }
 
-type TColor = [ number, number, number, EColorMode? ];
-
 
 function write(channel: EStdChannel, message: string) {
     process[channel].write(`${
@@ -27,12 +27,7 @@ function write(channel: EStdChannel, message: string) {
     } ${message}\n`);
 }
 
-function logToFile(message: string) {
-    // TODO: Implement
-}
-
-
-export function highlight(str: string, color: TColor|TColor[], styles?: number|number[]) {
+function highlight(str: string, color: TColor|TColor[], styles?: number|number[]) {
     return `${
         ((typeof((color || [])[0]) === "number"
         ? [ color ]
@@ -45,6 +40,11 @@ export function highlight(str: string, color: TColor|TColor[], styles?: number|n
         styles ? [ styles ].flat().map(s => `\x1b[${s}m`).join("") : ""
     }${str}\x1b[0m`;
 }
+
+function logToFile(message: string) {
+    // TODO: Implement
+}
+
 
 export function info(message: string) {
     write(EStdChannel.OUT, message);

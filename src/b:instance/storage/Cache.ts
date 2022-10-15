@@ -4,7 +4,7 @@ import { LimitDictionary } from "./LimitDictionary";
 export class Cache<K, V> extends LimitDictionary<K, V, number> {
 
     private readonly duration: number;
-
+    
     constructor(duration: number, normalizeKeyCallback?: (key: K) => K) { // TODO: Default from config
         super(normalizeKeyCallback);
         
