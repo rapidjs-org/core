@@ -45,6 +45,10 @@ process.on("exit", code => {
         envProcesses.forEach(process => process.kill());
     } catch { /**/ }
 
+    if(code === -1) {
+        return;
+    }
+
     const resultIndicatorSubstring = "\x1b[2m➞  \x1b[0m";
 
     if(code !== 0) {
@@ -117,6 +121,8 @@ function cleanUp() {
     && rmSync(tmpDirPath, {
         recursive: true
     });
+
+    process.exit(-1);
 }
 
 function logBadge(message, colorRgb, suffix) {
@@ -124,6 +130,17 @@ function logBadge(message, colorRgb, suffix) {
     ? "\x1b[38;2;255;255;255m" : "";
 
     console.log(`${fgDirective}\x1b[1m\x1b[48;2;${colorRgb[0]};${colorRgb[1]};${colorRgb[2]}m ${message} \x1b[0m${suffix ? ` ${suffix}` : ""}\n`);
+}
+
+function updateExitTimeout() {
+    clearTimeout(exitTimeout);
+    
+    exitTimeout = setTimeout(_ => {
+        (testRange.stackSize === 0)
+        && process.exit(0);
+
+        throw new EvalError("Test case has timed out");
+    }, exitTimeoutLength);
 }
 
 function minAssert(caption, specificAssert, actualExpression, expected) {   // TODO: Call lists?
@@ -169,8 +186,8 @@ function minAssert(caption, specificAssert, actualExpression, expected) {   // T
         
         if(--testRange.stackSize === 0 && testRange.callQueue.length) {
             run.apply(null, testRange.callQueue.shift());
-        } else if(timeoutEnabled) {
-            exitTimeout = setTimeout(_ => process.exit(), exitTimeoutLength);
+        } else {
+            updateExitTimeout();
         }
     };
 
@@ -207,6 +224,8 @@ global.assertSuccess = function(caption, actualExpression) {
 
 
 module.exports.run = async function(path, caption, captionColorRgb, specificAssert, useTimeout = false) {
+    timeoutEnabled = useTimeout;
+    
     const envProcess = runEnvironmentalScript(caption, "setup");
     if(envProcess) {
         envProcesses.push(envProcess);
@@ -232,9 +251,7 @@ module.exports.run = async function(path, caption, captionColorRgb, specificAsse
         runEnvironmentalScript(caption, "cleanup");
     });
 
-    timeoutEnabled = useTimeout;
-    
-    clearTimeout(exitTimeout);
+    updateExitTimeout();
 
     if(testRange.stackSize > 0) {
         testRange.callQueue.push([ path, caption, captionColorRgb, specificAssert ]);

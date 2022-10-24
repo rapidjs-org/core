@@ -1,5 +1,5 @@
 const devConfig = {
-    configNamePrefixList: [ "rapidjs", "rjs" ],
+    configNamePrefixList: [ "rapidjs", "rjs", "rapid" ],
 };
 
 
@@ -11,7 +11,8 @@ import defaultConfig from "./default.config.json";
 
 
 type TConstraintError = string;
-type TConfigObject = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TConfigObject = Record<string, any>;
 type TErroneousPropertyTriple = [string, TConstraintError, string];
 
 interface IConstraintModelProperty {
@@ -43,15 +44,15 @@ function checkType(value: unknown, typeName: string): boolean {
     return (String(typeof(value)).toLowerCase() === typeName);
 }
 
-function checkPattern(value: unknown, pattern: RegExp = /.*/): boolean {
+function checkPattern(value: unknown, pattern = /.*/): boolean {
     return pattern.test(String(value));
 }
 
-function applyConstraintModel(configObj: TConfigObject, model: TConfigObject): IConstraintResult {
+function applyConstraintModel(configObj: TConfigObject, model: TConfigObject): IConstraintResult {    
     const result: IConstraintResult = {
         erroneousProperties: [],
         expendableProperties: []
-    }
+    };
 
     const validatedKeys: Set<string> = new Set();
     for(const key in model) {
@@ -185,7 +186,7 @@ export function constrain(model: unknown) {
         return {
             list: list.slice(0, 10),
             suffix: (list.length > 10) ? "\n      ..." : ""
-        }
+        };
     };
 
     const erroneousProperties = abbreviate(constraintResult.erroneousProperties);

@@ -2,7 +2,7 @@ export class AsyncMutex {
 
 	private readonly acquireQueue: ((value?: unknown) => void)[] = [];
 
-	private isLocked: boolean = false;
+	private isLocked = false;
 
 	private acquire(prioritize: boolean) {
 		 if(!this.isLocked) {
@@ -16,7 +16,7 @@ export class AsyncMutex {
 		});
 	}
 
-	public lock(instructions: (() => void)|Promise<unknown>, prioritize: boolean = false): Promise<unknown> {
+	public lock(instructions: (() => void)|Promise<unknown>, prioritize = false): Promise<unknown> {
 		return new Promise(resolve => {
 			this.acquire(prioritize)
 			.then(() => {

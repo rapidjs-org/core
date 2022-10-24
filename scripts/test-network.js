@@ -8,6 +8,9 @@ const { run } = require("./test-framework.js");
 run("./network/", "Network", [ 45, 120, 240 ], assert, true);
 
 function assert(actual, expected) { // actual := endpoint information
+    actual.url = new URL(actual.url
+        .replace(/^(http(s)?:\/\/)?(localhost)?(\/|:)/, "http$2://localhost$4"));
+    
     return new Promise(resolve => {
         performRequest(actual)
         .then(actual => {
@@ -99,7 +102,7 @@ function assert(actual, expected) { // actual := endpoint information
                     }
                 }
             }
-            
+
             resolve({
                 hasSucceeded,
                 actual: formatDisplayObj(displayActual),
@@ -107,12 +110,10 @@ function assert(actual, expected) { // actual := endpoint information
             });
         })
         .catch(err => {
-            console.error(`Request error: ${err.message}`);
-
             resolve({
                 hasSucceeded: false,
                 actual: `\x1b[31m${err.message}\x1b[0m`,
-                expected: formatDisplayObj(expected)
+                expected: `\x1b[2m• ${actual.url.toString()}\x1b[0m\n\n${formatDisplayObj(expected)}`
             });
         });
     });
@@ -125,17 +126,14 @@ function isObject(value) {
 }
 
 function performRequest(endpoint) {
-    const url = new URL(endpoint.url
-        .replace(/^(http(s)?:\/\/)?(localhost)?(\/|:)/, "http$2://localhost$4"));
-    
     return new Promise((resolve, reject) => {
-        const req = ((url.protocol.toLowerCase() === "https")
+        const req = ((endpoint.url.protocol.toLowerCase() === "https")
         ? https
         : http)
         .request({
-            hostname: url.hostname,
-            port: url.port,
-            path: url.href,
+            hostname: endpoint.url.hostname,
+            port: endpoint.url.port,
+            path: endpoint.url.href,
             method: endpoint.method || "GET",
             headers: endpoint.headers || {}
         }, res => {
@@ -219,5 +217,5 @@ function formatDisplayObj(displayObj) {
         formatObj(displayObj.headers)
     }`);
     
-    return log.join("\n\n");
+    return log.join("\n");
 }

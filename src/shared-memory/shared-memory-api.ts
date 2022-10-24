@@ -24,7 +24,7 @@ function generateAppKey(): number { // uint32_t (MAX: 4294967295 ≈ ⌊MAX = 40
     // HASH: Use master process identity property (disc location?)
 }
 
-function registerFree(event: string, exitCode: number = 0) {
+function registerFree(event: string, exitCode = 0) {
     process.on(event, () => {
         sharedMemory.free();
         
@@ -85,7 +85,7 @@ export function readSync<T>(purposeKey: string): T {
     
     try {
         const buffer: Buffer = sharedMemory.read(purposeKey);
-        const serial: string = String(buffer);
+        const serial = String(buffer);
 
         let data: T;
         try {

@@ -4,17 +4,12 @@ const { join } = require("path");
 
 const configObjects = {
     shared: {
-        ...{
-            port: 12345
-        },
-        ...{
-            foo: "!!!",
-            bar: true,
-            baz: 1,
-            qux: [
-                1, 2, 3
-            ]
-        }
+        foo: "!!!",
+        bar: true,
+        baz: 1,
+        qux: [
+            1, 2, 3
+        ]
     },
     prod: {
         foo: "Hello world",

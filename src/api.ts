@@ -15,7 +15,9 @@ import { join } from "path";
 import * as print from "./print";
 import { EVENT_EMITTER } from "./EVENT_EMITTER";
 import { MODE } from "./MODE";
+import { APP_CONFIG } from "./config/APP_CONFIG";
 import { parseFlag } from "./args";
+import { init as initCluster } from "./cluster";
 
 
 if(parseFlag("help", "H")) {    // TODO: Global bin?
@@ -25,10 +27,15 @@ if(parseFlag("help", "H")) {    // TODO: Global bin?
 }
 
 
-import ("./b:instance/instance");    // import("./cluster");
+EVENT_EMITTER.on("listening", () => {
+    print.info(`Server listening on port ${APP_CONFIG.port}`);
+});    // TODO: Display start message (count nodes for correct cardinality)
 
 
 process.on("uncaughtException", (err: Error) => print.error(err));
+
+
+initCluster();
 
 
 print.info(`Started server cluster. Running ${

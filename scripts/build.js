@@ -24,6 +24,8 @@ function buildDir(path) {
 
             return;
         }
+
+        // TODO Minify / optimize
         
         writeFileSync(subPath, `${signature}\n${String(readFileSync(subPath))}`);
     });

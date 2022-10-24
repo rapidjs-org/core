@@ -1,7 +1,7 @@
 import { statSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { join, normalize } from "path";
 
-import { PATH } from "../../PATH";
+import { PATH } from "../PATH";
 
 import { LimitDictionary } from "./LimitDictionary";
 
@@ -46,13 +46,13 @@ export class VFS extends LimitDictionary<string, IFileStamp, IFileReference> {
         return {
             ctime: ctimeMs,
             mtime: mtimeMs
-        }
+        };
     }
 
     private getFileStamp(path: string, data: string): IFileStamp {
         const fileReference: IFileReference = this.getFileReference(path);
         
-        const eTag: string = `${fileReference.ctime}${fileReference.mtime}`;  // Quick time stats value (inconsistent in multi-machine setups)
+        const eTag = `${fileReference.ctime}${fileReference.mtime}`;  // Quick time stats value (inconsistent in multi-machine setups)
         // TODO: Provide different ETag calculation algorithms / custom interface ?
         
         const fileStamp: IFileStamp = {
@@ -102,7 +102,7 @@ export class VFS extends LimitDictionary<string, IFileStamp, IFileReference> {
             return false;
         }
 
-        const fileContents: string = String(readFileSync(pathOnDisc));
+        const fileContents = String(readFileSync(pathOnDisc));
         const fileStamp: IFileStamp = this.getFileStamp(path, fileContents);
         
         super.write(path, fileStamp);

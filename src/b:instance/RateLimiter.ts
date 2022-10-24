@@ -1,76 +1,47 @@
-import * as sharedMemory from "../shared-memory/shared-memory-api";
 import { AsyncMutex } from "../AsyncMutex";
 
-
-interface IWindow {
-    timePivot: number,
-    previous: number,
-    current: number,
-}
-
+// TODO: Implement on shared memory or rely on even distribution?
 
 export class RateLimiter<T> {
-
-    private static readonly keyPrefix: string = "RL:";
 
     private readonly rateMutex: AsyncMutex = new AsyncMutex();
     private readonly limit: number;
     private readonly windowSize: number;
-    private readonly intermediateMemory: Map<T, IWindow> = new Map();
 
-    constructor(limit: number, windowSize: number = 60000) {
+    private timePivot: number;
+    private previousWindow: Map<T, number>;
+    private currentWindow: Map<T, number> = new Map();
+
+    constructor(limit: number, windowSize = 60000) {
         this.limit = limit;
         this.windowSize = windowSize;
+
+        this.update();
     }
 
-    private getInternalKey(entityIdentifier: T): string {
-        return `${RateLimiter.keyPrefix}${entityIdentifier}`;   // Global rate memory among different objects (accumulatated effort)
-    }
+    private update() {
+        this.rateMutex.lock(() => {
+            this.timePivot = Date.now();
 
-    private getWindowHits(entityIdentifier: T): IWindow {
-        let window: IWindow;
-        try {
-            window = sharedMemory.readSync<IWindow>(this.getInternalKey(entityIdentifier));
-        } catch {
-            window = this.intermediateMemory.get(entityIdentifier);
-        }
-        window = window ?? {
-            timePivot: Date.now(),
-            previous: 0,
-            current: 0
-        };
-
-        const timeDelta: number = Date.now() - window.timePivot;
-        if(timeDelta <= this.windowSize) {
-            return window;
-        } else if(timeDelta <= (2 * this.windowSize)) {
-            return {
-                timePivot: window.timePivot + timeDelta,
-                previous: 0,
-                current: 0
-            };
-        } else {
-            return {
-                timePivot: Date.now(),
-                previous: 0,
-                current: 0
-            };
-        }
+            this.previousWindow = this.currentWindow;
+            this.currentWindow = new Map();
+        }, true);
     }
 
     public grantsAccess(entityIdentifier: T): boolean {
         this.rateMutex.lock(() => {
-            const window: IWindow = this.getWindowHits(entityIdentifier);
+            const currentHits: number = this.currentWindow.get(entityIdentifier) ?? 0;
 
-            window.current++;
-
-            sharedMemory.write(this.getInternalKey(entityIdentifier), window);
+            this.currentWindow.set(entityIdentifier, currentHits + 1);
         });
 
-        const window: IWindow = this.getWindowHits(entityIdentifier);
-        window.timePivot
-        const currentWindowWeight: number = (Date.now() - window.timePivot) / this.windowSize;
-        const weightedHits: number = (window.previous * (1 - currentWindowWeight)) + (window.previous * currentWindowWeight);
+        const regsiteredHits = {
+            previous: this.previousWindow.get(entityIdentifier) ?? 0,
+            current: (this.currentWindow.get(entityIdentifier) ?? 0) + 1
+        };
+
+        const currentWindowWeight: number = (Date.now() - this.timePivot) / this.windowSize;
+        const weightedHits: number = (regsiteredHits.previous * (1 - currentWindowWeight)) + (regsiteredHits.previous * currentWindowWeight);
         
         return (weightedHits <= this.limit);
     }

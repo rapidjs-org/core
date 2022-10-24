@@ -19,11 +19,12 @@
     },
     "rules": {
         "indent": [
-            2,
+            0
+            /* 2,
             "tab",
             {
                 "MemberExpression": 0
-            }
+            } */
         ],
         "linebreak-style": [
             2,

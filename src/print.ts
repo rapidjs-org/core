@@ -1,3 +1,6 @@
+import cluster from "cluster";
+
+import { EVENT_EMITTER } from "./EVENT_EMITTER";
 import { MODE } from "./MODE";
 
 
@@ -19,12 +22,56 @@ enum EColorMode {
 }
 
 
+let lastMessage: {
+    count: number;
+    isMultiline: boolean;
+    message: string;
+};
+
+
+process.stdin.on("data", (char: string) => {
+    lastMessage = null;
+
+    process.stdout.write(char);
+});
+
+
+
 function write(channel: EStdChannel, message: string) {
-    process[channel].write(`${
-        highlight(` ${devConfig.appNameShort} `, [
+    EVENT_EMITTER.emit("log", message);
+
+    if(cluster.isPrimary
+    && message === lastMessage?.message) {
+        try {
+            process[channel].moveCursor(
+                (!lastMessage.isMultiline
+                ? (devConfig.appNameShort.length + lastMessage.message.length + 4)
+                : 0),
+                ((!lastMessage.isMultiline || (lastMessage.count > 1))
+                ? -1
+                : 0)
+            );
+            process[channel].clearLine(1);
+            
+            process[channel].write(`${highlight(`(${++lastMessage.count})`, [ 255, 0, 0 ])}\n`);
+        } catch { /**/ }
+
+        return;
+    }
+
+    lastMessage = {
+        count: 1,
+        isMultiline: /\n/.test(message),
+        message: message
+    };
+    
+    message
+    && process[channel].write(`${cluster.isPrimary
+        ? `${highlight(` ${devConfig.appNameShort} `, [
             [ 54, 48, 48, EColorMode.FG ], [ 255, 254, 173, EColorMode.BG ]
-        ], [ 1, 3 ])
-    } ${message}\n`);
+        ], [ 1, 3 ])} `
+        : ""
+    }${message}\n`);
 }
 
 function highlight(str: string, color: TColor|TColor[], styles?: number|number[]) {
@@ -33,7 +80,7 @@ function highlight(str: string, color: TColor|TColor[], styles?: number|number[]
         ? [ color ]
         : color || []) as TColor[])
         .map((c: TColor) => {
-            return `\x1b[${(c.length > 3) ? c.pop() : EColorMode.FG};2;${c.join(";")}m`
+            return `\x1b[${(c.length > 3) ? c.pop() : EColorMode.FG};2;${c.join(";")}m`;
         })
         .join("")
     }${
@@ -46,16 +93,16 @@ function logToFile(message: string) {
 }
 
 
-export function info(message: string) {
-    write(EStdChannel.OUT, message);
+export function info(message: unknown) {
+    write(EStdChannel.OUT, String(message));
 }
 
-export function debug(message: string) {
+export function debug(message: unknown) {
     if(!MODE.DEV) {
         return;
     }
     
-    write(EStdChannel.OUT, message);
+    write(EStdChannel.OUT, String(message));
 }
 
 export function error(err: Error|string) {
@@ -65,9 +112,13 @@ export function error(err: Error|string) {
         return;
     }
     
-    const message: string = `${err.name}: ${err.message}`;
+    const message = `${err.name}: ${err.message}`;
 
-    write(EStdChannel.ERR, highlight(message, [ 224, 0, 0 ]));
-    err.stack
-    && console.error(highlight(err.stack.replace(message, "").trim(), null, 2));
+    write(EStdChannel.ERR, `${
+        highlight(message, [ 224, 0, 0 ])
+    }${
+        err.stack
+        ? `\n${highlight(err.stack.replace(message, "").trim(), null, 2)}`
+        : ""
+    }`);
 }

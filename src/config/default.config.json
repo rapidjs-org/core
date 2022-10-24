@@ -1,3 +1,7 @@
 {
-    "port": 80
+    "port": 80,
+    "limit": {
+        "timeout": 7500,
+        "requestsPerClient": 50
+    }
 }

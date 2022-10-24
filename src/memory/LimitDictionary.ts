@@ -1,5 +1,4 @@
-import * as sharedMemory from "../../shared-memory/shared-memory-api";
-import * as print from "../../print";
+import * as sharedMemory from "../shared-memory/shared-memory-api";
 
 
 interface ILimitEntry<V, L> {
@@ -12,7 +11,7 @@ export abstract class LimitDictionary<K, V, L> {
     
     private static readonly keyPrefix: string = "LD:";
     
-    private static instances: number = 0;
+    private static instances = 0;
 
     private readonly id: number;
     private readonly intermediateMemory: Map<K, ILimitEntry<V, L>> = new Map();
