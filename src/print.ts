@@ -1,12 +1,14 @@
-import cluster from "cluster";
-
-import { EVENT_EMITTER } from "./EVENT_EMITTER";
-import { MODE } from "./MODE";
-
-
 const devConfig = {
     "appNameShort": "rJS"
 };
+
+
+import cluster from "cluster";
+import { isMainThread } from "worker_threads";
+
+import { EVENT_EMITTER } from "./EVENT_EMITTER";
+import { MODE } from "./MODE";
+import { AsyncMutex } from "./AsyncMutex";
 
 
 type TColor = [ number, number, number, EColorMode? ];
@@ -21,6 +23,9 @@ enum EColorMode {
     BG = "48"
 }
 
+
+const writeMutex: AsyncMutex = new AsyncMutex();
+const isRootContext: boolean = cluster.isPrimary && isMainThread;
 
 let lastMessage: {
     count: number;
@@ -38,40 +43,44 @@ process.stdin.on("data", (char: string) => {
 
 
 function write(channel: EStdChannel, message: string) {
-    EVENT_EMITTER.emit("log", message);
+    writeMutex.lock(() => {
+        EVENT_EMITTER.emit("log", message);
 
-    if(cluster.isPrimary
-    && message === lastMessage?.message) {
-        try {
-            process[channel].moveCursor(
-                (!lastMessage.isMultiline
-                ? (devConfig.appNameShort.length + lastMessage.message.length + 4)
-                : 0),
-                ((!lastMessage.isMultiline || (lastMessage.count > 1))
-                ? -1
-                : 0)
-            );
-            process[channel].clearLine(1);
-            
-            process[channel].write(`${highlight(`(${++lastMessage.count})`, [ 255, 0, 0 ])}\n`);
-        } catch { /**/ }
+        if(isRootContext
+        && message === lastMessage?.message) {
+            try {
+                process[channel].moveCursor(
+                    (!lastMessage.isMultiline
+                    ? (devConfig.appNameShort.length + lastMessage.message.length + 4)
+                    : 0),
+                    ((!lastMessage.isMultiline || (lastMessage.count > 1))
+                    ? -1
+                    : 0)
+                );
+                process[channel].clearLine(1);
+                
+                process[channel].write(`${highlight(`(${++lastMessage.count})`, [ 255, 0, 0 ])}\n`);
+            } catch { /**/ }
 
-        return;
-    }
+            return;
+        }
 
-    lastMessage = {
-        count: 1,
-        isMultiline: /\n/.test(message),
-        message: message
-    };
-    
-    message
-    && process[channel].write(`${cluster.isPrimary
-        ? `${highlight(` ${devConfig.appNameShort} `, [
-            [ 54, 48, 48, EColorMode.FG ], [ 255, 254, 173, EColorMode.BG ]
-        ], [ 1, 3 ])} `
-        : ""
-    }${message}\n`);
+        lastMessage = {
+            count: 1,
+            isMultiline: /\n/.test(message),
+            message: message
+        };
+
+        // TODO: Type based formatting
+
+        message
+        && process[channel].write(`${isRootContext
+            ? `${highlight(` ${devConfig.appNameShort} `, [
+                [ 54, 48, 48, EColorMode.FG ], [ 255, 254, 173, EColorMode.BG ]
+            ], [ 1, 3 ])} `
+            : ""
+        }${message}\n`);
+    });
 }
 
 function highlight(str: string, color: TColor|TColor[], styles?: number|number[]) {

@@ -1,14 +1,17 @@
-import { sign } from "crypto";
 import { parentPort, BroadcastChannel } from "worker_threads";
 
 import { IBroadcastMessage } from "../../interfaces";
 import { BroadcastListener } from "../../BroadcastListener";
+import * as print from "../../print";
 
 import { IRequest, IResponse} from "../interfaces";
 
 
 const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-br");
 const broadcastListener = new BroadcastListener();
+
+
+process.on("uncaughtException", (err: Error) => print.error(err));
 
 
 parentPort.on("message", (sReq: IRequest) => {
@@ -20,7 +23,9 @@ parentPort.on("message", (sReq: IRequest) => {
         status: 200,
         message: sReq.url.hostname as string
     }; // TODO: Overload return value?
-    
+
+    // TODO: Wrap sReq properties with dynamic interfaces?
+    console.log(sReq);
     parentPort.postMessage(sRes);
 });
 

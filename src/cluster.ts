@@ -10,6 +10,7 @@ import { join, dirname } from "path";
 
 import { IBroadcastMessage } from "./interfaces";
 import { MODE } from "./MODE";
+import { EVENT_EMITTER } from "./EVENT_EMITTER";
 import { AsyncMutex } from "./AsyncMutex";
 import { ErrorControl } from "./ErrorControl";
 import { BroadcastListener } from "./BroadcastListener";
@@ -38,7 +39,12 @@ cluster.settings.silent = true;
 broadcastListener.on("feed-error-cotrol", () => errorControl.feed());
 
 
-// TODO: Check sizes after errors
+cluster.on("listening", () => {
+	EVENT_EMITTER.emit("listening");   // TODO: Once
+	
+	cluster.removeAllListeners("listening");
+});
+
 
 function create() {
 	processMutex.lock(() => {
@@ -46,16 +52,14 @@ function create() {
 			wd: dirname(require.main.filename)
 		});
 
-		process.on("listening", () => {
-			print.info(`${poolCaption} process has started listening`);
-		});
-
 		process.on("message", (message: IBroadcastMessage) => broadcastListener.emit(message));
+		
+		process.on("listening", err => {
+			setImmediate(() => print.info(`${poolCaption} process has started listening`));	// TODO: Eventual mark restarts
+		});
 
 		process.on("error", err => {
 			print.error(err);
-        	
-			create();
 		});
 
 		process.on("exit", (code: number) => {
@@ -63,9 +67,9 @@ function create() {
 				return;
 			}
 
-        	print.error(`Process has terminated for an unknown reason with exit code ${code}`);
-        	
 			create();
+
+			!MODE.DEV && print.info(`${poolCaption} process has terminated for unknow reasons`);
 		});
 
 		// Pipe worker output to master (mem space A)

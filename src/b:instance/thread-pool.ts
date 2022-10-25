@@ -2,6 +2,7 @@ import { Worker as Thread, SHARE_ENV, BroadcastChannel } from "worker_threads";
 import { join } from "path";
 
 import { IBroadcastMessage } from "../interfaces";
+import { MODE } from "../MODE";
 import { APP_CONFIG } from "../config/APP_CONFIG";
 import { AsyncMutex } from "../AsyncMutex";
 import * as print from "../print";
@@ -30,17 +31,15 @@ const idleThreads: Thread[] = [];
 const activeThreads: Map<number, IActive> = new Map();
 
 
+process.on("uncaughtException", (err: Error) => print.error(err));
+
 process.on("message", (message: IBroadcastMessage) => {
-	threadMutex.lock(() => {
-        broadcastChannel.postMessage(message);
-	});
+	threadMutex.lock(() => broadcastChannel.postMessage(message));
 });
 
 
 broadcastChannel.onmessage = (message: IBroadcastMessage) => {
-    threadMutex.lock(() => {
-        process.send(message);
-    });
+    threadMutex.lock(() => process.send(message));
 };
 
 
@@ -59,8 +58,6 @@ function create() {
 
         deactivate(thread); 
     });
-
-    const id: number = thread.threadId;
 
     const handleThreadError = () => {        
         process.send({
@@ -84,8 +81,8 @@ function create() {
         create();
         
         handleThreadError();
-        
-        setTimeout(_ => {console.log(idleThreads.length)}, 10)
+
+		!MODE.DEV && print.info("Thread has terminated for unknow reasons");
     });
 
     idleThreads.push(thread);

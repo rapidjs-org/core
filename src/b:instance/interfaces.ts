@@ -1,4 +1,4 @@
-export interface ISerializedURL {
+export interface IHighlevelURL {
     hash: string;
     host: string;
     hostname: string;
@@ -13,11 +13,25 @@ export interface ISerializedURL {
     searchParams: Record<string, string>;
 }
 
+export interface IHighlevelLocale {
+    language: string;
+    quality: number;
+
+    region?: string;
+}
+
+export interface IHighlevelCookies {
+    
+}
+
 export interface IRequest {
-    url: ISerializedURL;
+    method: string;
+    url: IHighlevelURL;
     headers: Record<string, string|string[]>;
     
     body?: unknown;
+    cookies?: IHighlevelCookies;
+    locale?: IHighlevelLocale[];
 }
 
 export interface IResponse {
