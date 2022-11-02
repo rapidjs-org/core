@@ -39,6 +39,8 @@ broadcastListener.on("terminate", () => setImmediate(() => process.exit(1)));
 
 
 const initialListeningEmission = () => {
+	// TODO: Count inital instances to complete on base size reached
+	
 	EVENT_EMITTER.emit("listening");
 
 	cluster.removeListener("listening", initialListeningEmission);

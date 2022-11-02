@@ -179,6 +179,7 @@ export enum ETypeConstraint {
 
 export const APP_CONFIG: TConfigObject = new Config(devConfig.configNamePrefixList, defaultConfig as TConfigObject).objectify();
 
+// TODO: Generalize
 export function constrain(model: unknown) {
     const constraintResult = applyConstraintModel(APP_CONFIG, model as TConfigObject);
     

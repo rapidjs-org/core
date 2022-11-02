@@ -51,7 +51,9 @@ createServerHTTP({
     : new Promise(r => r(null)))
     .then(async body => {
         const host: string = constructStrongHost(oReq.headers["host"]); // TODO: Compare with config (multiple, strict, ...?)
-        const dynamicURL: URL = new URL(`${host}${oReq.url}`);
+        const dynamicURL: URL = new URL(!/^https?:\/\//.test(oReq.url)
+        ? `${host}${oReq.url}`
+        : oReq.url);
         const highlevelURL: IHighlevelURL = {
             hash: dynamicURL.hash,
             host: dynamicURL.host,
@@ -105,7 +107,7 @@ createServerHTTP({
         .filter((locale: IHighlevelLocale) => locale);
 
         const highlevelCookies: THighlevelCookieIn = {};
-        oReq.headers["cookie"]
+        (oReq.headers["cookie"] ?? "")
         .split(/;/g)
         .forEach((cookie: string) => {
             if(!/\s*[^;, ]+=.+\s*/.test(cookie)) {

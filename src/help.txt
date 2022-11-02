@@ -1,10 +1,11 @@
 Usage: <start-command> [--dev|-D]
 
 Flags:
---disable-error-control, -D   Run DEV MODE
---dev, -D   Run DEV MODE
+--disable-error-control, -D     Run DEV MODE
+--dev, -D                       Run DEV MODE
 
 Options:
---path, -P  Specify application working directory
+--path, -P                      Specify application working directory
+--log-dir, -L                   Specify log file directory
 
 Visit https://rapidjs.org for more information.

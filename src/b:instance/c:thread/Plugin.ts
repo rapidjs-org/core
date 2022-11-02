@@ -14,6 +14,8 @@ export class Plugin {
 
     constructor(path: string) {
         require(join(PATH, path));
+
+        // TODO: Define $this
     }
 
 }

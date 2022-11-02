@@ -7,3 +7,4 @@ debug/
 dist/
 src/shared-memory/build/
 test/.tmp/
+test/integration/logs/

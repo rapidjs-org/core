@@ -47,7 +47,7 @@ setImmediate(() => {
         try {
             mkdirSync(testLogDirPath);
         } catch {
-            throw new RangeError(`Given log directory neither exist nor can be created at path '${testLogDirPath}'`);
+            throw new ReferenceError(`Given log directory neither exist nor can be created at path '${testLogDirPath}'`);
         }
     }
     if(!statSync(testLogDirPath).isDirectory()) {
@@ -134,6 +134,8 @@ function logToFile(message: string) {
     if(!logDirPath) {
         return
     }
+
+    message = message.replace(/\x1b\[[0-9;]+m/g, "");    // Remove possibly occurring ANSII formatting codes
 
     const date: Date = new Date();
     const day: string = date.toISOString().split("T")[0];
