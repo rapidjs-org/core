@@ -1,0 +1,46 @@
+{
+  "name": "@rapidjs.org/core",
+  "version": "0.0.1",
+  "description": "",
+  "author": "Thassilo Martin Schiepanski",
+  "main": "./dist/api.js",
+  "scripts": {
+    "init": "npm i && cd ./src/shared-memory/ && node-gyp configure",
+    "lint": "./node_modules/.bin/eslint --ext .ts --fix ./src",
+    "compile:dist": "./scripts/compile-dist.sh && node ./node_modules/@rapidjs.org/utilities/build.js ./signature.txt",
+    "compile:watch": "node ./scripts/compile-watch.js",
+    "compile:watch:all": "node ./scripts/compile-watch.js --cpp",
+    "test:integration": "node ./test/integration/app.js",
+    "test:shm": "node ./scripts/test-shm.js",
+    "test:network": "node ./node_modules/@rapidjs.org/utilities/test-network.js",
+    "test:unit": "node ./node_modules/@rapidjs.org/utilities/test-unit.js",
+    "test": "node ./scripts/test-shm.js && node ./node_modules/@rapidjs.org/utilities/test.js",
+    "release": "npm run test && npm run compile:dist"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "rapidjs",
+    "rapidjs.org"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rapidjs-org/core.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rapidjs-org/core/issues"
+  },
+  "homepage": "https://rapidjs.org",
+  "devDependencies": {
+    "@rapidjs.org/utilities": "git://github.com/rapidjs-org/utilities.git",
+    "@types/node": "^16.11.39",
+    "@typescript-eslint/eslint-plugin": "^5.4.0",
+    "@typescript-eslint/parser": "^5.4.0",
+    "eslint": "^7.26.0",
+    "eslint-plugin-typescript": "^0.14.0",
+    "node-addon-api": "^5.0.0",
+    "node-gyp": "^9.1.0",
+    "typescript": "^4.5.2"
+  }
+}

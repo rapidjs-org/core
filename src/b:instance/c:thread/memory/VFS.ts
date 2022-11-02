@@ -1,7 +1,7 @@
 import { statSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { join, normalize } from "path";
 
-import { PATH } from "../PATH";
+import { PATH } from "../../../PATH";
 
 import { LimitDictionary } from "./LimitDictionary";
 

@@ -43,7 +43,7 @@ child.stdout.on("data", data => {
 
 // Set up shared memory files / C++ source modification watch
 const detectionFrequency = 2500;
-const shmPath = join(__dirname, "../src/shared-memory/");
+const shmPath = join(__dirname, "../src/b:instance/shared-memory/");
 const shmDirents = readdirSync(shmPath, {
     withFileTypes: true
 })
@@ -88,7 +88,7 @@ function compileCPP() {
             stdio: "inherit"
         });
         
-        const destPath = join(__dirname, "../debug/shared-memory/shared-memory.node");
+        const destPath = join(__dirname, "../debug/b:instance/shared-memory/shared-memory.node");
         rmSync(destPath, {
             force: true
         });

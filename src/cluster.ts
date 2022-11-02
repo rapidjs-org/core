@@ -38,14 +38,17 @@ cluster.settings.silent = true;
 broadcastListener.on("terminate", () => setImmediate(() => process.exit(1)));
 
 
+let listeningNotfications: number = baseSize;
 const initialListeningEmission = () => {
 	// TODO: Count inital instances to complete on base size reached
+	if(listeningNotfications--) {
+		return;
+	}
 	
 	EVENT_EMITTER.emit("listening");
 
 	cluster.removeListener("listening", initialListeningEmission);
 };
-
 cluster.on("listening", initialListeningEmission);
 
 cluster.on("message", (message: IBroadcastMessage) => broadcastListener.emit(message));

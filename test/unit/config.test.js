@@ -1,4 +1,4 @@
-const { writeFileSync } = require("fs");
+/* const { writeFileSync } = require("fs");
 const { join } = require("path");
 
 
@@ -47,4 +47,4 @@ assertSuccess("Constrain app config", _ => {
             }
         }
     });
-});
+}); */
