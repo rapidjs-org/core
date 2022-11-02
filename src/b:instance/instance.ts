@@ -10,7 +10,7 @@ import { gzipSync, deflateSync, brotliCompressSync } from "zlib";
 import { APP_CONFIG } from "../config/APP_CONFIG";
 import * as print from "../print";
 
-import { IRequest, IResponse, IHighlevelURL, IHighlevelLocale, IHighlevelCookies } from "./interfaces";
+import { IRequest, IResponse, IHighlevelURL, IHighlevelLocale, IHighlevelCookieOut, THighlevelCookieIn } from "./interfaces";
 import { RateLimiter } from "./RateLimiter";
 import * as threadPool from "./thread-pool";
 
@@ -41,10 +41,7 @@ createServerHTTP({
     if(!rateLimiter.grantsAccess(clientIP)) {
         return respond(oRes, 429);
     }
-    if(!rateLimiter.grantsAccess(clientIP)) {
-        return respond(oRes, 429);
-    }
-
+    
     // TODO: Limits (Request Header Fields Too Large!)
 
     const method: string = oReq.method.toUpperCase();
@@ -107,7 +104,24 @@ createServerHTTP({
         })
         .filter((locale: IHighlevelLocale) => locale);
 
-        const highlevelCookies: IHighlevelCookies = {};
+        const highlevelCookies: THighlevelCookieIn = {};
+        oReq.headers["cookie"]
+        .split(/;/g)
+        .forEach((cookie: string) => {
+            if(!/\s*[^;, ]+=.+\s*/.test(cookie)) {
+                return;
+            }
+
+            const parts: string[] = cookie.split(/=/);
+            let value: string|number|boolean;
+            try {
+                value = JSON.parse(parts[1]);
+            } catch {
+                value = parts[1];
+            }
+
+            highlevelCookies[parts[0].trim()] = value;
+        });
 
         const sReq: IRequest = {
             method: method,
@@ -118,8 +132,9 @@ createServerHTTP({
             
             ... body ? { body } : {}
         };
-
+        
         // Remove auto-processed headers from serialized high-level representation
+        delete sReq.headers["host"];
         delete sReq.headers["accept-encoding"];
         delete sReq.headers["accept-language"];
         delete sReq.headers["cookie"];
@@ -261,6 +276,25 @@ function respond(oRes: ServerResponse, resParam: IResponse|number, prioritizedHe
     for(const name in prioritizedHeaders) {
         oRes.setHeader(name, prioritizedHeaders[name]);
     }
+    
+    // Set cookie header
+    for(const name in resParam.cookies) {
+        const cookie: IHighlevelCookieOut = resParam.cookies[name];
+	    oRes.setHeader("Set-Cookie", `${name}=${cookie.value}${
+            cookie.maxAge ? `; Max-Age: ${cookie.maxAge}`: ""
+        }${
+            cookie.domain ? `; Domain: ${cookie.domain}`: ""
+        }${
+            cookie.path ? `; Path: ${cookie.path}`: ""
+        }${
+            cookie.sameSite ? `; Same-Site: ${cookie.sameSite}`: ""
+        }${
+            cookie.httpOnly ? "; HttpOnly" : ""
+        }${
+            runsSecure ? "; Secure" : ""
+        }`);
+    }
+    
 
     // TODO: Note that string messages are compressed
     oRes.statusCode = resParam.status;    // TODO: Concealing error status/message

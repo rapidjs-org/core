@@ -21,13 +21,12 @@ import * as print from "./print";
 
 
 const baseSize: number = MODE.DEV ? 1 : cpus().length;	// TODO: Use elaborate algorithm to determine root size
-const poolCaption: string = (baseSize > 1) ? "Cluster" : "Instance";
-const processMutex = new AsyncMutex();
 const errorControl = new ErrorControl(() => {
-	print.error(new RangeError(`${poolCaption} shut down due to heavy error density`));
+	print.error(new RangeError(`${MODE.DEV ? "Instance" : "Cluster"} has shut down due to heavy error density in processes`));
 	
-    process.exit(1);
+    setImmediate(() => process.exit(1));
 });
+const processMutex = new AsyncMutex();
 const broadcastListener: BroadcastListener = new BroadcastListener();
 
 
@@ -36,47 +35,50 @@ cluster.settings.args = process.argv.slice(2);
 cluster.settings.silent = true;
 
 
-broadcastListener.on("feed-error-cotrol", () => errorControl.feed());
+broadcastListener.on("terminate", () => setImmediate(() => process.exit(1)));
 
+
+const initialListeningEmission = () => {
+	EVENT_EMITTER.emit("listening");
+
+	cluster.removeListener("listening", initialListeningEmission);
+};
+
+cluster.on("listening", initialListeningEmission);
+
+cluster.on("message", (message: IBroadcastMessage) => broadcastListener.emit(message));
 
 cluster.on("listening", () => {
-	EVENT_EMITTER.emit("listening");   // TODO: Once
-	
-	cluster.removeAllListeners("listening");
+	setImmediate(() => print.info(`${MODE.DEV ? "Instance" : "Cluster"} process has started listening`));	// TODO: Eventual mark restarts
+});
+// TODO: Error recovery offset
+cluster.on("error", err => {
+	print.error(err);
+
+	errorControl.feed();
+});
+
+cluster.on("exit", (code: number) => {
+	if(code === 0 || MODE.DEV) {
+		return;
+	}
+
+	create();
 });
 
 
 function create() {
 	processMutex.lock(() => {
 		const process = cluster.fork({
+			dev: MODE.DEV,
 			wd: dirname(require.main.filename)
-		});
-
-		process.on("message", (message: IBroadcastMessage) => broadcastListener.emit(message));
-		
-		process.on("listening", err => {
-			setImmediate(() => print.info(`${poolCaption} process has started listening`));	// TODO: Eventual mark restarts
-		});
-
-		process.on("error", err => {
-			print.error(err);
-		});
-
-		process.on("exit", (code: number) => {
-			if(code === 0) {
-				return;
-			}
-
-			create();
-
-			!MODE.DEV && print.info(`${poolCaption} process has terminated for unknow reasons`);
 		});
 
 		// Pipe worker output to master (mem space A)
 		process.process.stdout.on("data", (message: string) => {
-			// TODO: Ignore equivalemnt messages from different sub-processes
 			print.info(String(message).replace(/\n$/, ""));
 		});
+
 		process.process.stderr.on("data", (err: string) => {
 			print.error(err);
 		});
@@ -93,18 +95,6 @@ function broadcastDown(message: IBroadcastMessage) {
 
 
 export function init() {
-    setTimeout(() => {
-		cluster.on("exit", (process: Process, code: number) => {
-			if(code === 0 || process.exitedAfterDisconnect) {
-				return;
-			}
-			
-			create();
-            
-			errorControl.feed();
-		});
-	}, config.autoRestartTimeout);
-    
 	Array.from({ length: baseSize }, create);
 
     // Enforce singleton usage

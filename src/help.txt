@@ -1,6 +1,7 @@
 Usage: <start-command> [--dev|-D]
 
 Flags:
+--disable-error-control, -D   Run DEV MODE
 --dev, -D   Run DEV MODE
 
 Options:

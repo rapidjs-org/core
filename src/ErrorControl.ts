@@ -16,11 +16,11 @@ export class ErrorControl {
     constructor(errorCallback: () => void, periodSize: number = 5000, limit: number = 3) {
     	this.errorCallback = errorCallback;
     	this.periodSize = periodSize;
-    	this.limit = MODE.DEV ? 1 : limit;
+    	this.limit = limit;
     }
 
     feed() {
-		if(errorControlDisabled) {
+		if(errorControlDisabled || MODE.DEV) {
 			return;
 		}
 

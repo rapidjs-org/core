@@ -20,8 +20,16 @@ export interface IHighlevelLocale {
     region?: string;
 }
 
-export interface IHighlevelCookies {
+export type THighlevelCookieIn = Record<string, string|number|boolean>;
+
+export interface IHighlevelCookieOut {
+    value: string|number|boolean;
     
+    maxAge?: number;
+    domain?: string;
+    path?: string;
+    httpOnly?: boolean;
+    sameSite?: string;
 }
 
 export interface IRequest {
@@ -30,7 +38,7 @@ export interface IRequest {
     headers: Record<string, string|string[]>;
     
     body?: unknown;
-    cookies?: IHighlevelCookies;
+    cookies?: THighlevelCookieIn;
     locale?: IHighlevelLocale[];
 }
 
@@ -39,4 +47,5 @@ export interface IResponse {
     
     headers?: Record<string, string|string[]>;
     message?: string|number|boolean|Buffer;
+    cookies?: Record<string, IHighlevelCookieOut>;
 }

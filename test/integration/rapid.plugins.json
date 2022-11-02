@@ -1,0 +1,9 @@
+[
+    {
+        "name": "test",
+        "path": "./plug-ins/test",
+        "diabled": [
+            "fs", "net"
+        ]
+    }
+]

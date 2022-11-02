@@ -4,6 +4,7 @@ import { join } from "path";
 import { IBroadcastMessage } from "../interfaces";
 import { MODE } from "../MODE";
 import { APP_CONFIG } from "../config/APP_CONFIG";
+import { ErrorControl } from "../ErrorControl";
 import { AsyncMutex } from "../AsyncMutex";
 import * as print from "../print";
 
@@ -24,14 +25,20 @@ interface IActive {
 
 
 const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-br");
+const errorControl = new ErrorControl(() => {
+	print.error(new RangeError(`${MODE.DEV ? "Instance" : "Cluster"} has shut down due to heavy error density in thread`));
+	
+    process.send({
+        signal: "terminate"
+    });
+});
 const threadMutex: AsyncMutex = new AsyncMutex();
-
 const pendingRequests: IPending[] = [];
 const idleThreads: Thread[] = [];
 const activeThreads: Map<number, IActive> = new Map();
 
 
-process.on("uncaughtException", (err: Error) => print.error(err));
+!MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
 
 process.on("message", (message: IBroadcastMessage) => {
 	threadMutex.lock(() => broadcastChannel.postMessage(message));
@@ -58,31 +65,27 @@ function create() {
 
         deactivate(thread); 
     });
-
-    const handleThreadError = () => {        
-        process.send({
-            signal: "feed-error-cotrol"
-        });
-    };
     
+    // TODO: Error recovery offset
     thread.on("error", err => {
         print.error(err);
 
-        handleThreadError();
+        MODE.DEV
+        && setImmediate(() => process.send({
+            signal: "terminate"
+        }));
+
+        errorControl.feed();
     });
     
     thread.on("exit", (code: number) => {
-        if(code === 0) {
+        if(code === 0 || MODE.DEV) {
             return;
         }
 
         clean(thread.threadId);
 
         create();
-        
-        handleThreadError();
-
-		!MODE.DEV && print.info("Thread has terminated for unknow reasons");
     });
 
     idleThreads.push(thread);

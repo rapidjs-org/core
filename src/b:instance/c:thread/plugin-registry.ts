@@ -1,1 +1,4 @@
-// TODO: All static
+import { Plugin } from "./Plugin";
+
+
+const registeredPlugins: Plugin[] = [];
