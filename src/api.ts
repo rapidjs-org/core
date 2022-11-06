@@ -58,3 +58,5 @@ print.info(`Started server cluster. Running ${
 export function on(event: string, callback: (...args: unknown[]) => void) {
     EVENT_EMITTER.on(event, callback);
 }
+
+export * as print from "./print";

@@ -1,4 +1,4 @@
-const { Cache } = require("../../debug/b:instance/storage/Cache");
+const { Cache } = require("../../debug/b:instance/c:thread/memory/Cache");
 
 const testCache = new Cache(500);
 

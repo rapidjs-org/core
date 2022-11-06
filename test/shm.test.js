@@ -1,4 +1,4 @@
-const sharedMemory = require("../debug/shared-memory/shared-memory-api");
+const sharedMemory = require("../debug/b:instance/shared-memory/shared-memory-api");
 
 
 const referenceData = {

@@ -1,6 +1,10 @@
 import { AsyncMutex } from "../AsyncMutex";
 
-// TODO: Implement on shared memory or rely on even distribution?
+// TODO: Assuming even distribution, limit is n * configured_limit; implement hash based distribution for n consistency?
+
+
+type TRate<T> = Map<T, number>;
+
 
 export class RateLimiter<T> {
 
@@ -9,43 +13,51 @@ export class RateLimiter<T> {
     private readonly windowSize: number;
 
     private timePivot: number;
-    private previousWindow: Map<T, number>;
-    private currentWindow: Map<T, number> = new Map();
+    private previousWindow: TRate<T>;
+    private currentWindow: TRate<T> = new Map();
 
     constructor(limit: number, windowSize = 60000) {
         this.limit = limit;
         this.windowSize = windowSize;
 
-        this.update();
+        this.shift();
+
+        this.timePivot -= windowSize;
+
+        setInterval(() => this.updateWindows(), windowSize);
     }
 
-    private update() {
-        this.rateMutex.lock(() => {
-            this.timePivot = Date.now();
-
-            this.previousWindow = this.currentWindow;
-            this.currentWindow = new Map();
-        }, true);
+    private shift() {
+        this.timePivot = Date.now();
+            
+        this.previousWindow = this.currentWindow;
+        this.currentWindow = new Map();
     }
 
-    public grantsAccess(entityIdentifier: T): boolean {
-        this.rateMutex.lock(() => {
-            const currentHits: number = this.currentWindow.get(entityIdentifier) ?? 0;
+    private updateWindows() {
+        this.rateMutex.lock(() => this.shift(), true);
+    }
 
-            this.currentWindow.set(entityIdentifier, currentHits + 1);
+    public grantsAccess(entityIdentifier: T): Promise<boolean> {
+        return new Promise(resolve => {
+            this.rateMutex.lock(() => {
+                const regsiteredHits: {
+                    previous: number;
+                    current: number;
+                } = {
+                    previous: this.previousWindow.get(entityIdentifier) ?? 0,
+                    current: (this.currentWindow.get(entityIdentifier) ?? 0) + 1
+                };
+
+                this.currentWindow.set(entityIdentifier, regsiteredHits.current);
+
+                const currentWindowWeight: number = Math.min((Date.now() - this.timePivot) / this.windowSize, 1);
+                const weightedHits: number = (regsiteredHits.previous * (1 - currentWindowWeight)) + (regsiteredHits.current * currentWindowWeight);
+                                
+                resolve(weightedHits <= (1 || this.limit));
+            });
         });
-
-        const regsiteredHits = {
-            previous: this.previousWindow.get(entityIdentifier) ?? 0,
-            current: (this.currentWindow.get(entityIdentifier) ?? 0) + 1
-        };
-
-        const currentWindowWeight: number = (Date.now() - this.timePivot) / this.windowSize;
-        const weightedHits: number = (regsiteredHits.previous * (1 - currentWindowWeight)) + (regsiteredHits.previous * currentWindowWeight);
-        
-        return (weightedHits <= this.limit);
     }
-
 }
 
 // Sliding window with peak adjustments?

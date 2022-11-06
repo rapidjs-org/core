@@ -23,33 +23,46 @@ interface IAcceptHeaderPart {
 
 const rateLimiter: RateLimiter<string> = new RateLimiter(APP_CONFIG.limit.requestsPerClient);
 const runsSecure = !!APP_CONFIG.tls;
-const commonOptions = {};
+const commonOptions = {
+    server: {
+        requestTimeout: APP_CONFIG.limit.timeout,
+        headersTimeout: APP_CONFIG.limit.timeout,
+        maxHeaderSize: APP_CONFIG.limit.headerSize,
+        keepAlive: true // TODO: Optionalize?
+    },
+    listener: {
+        host: APP_CONFIG.host // TODO: How to proxy?
+    }
+};
 
 
 // TODO: Support HTTP/2
-createServerHTTP({
-    ...(runsSecure ? {} : {}),  // TODO: ...
-    ... {
+createServerHTTP({    
+    ...commonOptions.server,
 
-    }
-}, (oReq: IncomingMessage, oRes: ServerResponse) => {
+    ...(runsSecure ? {} : {}),  // TODO: TLS security
+}, async (oReq: IncomingMessage, oRes: ServerResponse) => {
     const clientIP: string = oReq.headers["x-forwarded-for"]
     ? flattenHeader(oReq.headers["x-forwarded-for"]).split(/,/g).shift().trim()
     : oReq.socket.remoteAddress;
     
-    // Guards
-    if(!rateLimiter.grantsAccess(clientIP)) {
+    if(!(await rateLimiter.grantsAccess(clientIP))) {
         return respond(oRes, 429);
     }
+    if(oReq.url.length > APP_CONFIG.limit.urlLength) {
+        return respond(oRes, 414);
+    }
     
-    // TODO: Limits (Request Header Fields Too Large!)
-
     const method: string = oReq.method.toUpperCase();
 
     ([ "POST", "PUT", "OPTIONS" ].includes(method)
     ? parseRequestBody(oReq)
     : new Promise(r => r(null)))
-    .then(async body => {
+    .then(async (body: string) => {
+        if(body?.length >= APP_CONFIG.limit.payloadSize) {
+            return respond(oRes, 413);
+        }
+
         const host: string = constructStrongHost(oReq.headers["host"]); // TODO: Compare with config (multiple, strict, ...?)
         const dynamicURL: URL = new URL(!/^https?:\/\//.test(oReq.url)
         ? `${host}${oReq.url}`
@@ -134,7 +147,13 @@ createServerHTTP({
             
             ... body ? { body } : {}
         };
-        
+
+        // TODO: So far, only successful requests; Add more events (rejected requests ... ?)
+        process.send({
+            signal: "reg:request",
+            data: sReq
+        });
+
         // Remove auto-processed headers from serialized high-level representation
         delete sReq.headers["host"];
         delete sReq.headers["accept-encoding"];
@@ -173,8 +192,7 @@ createServerHTTP({
             }
 
             respond(oRes, resParam, {
-                "Content-Encoding": acceptedEncoding,
-                "Content-Length": String(Buffer.byteLength(resParam.message))
+                "Content-Encoding": acceptedEncoding
             });
         })
         .catch(err => {
@@ -190,16 +208,16 @@ createServerHTTP({
     });
 })
 .listen({
-    ...commonOptions,
+    ...commonOptions.listener,
 
     port: APP_CONFIG.port as number
 });
 
 // Redirect server
 (runsSecure && APP_CONFIG.port === 443)
-&& createServerHTTP({
-    ...commonOptions
-}, (oReq: IncomingMessage, oRes: ServerResponse) => {
+&& createServerHTTP(
+    commonOptions.server
+    , (oReq: IncomingMessage, oRes: ServerResponse) => {
     try {
         oRes.setHeader("Location", constructStrongHost(oReq.headers["host"]));
 
@@ -209,7 +227,7 @@ createServerHTTP({
     }
 })
 .listen({
-    ...commonOptions,
+    ...commonOptions.listener,
 
     port: 80
 }, () => print.info("Explicit HTTP to HTTPS redirection enabled"));
@@ -225,7 +243,7 @@ function flattenHeader(header: string|string[]): string {
     return [ header ].flat()[0];
 }
 
-function parseRequestBody(oReq: IncomingMessage): Promise<unknown> {
+function parseRequestBody(oReq: IncomingMessage): Promise<string> {
     const body: string[] = [];
     
     return new Promise((resolve, reject) => {
@@ -235,7 +253,7 @@ function parseRequestBody(oReq: IncomingMessage): Promise<unknown> {
 
         oReq.on("end", () => {
             try {
-                resolve(body.length ? JSON.parse(body.join("")) : null);
+                resolve(body.length ? body.join("") : null);
             } catch(err) {
                 reject(err);
             }
@@ -251,12 +269,18 @@ function respond(oRes: ServerResponse, resParam: IResponse|number, prioritizedHe
     if(oRes.writableEnded || oRes.writableFinished) {
         return;
     }
-
+    
     resParam = (typeof resParam === "number")
     ? {
         status: resParam
     }
     : resParam;
+
+    const contentLength: number = resParam.message
+    ? ((resParam.message instanceof Buffer)
+        ? Buffer.byteLength(resParam.message)
+        : String(resParam.message).length)
+    : 0;
 
     // TODO: Implement streams?
 
@@ -273,6 +297,7 @@ function respond(oRes: ServerResponse, resParam: IResponse|number, prioritizedHe
     // Default headers (prioritized)
     oRes.setHeader("Cache-Control", APP_CONFIG.cache.client ? `public, max-age=${APP_CONFIG.cache.client}, must-revalidate` : null);
 	oRes.setHeader("Strict-Transport-Security", runsSecure ? `max-age=${APP_CONFIG.cache.client}; includeSubDomains` : null);
+	oRes.setHeader("Content-Length", String(contentLength));
     oRes.hasHeader("Content-Type")
     && oRes.setHeader("X-Content-Type-Options", "nosniff");
     for(const name in prioritizedHeaders) {
@@ -299,10 +324,17 @@ function respond(oRes: ServerResponse, resParam: IResponse|number, prioritizedHe
     
 
     // TODO: Note that string messages are compressed
-    oRes.statusCode = resParam.status;    // TODO: Concealing error status/message
+    oRes.statusCode = !APP_CONFIG.concealErrorStatus
+    ? resParam.status : 400;
 
     // TODO: Respond rich
     oRes.end(resParam.message);
+
+    resParam.message = `$[...] ${contentLength} bytes`;
+    process.send({
+        signal: "reg:response",
+        data: resParam
+    });
 
     // TODO: Cache?
 }

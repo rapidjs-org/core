@@ -10,7 +10,6 @@ import { join } from "path";
 
 import { EVENT_EMITTER } from "./EVENT_EMITTER";
 import { MODE } from "./MODE";
-import { PATH } from "./PATH";
 import { parseOption } from "./args";
 
 
@@ -41,7 +40,7 @@ setImmediate(() => {
     if(!testLogDirPath) {
         return;
     }
-    testLogDirPath = join(PATH, testLogDirPath);
+    testLogDirPath = join(process.cwd(), testLogDirPath);
 
     if(!existsSync(testLogDirPath)) {
         try {
@@ -65,7 +64,26 @@ process.stdin.on("data", (char: string) => {
 });
 
 
-function write(channel: EStdChannel, message: string) {
+function stringify(message: unknown): string {
+    const flatten = (objStr: string, quote: string) => {
+        return objStr
+        .replace(new RegExp(`\\\\${quote}`, "g"),"\uFFFF")
+        .replace(new RegExp(`${quote}([^${quote}]+)${quote}:`, "g"), "$1:")
+        .replace(/\uFFFF/g, `\\\\${quote}`);
+    };
+
+    return (typeof message !== "string")
+    ? flatten(flatten(JSON.stringify(message), "\""), "\'")
+    : message;
+}
+
+function write(channel: EStdChannel, message: unknown) {    
+    const serializedMessage: string = stringify(message);
+
+    message = (channel === EStdChannel.OUT)
+    ? formatMessage(serializedMessage)
+    : message;
+
     if(isRootContext) {
         if(message === lastMessage?.message) {
             try {
@@ -93,8 +111,8 @@ function write(channel: EStdChannel, message: string) {
 
     lastMessage = {
         count: 1,
-        isMultiline: /\n/.test(message),
-        message: message
+        isMultiline: /\n/.test(serializedMessage),
+        message: serializedMessage
     };
     
     process[channel]
@@ -103,7 +121,7 @@ function write(channel: EStdChannel, message: string) {
             [ 54, 48, 48, EColorMode.FG ], [ 255, 254, 173, EColorMode.BG ]
         ], [ 1, 3 ])} `
         : ""
-    }${formatMessage(message)}\n`);
+    }${colorMessage(serializedMessage)}\n`);
 }
 /* info({
     "foo": true,
@@ -130,48 +148,24 @@ function highlight(str: string, color: TColor|TColor[], styles?: number|number[]
     }${str}\x1b[0m`;
 }
 
-function logToFile(message: string) {
-    if(!logDirPath) {
-        return
-    }
-
-    message = message.replace(/\x1b\[[0-9;]+m/g, "");    // Remove possibly occurring ANSII formatting codes
-
-    const date: Date = new Date();
-    const day: string = date.toISOString().split("T")[0];
-    const time: string = date.toLocaleTimeString();
-
-    appendFile(join(logDirPath, `${day}.log`),
-    `[${time}]: ${message}\n`,
-    err => {
-        if(!err) {
-            return;
-        }
-
-        throw new Error(`Could not write to log directory. ${err?.message ?? message}`);
-    });
-}
-
-function formatMessage(message: unknown) {
-    let serializedMessage: string = (typeof message !== "string")
-    ? JSON.stringify(message)
-    : String(message);
-
+function formatMessage(message: string) {
     // Type based formatting
     try {
-        JSON.parse(serializedMessage);
+        JSON.parse(message);
         
         // TODO: Object
-    } catch {
-        serializedMessage = serializedMessage
-        .replace(/(^|\s|[\[\(])([0-9]+([.,-][0-9]+)*)(\s|[^a-z0-9;]|$)/gi, `$1${highlight("$2", [ 0, 167, 225 ])}$4`);   // Number
+    } finally {
+        return message;
     }
+}
 
-    return serializedMessage;
+function colorMessage(message: string) {
+    return message
+    .replace(/(^|\s|[\[\(])([0-9]+([.,-][0-9]+)*)(\s|[^a-z0-9;]|$)/gi, `$1${highlight("$2", [ 0, 167, 225 ])}$4`);   // Number
 }
 
 export function info(message: unknown) {
-    write(EStdChannel.OUT, formatMessage(message));
+    write(EStdChannel.OUT, message);
 }
 
 export function debug(message: unknown) {
@@ -179,7 +173,7 @@ export function debug(message: unknown) {
         return;
     }
     
-    write(EStdChannel.OUT, formatMessage(message));
+    write(EStdChannel.OUT, message);
 }
 
 export function error(err: Error|string) {
@@ -198,4 +192,27 @@ export function error(err: Error|string) {
         ? `\n${highlight(err.stack.replace(message, "").trim(), null, 2)}`
         : ""
     }`);
+}
+
+export function logToFile(message: unknown) {
+    if(!logDirPath) {
+        return
+    }
+
+    message = stringify(message)
+    .replace(/\x1b\[[0-9;]+m/g, "");    // Remove possibly occurring ANSII formatting codes
+
+    const date: Date = new Date();
+    const day: string = date.toISOString().split("T")[0];
+    const time: string = date.toLocaleTimeString();
+
+    appendFile(join(logDirPath, `${day}.log`),
+    `[${time}]: ${message}\n`,
+    err => {
+        if(!err) {
+            return;
+        }
+
+        throw new Error(`Could not write to log directory. ${err?.message ?? message}`);
+    });
 }

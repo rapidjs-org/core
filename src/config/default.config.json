@@ -4,8 +4,11 @@
         "server": 2000
     },
     "limit": {
+        "headerSize": 16000,
+        "payloadSize": 250000,
+        "requestsPerClient": 50,
         "timeout": 7500,
-        "requestsPerClient": 50
+        "urlLength": 250
     },
     "port": 80
 }

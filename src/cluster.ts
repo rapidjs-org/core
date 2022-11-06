@@ -35,27 +35,29 @@ cluster.settings.args = process.argv.slice(2);
 cluster.settings.silent = true;
 
 
+broadcastListener.on("reg:request", (sReqSerialized: string) => EVENT_EMITTER.emit("request", sReqSerialized));
+broadcastListener.on("reg:response", (sResSerialized: string) => EVENT_EMITTER.emit("response", sResSerialized));
 broadcastListener.on("terminate", () => setImmediate(() => process.exit(1)));
 
-
+// TODO: SHM custom-cluster with IP-hash distributed worker load
 let listeningNotfications: number = baseSize;
 const initialListeningEmission = () => {
-	// TODO: Count inital instances to complete on base size reached
-	if(listeningNotfications--) {
+	if(--listeningNotfications) {
 		return;
 	}
 	
 	EVENT_EMITTER.emit("listening");
 
 	cluster.removeListener("listening", initialListeningEmission);
+
+	cluster.on("listening", () => {
+		print.info(`${MODE.DEV ? "Instance" : "Cluster"} process has restarted after internal error`);
+	});
 };
 cluster.on("listening", initialListeningEmission);
 
-cluster.on("message", (message: IBroadcastMessage) => broadcastListener.emit(message));
+cluster.on("message", (_, message: IBroadcastMessage) => broadcastListener.emit(message));
 
-cluster.on("listening", () => {
-	setImmediate(() => print.info(`${MODE.DEV ? "Instance" : "Cluster"} process has started listening`));	// TODO: Eventual mark restarts
-});
 // TODO: Error recovery offset
 cluster.on("error", err => {
 	print.error(err);

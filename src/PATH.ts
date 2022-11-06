@@ -10,7 +10,7 @@ const argPath: string = parseOption("path", "P").string;
 export const PATH: string = normalize(
     argPath
     ? (!isAbsolute(argPath)
-        ? join(wdPath, argPath)
+        ? join(process.cwd(), argPath)
         : argPath)
     : wdPath
 );

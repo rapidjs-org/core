@@ -27,7 +27,7 @@ export class VFS extends LimitDictionary<string, IFileStamp, IFileReference> {
         });
 
         this.root = normalize(join(PATH, root));
-        
+                
         // Error if out of PATH (information hiding / security)
         if(this.root.slice(0, PATH.length) !== PATH) {
             throw new RangeError(`VFS root directory must not point outwards of the application working directory.\nExpecting\t'${PATH}...',\ngiven\t\t'${this.root}'.`);
@@ -95,9 +95,9 @@ export class VFS extends LimitDictionary<string, IFileStamp, IFileReference> {
         if(exists) {
             return true;
         }
-        
+
         const pathOnDisc = this.getAbsolutePath(path);
-        
+
         if(!existsSync(pathOnDisc)) {
             return false;
         }

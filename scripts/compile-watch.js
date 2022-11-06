@@ -12,8 +12,11 @@ log(`• WATCH COMPILE { ${activeLangs.join(", ")} }`);
 
 
 // Create /debug files directory
-createDir(join(__dirname, "../debug/"));
-createDir(join(__dirname, "../debug/shared-memory/"));
+!existsSync(join(__dirname, "../debug/b:instance/shared-memory"))
+&& mkdirSync(join(__dirname, "../debug/b:instance/shared-memory"), {
+    force: true,
+    recursive: true
+});
 
 !existsSync(join(__dirname, "../debug/help.txt"))
 && linkSync(join(__dirname, "../src/help.txt"), join(__dirname, "../debug/help.txt"));
@@ -75,9 +78,6 @@ function logBadge(message, colorRgb) {
     console.log(`\n\x1b[1m\x1b[48;2;${colorRgb[0]};${colorRgb[1]};${colorRgb[2]}m\x1b[38;2;255;255;255m ${message} \x1b[0m\n`);
 }
 
-function createDir(path) {
-    !existsSync(path) && mkdirSync(path);
-}
 
 function compileCPP() {
     logBadge("C++", [ 220, 65, 127 ]);

@@ -1,6 +1,7 @@
 const { writeFileSync, readFileSync } = require("fs");
 const { join } = require("path");
 
+
 const tmpFile = "test.txt";
 const tmpFilePath = join(__dirname, "../.tmp", tmpFile);
 
@@ -10,7 +11,7 @@ const fileContents = {
 }
 
 
-const { VFS } = require("../../debug/b:instance/storage/VFS");
+const { VFS } = require("../../debug/b:instance/c:thread/memory/VFS");
 
 const testVFS = new VFS("./");
 
