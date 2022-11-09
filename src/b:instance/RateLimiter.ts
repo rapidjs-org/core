@@ -38,25 +38,15 @@ export class RateLimiter<T> {
         this.rateMutex.lock(() => this.shift(), true);
     }
 
-    public grantsAccess(entityIdentifier: T): Promise<boolean> {
-        return new Promise(resolve => {
-            this.rateMutex.lock(() => {
-                const regsiteredHits: {
-                    previous: number;
-                    current: number;
-                } = {
-                    previous: this.previousWindow.get(entityIdentifier) ?? 0,
-                    current: (this.currentWindow.get(entityIdentifier) ?? 0) + 1
-                };
+    public grantsAccess(entityIdentifier: T): boolean {
+        const currentHits: number = (this.currentWindow.get(entityIdentifier) ?? 0) + 1;
+                
+        this.currentWindow.set(entityIdentifier, currentHits);
 
-                this.currentWindow.set(entityIdentifier, regsiteredHits.current);
-
-                const currentWindowWeight: number = Math.min((Date.now() - this.timePivot) / this.windowSize, 1);
-                const weightedHits: number = (regsiteredHits.previous * (1 - currentWindowWeight)) + (regsiteredHits.current * currentWindowWeight);
-                                
-                resolve(weightedHits <= (1 || this.limit));
-            });
-        });
+        const currentWindowWeight: number = Math.min((Date.now() - this.timePivot) / this.windowSize, 1);
+        const weightedHits: number = ((this.previousWindow.get(entityIdentifier) ?? 0) * (1 - currentWindowWeight)) + (currentHits * currentWindowWeight);
+        
+        return (weightedHits <= this.limit);
     }
 }
 

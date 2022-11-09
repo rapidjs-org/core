@@ -1,18 +1,22 @@
-import { parentPort, BroadcastChannel } from "worker_threads";
+import { parentPort, workerData, BroadcastChannel } from "worker_threads";
 
-import { IBroadcastMessage } from "../../interfaces";
+import { IBroadcastMessage, IRequest, IResponse } from "../../interfaces";
 import { MODE } from "../../MODE";
-import { BroadcastListener } from "../../BroadcastListener";
+import { BroadcastAbsorber } from "../../Broadcast";
 import * as print from "../../print";
-
-import { IRequest, IResponse} from "../interfaces";
 
 
 const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-br");
-const broadcastListener = new BroadcastListener();
+const broadcastAbsorber = new BroadcastAbsorber();
 
 
 !MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
+
+
+broadcastAbsorber.on("ttt", (data: string) => {
+    /* console.log("Broadcast [ttt]:");
+    console.log(data); */
+});
 
 
 parentPort.on("message", (sReq: IRequest) => {
@@ -34,11 +38,8 @@ parentPort.on("message", (sReq: IRequest) => {
 });
 
 
-broadcastChannel.onmessage = (message: IBroadcastMessage) => {
-    broadcastListener.emit(message);
+broadcastChannel.onmessage = (message: { data: IBroadcastMessage|IBroadcastMessage[] }) => {
+    broadcastAbsorber.absorb(message.data);
 };
 
-
-function broadcastUp(message: IBroadcastMessage) {
-    broadcastChannel.postMessage(message);
-}
+//console.log(workerData);

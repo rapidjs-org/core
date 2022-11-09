@@ -76,18 +76,18 @@ export class VFS extends LimitDictionary<string, IFileStamp, IFileReference> {
         throw new SyntaxError("write() is not a member of VFS, use writeDisc() or writeVirtual() instead");
     }
 
-    public writeVirtual(path: string, data: string): Promise<void> {
+    public writeVirtual(path: string, data: string) {
         // TODO: Sync and / or async interface ???
         const fileStamp: IFileStamp = this.getFileStamp(path, data);
         
-        return super.write(path, fileStamp);
+       super.write(path, fileStamp);
     }
 
-    public writeDisc(path: string, data: string): Promise<void> {
+    public writeDisc(path: string, data: string) {
         // TODO: Sync and / or async interface ???
         writeFileSync(this.getAbsolutePath(path), data);
 
-        return this.writeVirtual(path, data);
+        this.writeVirtual(path, data);
     }
 
     public exists(path: string): boolean {
@@ -95,7 +95,7 @@ export class VFS extends LimitDictionary<string, IFileStamp, IFileReference> {
         if(exists) {
             return true;
         }
-
+        
         const pathOnDisc = this.getAbsolutePath(path);
 
         if(!existsSync(pathOnDisc)) {

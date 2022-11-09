@@ -12,8 +12,8 @@ import { IBroadcastMessage } from "./interfaces";
 import { MODE } from "./MODE";
 import { EVENT_EMITTER } from "./EVENT_EMITTER";
 import { AsyncMutex } from "./AsyncMutex";
-import { ErrorControl } from "./ErrorControl";
-import { BroadcastListener } from "./BroadcastListener";
+import { ErrorMonitor } from "./ErrorMonitor";
+import { BroadcastAbsorber, BroadcastEmitter } from "./Broadcast";
 import * as print from "./print";
 
 
@@ -21,13 +21,22 @@ import * as print from "./print";
 
 
 const baseSize: number = MODE.DEV ? 1 : cpus().length;	// TODO: Use elaborate algorithm to determine root size
-const errorControl = new ErrorControl(() => {
+const errorControl = new ErrorMonitor(() => {
 	print.error(new RangeError(`${MODE.DEV ? "Instance" : "Cluster"} has shut down due to heavy error density in processes`));
 	
     setImmediate(() => process.exit(1));
 });
 const processMutex = new AsyncMutex();
-const broadcastListener: BroadcastListener = new BroadcastListener();
+const broadcastEmitter: BroadcastEmitter = new BroadcastEmitter((message: IBroadcastMessage|IBroadcastMessage[]) => {
+	processMutex.lock(() => {
+		Object.keys(cluster.workers)
+		.forEach((id: string) => {
+			const process: Process = cluster.workers[id];
+			process.send(message);
+		});
+	});
+});
+const broadcastAbsorber: BroadcastAbsorber = new BroadcastAbsorber();
 
 
 cluster.settings.exec = join(__dirname, "./b:instance/instance");
@@ -35,9 +44,10 @@ cluster.settings.args = process.argv.slice(2);
 cluster.settings.silent = true;
 
 
-broadcastListener.on("reg:request", (sReqSerialized: string) => EVENT_EMITTER.emit("request", sReqSerialized));
-broadcastListener.on("reg:response", (sResSerialized: string) => EVENT_EMITTER.emit("response", sResSerialized));
-broadcastListener.on("terminate", () => setImmediate(() => process.exit(1)));
+broadcastAbsorber.on("reg:request", (sReqSerialized: string) => EVENT_EMITTER.emit("request", sReqSerialized));
+broadcastAbsorber.on("reg:response", (sResSerialized: string) => EVENT_EMITTER.emit("response", sResSerialized));
+broadcastAbsorber.on("terminate", () => setImmediate(() => process.exit(1)));
+
 
 // TODO: SHM custom-cluster with IP-hash distributed worker load
 let listeningNotfications: number = baseSize;
@@ -49,14 +59,10 @@ const initialListeningEmission = () => {
 	EVENT_EMITTER.emit("listening");
 
 	cluster.removeListener("listening", initialListeningEmission);
-
-	cluster.on("listening", () => {
-		print.info(`${MODE.DEV ? "Instance" : "Cluster"} process has restarted after internal error`);
-	});
 };
 cluster.on("listening", initialListeningEmission);
 
-cluster.on("message", (_, message: IBroadcastMessage) => broadcastListener.emit(message));
+cluster.on("message", (_, message: IBroadcastMessage) => broadcastAbsorber.absorb(message));
 
 // TODO: Error recovery offset
 cluster.on("error", err => {
@@ -70,11 +76,11 @@ cluster.on("exit", (code: number) => {
 		return;
 	}
 
-	create();
+	create(`${MODE.DEV ? "Instance" : "Cluster"} process has restarted after internal error`);
 });
 
-
-function create() {
+setTimeout(create, 3000)
+function create(listeningMessage?: string) {
 	processMutex.lock(() => {
 		const process = cluster.fork({
 			dev: MODE.DEV,
@@ -85,18 +91,16 @@ function create() {
 		process.process.stdout.on("data", (message: string) => {
 			print.info(String(message).replace(/\n$/, ""));
 		});
-
 		process.process.stderr.on("data", (err: string) => {
 			print.error(err);
 		});
-	});
-}
-
-function broadcastDown(message: IBroadcastMessage) {
-	processMutex.lock(() => {
-		for(const process of Object.entries(cluster.workers)) {
-			process[1].send(message);
-		}
+		
+		process.send(broadcastEmitter.recoverHistory());
+		
+		listeningMessage
+		&& cluster.on("listening", () => {
+			print.info(listeningMessage);
+		});
 	});
 }
 
@@ -106,4 +110,10 @@ export function init() {
 
     // Enforce singleton usage
     delete module.exports.initCluster;
+}
+
+export function broadcast(signal: string, data?: string) {
+	broadcastEmitter.emit({
+		signal, data
+	});
 }

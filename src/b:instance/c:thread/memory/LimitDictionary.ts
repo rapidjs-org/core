@@ -1,4 +1,4 @@
-import * as sharedMemory from "../../shared-memory/shared-memory-api";
+import * as sharedMemory from "../../../shared-memory/shared-memory-api";
 
 
 interface ILimitEntry<V, L> {
@@ -44,7 +44,7 @@ export abstract class LimitDictionary<K, V, L> {
         };
     }
 
-    public write(key: K, value: V): Promise<void> {
+    public write(key: K, value: V) {
         const entry: ILimitEntry<V, L> = {
             value: value,
             limitReference: this.retrieveReferenceCallback(key)
@@ -53,16 +53,12 @@ export abstract class LimitDictionary<K, V, L> {
         // TODO: Benchmark w and w/o enabled top layer intermediate memory (-> Dict <-> intermediate <-> SHM)
 
         // TODO: Note values are serialized (JSON.stringify() in order to be stored in SHM)
-
-        return new Promise(resolve => {
-            sharedMemory.write(this.getInternalKey(key), entry)   // TODO: Note key is stringified implicitly (requires unambiguos serialization)
-            .catch(() => {
-                this.intermediateMemory.set(key, entry);
-            })
-            .finally(() => {
-                resolve();
-            });
-        });
+        try {
+            sharedMemory.writeSync(this.getInternalKey(key), entry)   // TODO: Note key is stringified implicitly (requires unambiguos serialization)
+            // TODO: Provide async interface?
+        } catch {
+            this.intermediateMemory.set(key, entry);
+        }
     }
 
     public read(key: K): V {
@@ -80,7 +76,7 @@ export abstract class LimitDictionary<K, V, L> {
         const retrievedValue: V = this.existenceLookupValue.value;
         
         this.existenceLookupValue = null;
-        
+
         return retrievedValue;  
     }   // Async interface { read, readSync } ?
 
@@ -109,7 +105,7 @@ export abstract class LimitDictionary<K, V, L> {
             return false;
         }
         
-        this.setExistenceLookup(key, limitEntry.value);
+        this.setExistenceLookup(key, limitEntry.value); // Already store to reduce repeated SHM access on subsequent read
 
         return true;
     }

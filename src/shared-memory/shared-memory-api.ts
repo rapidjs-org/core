@@ -1,4 +1,5 @@
 import * as sharedMemory from "./shared-memory";
+import { PATH } from "../PATH";
 
 
 const sharedMemoryActive = {
@@ -8,28 +9,14 @@ const sharedMemoryActive = {
 const appKey: number = generateAppKey();
 
 
-registerFree("uncaughtException", 1);
-registerFree("unhandledRejection", 1);
-registerFree("SIGTERM");
-registerFree("SIGINT");
-registerFree("SIGQUIT");
-registerFree("exit");
-
-
 sharedMemory.init(appKey);
 
 
-function generateAppKey(): number { // uint32_t (MAX: 4294967295 ≈ ⌊MAX = 4000000000 => #Keys := 4 * 10^9)
-    return 1234567890;  // TODO: Implement
-    // HASH: Use master process identity property (disc location?)
-}
-
-function registerFree(event: string, exitCode = 0) {
-    process.on(event, () => {
-        sharedMemory.free();
-        
-        return exitCode;
-    });
+function generateAppKey(): number { // uint32_t (MAX: 4294967296)
+    return parseInt(`rapidJS:${PATH}`
+    .split("")
+    .map((char: string) => char.charCodeAt(0).toString(16))
+    .join("")) % 4294967296;
 }
 
 
@@ -41,7 +28,7 @@ export async function write(purposeKey: string, purposeData: unknown): Promise<v
     return new Promise((resolve, reject) => {
         try {
             writeSync(purposeKey, purposeData);
-            
+
             resolve();
         } catch(err) {
             reject(err);
@@ -61,7 +48,7 @@ export async function writeSync(purposeKey: string, purposeData: unknown) {
             : purposeData), "utf-8"));
     } catch(err) {            
         sharedMemoryActive.write = false; // TODO: Distinguish errors?
-
+        
         throw err;
     }
 }
@@ -100,4 +87,15 @@ export function readSync<T>(purposeKey: string): T {
 
         throw err;
     }
+}
+
+export function registerFree(event: string|string[], exitCode = 0) {
+    [ event ].flat()
+    .forEach((event: string) => {
+        process.on(event, () => {
+            sharedMemory.free();
+            
+            process.exit(exitCode);
+        });
+    });
 }

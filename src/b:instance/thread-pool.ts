@@ -1,14 +1,14 @@
 import { Worker as Thread, SHARE_ENV, BroadcastChannel } from "worker_threads";
 import { join } from "path";
 
-import { IBroadcastMessage } from "../interfaces";
+import { IBroadcastMessage, IRequest, IResponse } from "../interfaces";
 import { MODE } from "../MODE";
 import { APP_CONFIG } from "../config/APP_CONFIG";
-import { ErrorControl } from "../ErrorControl";
+import { ErrorMonitor } from "../ErrorMonitor";
 import { AsyncMutex } from "../AsyncMutex";
+import { BroadcastEmitter } from "../Broadcast";
 import * as print from "../print";
 
-import { IRequest, IResponse } from "./interfaces";
 
 
 type TRegisteredResponse = (value: (IResponse|number)|PromiseLike<IResponse|number>) => void;
@@ -24,8 +24,7 @@ interface IActive {
 }
 
 
-const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-br");
-const errorControl = new ErrorControl(() => {
+const errorControl = new ErrorMonitor(() => {
 	print.error(new RangeError(`${MODE.DEV ? "Instance" : "Cluster"} has shut down due to heavy error density in thread`));
 	
     process.send({
@@ -33,6 +32,11 @@ const errorControl = new ErrorControl(() => {
     });
 });
 const threadMutex: AsyncMutex = new AsyncMutex();
+const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-br");
+const broadcastEmitter: BroadcastEmitter = new BroadcastEmitter(message => {
+    threadMutex.lock(() => broadcastChannel.postMessage(message));
+});
+
 const pendingRequests: IPending[] = [];
 const idleThreads: Thread[] = [];
 const activeThreads: Map<number, IActive> = new Map();
@@ -40,13 +44,11 @@ const activeThreads: Map<number, IActive> = new Map();
 
 !MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
 
-process.on("message", (message: IBroadcastMessage) => {
-	threadMutex.lock(() => broadcastChannel.postMessage(message));
-});
 
+process.on("message", (message: IBroadcastMessage|IBroadcastMessage[]) => broadcastEmitter.emit(message));
 
 broadcastChannel.onmessage = (message: IBroadcastMessage) => {
-    threadMutex.lock(() => process.send(message));
+    process.send(message)
 };
 
 
@@ -55,40 +57,43 @@ create();
 
 
 function create() {
+    threadMutex.lock(() => {
+    console.log(broadcastEmitter.recoverHistory().length + " in hist");
     const thread = new Thread(join(__dirname, "./c:thread/thread"), {
-        env: SHARE_ENV,
-        workerData: {}
+            env: SHARE_ENV,
+            workerData: broadcastEmitter.recoverHistory()
+        });
+
+        thread.on("message", (sRes: IResponse) => {
+            activeThreads.get(thread.threadId).resolve(sRes);
+
+            deactivate(thread); 
+        });
+        
+        // TODO: Error recovery offset
+        thread.on("error", err => {
+            print.error(err);
+
+            MODE.DEV
+            && setImmediate(() => process.send({
+                signal: "terminate"
+            }));
+
+            errorControl.feed();
+        });
+        
+        thread.on("exit", (code: number) => {
+            if(code === 0 || MODE.DEV) {
+                return;
+            }
+
+            clean(thread.threadId);
+
+            create();
+        });
+
+        idleThreads.push(thread);
     });
-    
-    thread.on("message", (sRes: IResponse) => {
-        activeThreads.get(thread.threadId).resolve(sRes);
-
-        deactivate(thread); 
-    });
-    
-    // TODO: Error recovery offset
-    thread.on("error", err => {
-        print.error(err);
-
-        MODE.DEV
-        && setImmediate(() => process.send({
-            signal: "terminate"
-        }));
-
-        errorControl.feed();
-    });
-    
-    thread.on("exit", (code: number) => {
-        if(code === 0 || MODE.DEV) {
-            return;
-        }
-
-        clean(thread.threadId);
-
-        create();
-    });
-
-    idleThreads.push(thread);
 }
 
 function activate() {

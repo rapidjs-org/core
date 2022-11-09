@@ -5,7 +5,7 @@ import { MODE } from "./MODE";
 const errorControlDisabled: boolean = parseFlag("disable-error-control");
 
 
-export class ErrorControl {
+export class ErrorMonitor {
 
     private readonly errorCallback: () => void;
     private readonly periodSize: number;

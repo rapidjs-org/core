@@ -7,10 +7,11 @@ import { createServer as createServerHTTP, IncomingMessage, ServerResponse } fro
 import { createServer as createServerHTTPS } from "https";
 import { gzipSync, deflateSync, brotliCompressSync } from "zlib";
 
+import { IRequest, IResponse, IHighlevelURL, IHighlevelLocale, IHighlevelCookieOut, THighlevelCookieIn } from "../interfaces";
+import { MODE } from "../MODE";
 import { APP_CONFIG } from "../config/APP_CONFIG";
 import * as print from "../print";
 
-import { IRequest, IResponse, IHighlevelURL, IHighlevelLocale, IHighlevelCookieOut, THighlevelCookieIn } from "./interfaces";
 import { RateLimiter } from "./RateLimiter";
 import * as threadPool from "./thread-pool";
 
@@ -21,7 +22,7 @@ interface IAcceptHeaderPart {
 }
 
 
-const rateLimiter: RateLimiter<string> = new RateLimiter(APP_CONFIG.limit.requestsPerClient);
+const rateLimiter: RateLimiter<string> = new RateLimiter(MODE.DEV ? Infinity : APP_CONFIG.limit.requestsPerClient);
 const runsSecure = !!APP_CONFIG.tls;
 const commonOptions = {
     server: {
@@ -46,7 +47,7 @@ createServerHTTP({
     ? flattenHeader(oReq.headers["x-forwarded-for"]).split(/,/g).shift().trim()
     : oReq.socket.remoteAddress;
     
-    if(!(await rateLimiter.grantsAccess(clientIP))) {
+    if(!rateLimiter.grantsAccess(clientIP)) {
         return respond(oRes, 429);
     }
     if(oReq.url.length > APP_CONFIG.limit.urlLength) {
@@ -162,7 +163,6 @@ createServerHTTP({
 
         threadPool.register(sReq)
         .then((resParam: IResponse|number) => {
-            console.log(resParam)
             if(typeof resParam === "number"
             || resParam.message instanceof Buffer) {
                 return respond(oRes, resParam);
@@ -269,6 +269,7 @@ function respond(oRes: ServerResponse, resParam: IResponse|number, prioritizedHe
     if(oRes.writableEnded || oRes.writableFinished) {
         return;
     }
+    console.log(resParam)
     
     resParam = (typeof resParam === "number")
     ? {
