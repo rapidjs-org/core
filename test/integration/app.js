@@ -1,4 +1,5 @@
-const rJS = require("../../debug/api");
+const rJS = require("./shell/shell");
+
 
 rJS.on("listening", _ => {
     try { process.send(0); } catch { /**/ }
