@@ -1,8 +1,3 @@
-const config = {
-	autoRestartTimeout: 2500
-};
-
-
 import cluster from "cluster";
 import { Worker as Process } from "cluster";
 import { cpus } from "os";
@@ -10,6 +5,7 @@ import { join, dirname } from "path";
 
 import { IBroadcastMessage } from "./interfaces";
 import { MODE } from "./MODE";
+import { APP_CONFIG } from "./config/APP_CONFIG";
 import { EVENT_EMITTER } from "./EVENT_EMITTER";
 import { AsyncMutex } from "./AsyncMutex";
 import { ErrorMonitor } from "./ErrorMonitor";
@@ -55,6 +51,8 @@ const initialListeningEmission = () => {
 	if(--listeningNotfications) {
 		return;
 	}
+
+    print.info(`Server listening on port ${APP_CONFIG.port}`);
 	
 	EVENT_EMITTER.emit("listening");
 
@@ -79,7 +77,7 @@ cluster.on("exit", (code: number) => {
 	create(`${MODE.DEV ? "Instance" : "Cluster"} process has restarted after internal error`);
 });
 
-setTimeout(create, 3000)
+
 function create(listeningMessage?: string) {
 	processMutex.lock(() => {
 		const process = cluster.fork({
@@ -94,12 +92,11 @@ function create(listeningMessage?: string) {
 		process.process.stderr.on("data", (err: string) => {
 			print.error(err);
 		});
-		
-		process.send(broadcastEmitter.recoverHistory());
-		
-		listeningMessage
-		&& cluster.on("listening", () => {
-			print.info(listeningMessage);
+
+		cluster.on("listening", () => {
+			listeningMessage && print.info(listeningMessage);
+
+			process.send(broadcastEmitter.recoverHistory());
 		});
 	});
 }
@@ -113,7 +110,9 @@ export function init() {
 }
 
 export function broadcast(signal: string, data?: string) {
-	broadcastEmitter.emit({
+	const message: IBroadcastMessage = {
 		signal, data
-	});
+	};
+
+	broadcastEmitter.emit(message);
 }

@@ -10,20 +10,23 @@
 
 
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
 
-import { IRequest, IResponse } from "./interfaces";
 import { EVENT_EMITTER } from "./EVENT_EMITTER";
 import { MODE } from "./MODE";
-import { APP_CONFIG } from "./config/APP_CONFIG";
 import { parseFlag } from "./args";
 import { init as initCluster } from "./cluster";
 import { registerFree } from "./shared-memory/shared-memory-api";
+import { broadcast } from "./cluster";
 import * as print from "./print";
 
 
 if(parseFlag("help", "H")) {    // TODO: Global bin?
-    console.log(String(readFileSync(join(__dirname, "./help.txt"))));
+    process.stdout.write(
+        String(readFileSync(join(__dirname, "./help.txt")))
+        .replace(/(https?:\/\/[a-z0-9/._-]+)/ig, "\x1b[38;2;255;71;71m$1\x1b[0m")
+        + "\n"
+    );
     
     process.exit(0);
 
@@ -32,7 +35,7 @@ if(parseFlag("help", "H")) {    // TODO: Global bin?
 
     // TODO: Solo node mode (flag)
 
-let isInitializing: boolean = true;
+let isInitializing = true;
 setTimeout(() => {
     isInitializing = false;
 }, 2000);
@@ -43,11 +46,6 @@ process.on("uncaughtException", (err: Error) => {
     isInitializing
     && setImmediate(() => process.exit(1));
 });
-
-
-EVENT_EMITTER.on("listening", () => {
-    print.info(`Server listening on port ${APP_CONFIG.port}`);
-});    // TODO: Display start message (count nodes for correct cardinality)
 
 
 registerFree([ "uncaughtException", "unhandledRejection" ], 1);
@@ -61,14 +59,24 @@ print.info(`Started server cluster running \x1b[1m${MODE.DEV ? "\x1b[38;2;224;0;
 // TODO: Display specific app name of implementation?
 
 
+export * as print from "./print";
+
 export function on(event: string, callback: (...args: unknown[]) => void) {
     EVENT_EMITTER.on(event, callback);
 }
 
-export * as print from "./print";
-
-export { broadcast } from "./cluster";
-
 export function bindRequestHandler(handlerModulePath: string) {
-    //console.log(handlerCallabck.toString());
+    const originalStackTrace: ((err: Error, stackTraces: NodeJS.CallSite[]) => void) = Error.prepareStackTrace;
+    
+    const err: Error = new Error();
+
+    Error.prepareStackTrace = (_, stackTraces) => stackTraces;
+
+    const callerModulePath: string = (err.stack[1] as unknown as { getFileName: (() => string) }).getFileName();
+    
+    Error.prepareStackTrace = originalStackTrace;
+
+    const requestHandlerModulePath: string = join(dirname(callerModulePath), handlerModulePath);
+    
+    broadcast("bind-request-handler", requestHandlerModulePath);
 }

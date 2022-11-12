@@ -73,7 +73,7 @@ function stringify(message: unknown): string {
     };
 
     return (typeof message !== "string")
-    ? flatten(flatten(JSON.stringify(message), "\""), "\'")
+    ? flatten(flatten(JSON.stringify(message), "\""), "'")
     : message;
 }
 
@@ -154,14 +154,14 @@ function formatMessage(message: string) {
         JSON.parse(message);
         
         // TODO: Object
-    } finally {
-        return message;
-    }
+    } catch { /**/ }
+
+    return message;
 }
 
 function colorMessage(message: string) {
     return message
-    .replace(/(^|\s|[\[\(])([0-9]+([.,-][0-9]+)*)(\s|[^a-z0-9;]|$)/gi, `$1${highlight("$2", [ 0, 167, 225 ])}$4`);   // Number
+    .replace(/(^|\s|[[(])([0-9]+([.,-][0-9]+)*)(\s|[^a-z0-9;]|$)/gi, `$1${highlight("$2", [ 0, 167, 225 ])}$4`);   // Number
 }
 
 export function info(message: unknown) {
@@ -196,7 +196,7 @@ export function error(err: Error|string) {
 
 export function logToFile(message: unknown) {
     if(!logDirPath) {
-        return
+        return;
     }
 
     message = stringify(message)

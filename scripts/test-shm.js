@@ -3,6 +3,7 @@ const { fork } = require("child_process");
 
 
 const children = [];
+const randomConsistencyStr = Math.round(Math.random() * 100);
 
 
 children.push(detachProcess("write"));
@@ -25,6 +26,8 @@ function detachProcess(mode) {
 
         process.exit(0);
     });
+
+    child.send(randomConsistencyStr);
 
     return child;
 }

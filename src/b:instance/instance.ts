@@ -97,7 +97,7 @@ createServerHTTP({
             })
             .sort((a, b) => (b.quality - a.quality)) as IAcceptHeaderPart[]
             ?? null;
-        }
+        };
 
         const acceptedLocale: IAcceptHeaderPart[] = parseAcceptHeader("accept-language");
         const highlevelLocale: IHighlevelLocale[] = acceptedLocale
@@ -269,8 +269,7 @@ function respond(oRes: ServerResponse, resParam: IResponse|number, prioritizedHe
     if(oRes.writableEnded || oRes.writableFinished) {
         return;
     }
-    console.log(resParam)
-    
+        
     resParam = (typeof resParam === "number")
     ? {
         status: resParam

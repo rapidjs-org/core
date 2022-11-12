@@ -54,7 +54,7 @@ export abstract class LimitDictionary<K, V, L> {
 
         // TODO: Note values are serialized (JSON.stringify() in order to be stored in SHM)
         try {
-            sharedMemory.writeSync(this.getInternalKey(key), entry)   // TODO: Note key is stringified implicitly (requires unambiguos serialization)
+            sharedMemory.writeSync(this.getInternalKey(key), entry);   // TODO: Note key is stringified implicitly (requires unambiguos serialization)
             // TODO: Provide async interface?
         } catch {
             this.intermediateMemory.set(key, entry);

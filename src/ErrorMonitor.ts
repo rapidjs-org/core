@@ -13,7 +13,7 @@ export class ErrorMonitor {
 	
     private timeControl: number[] = [];
 
-    constructor(errorCallback: () => void, periodSize: number = 5000, limit: number = 3) {
+    constructor(errorCallback: () => void, periodSize = 5000, limit = 3) {
     	this.errorCallback = errorCallback;
     	this.periodSize = periodSize;
     	this.limit = limit;
@@ -25,7 +25,7 @@ export class ErrorMonitor {
 		}
 
     	const curTimestamp: number = Date.now();
-
+		//@TEST <errorControlFeed>
     	this.timeControl = this.timeControl
 		.filter((timestamp: number) => {
 			return (curTimestamp <= (timestamp + this.periodSize));
@@ -36,7 +36,7 @@ export class ErrorMonitor {
     	if(this.timeControl.length <= this.limit) {
     		return;
     	}
-		
+		// ...
     	setImmediate(() => this.errorCallback());
     }
 

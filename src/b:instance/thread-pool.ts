@@ -34,7 +34,9 @@ const errorControl = new ErrorMonitor(() => {
 const threadMutex: AsyncMutex = new AsyncMutex();
 const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-br");
 const broadcastEmitter: BroadcastEmitter = new BroadcastEmitter(message => {
-    threadMutex.lock(() => broadcastChannel.postMessage(message));
+    threadMutex.lock(() => {
+        broadcastChannel.postMessage(message);
+    });
 });
 
 const pendingRequests: IPending[] = [];
@@ -45,21 +47,23 @@ const activeThreads: Map<number, IActive> = new Map();
 !MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
 
 
-process.on("message", (message: IBroadcastMessage|IBroadcastMessage[]) => broadcastEmitter.emit(message));
+process.on("message", (message: IBroadcastMessage|IBroadcastMessage[]) => {
+    broadcastEmitter.emit(message);
+});
 
 broadcastChannel.onmessage = (message: IBroadcastMessage) => {
-    process.send(message)
+    process.send(message);
 };
 
 
 // TODO: Size management
+
 create();
 
 
 function create() {
     threadMutex.lock(() => {
-    console.log(broadcastEmitter.recoverHistory().length + " in hist");
-    const thread = new Thread(join(__dirname, "./c:thread/thread"), {
+        const thread = new Thread(join(__dirname, "./c:thread/thread"), {
             env: SHARE_ENV,
             workerData: broadcastEmitter.recoverHistory()
         });

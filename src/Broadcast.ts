@@ -12,7 +12,13 @@ type TBroadcastCallback = (data: string) => void;
 export class BroadcastEmitter {
 
 	private readonly emitter: (message: IBroadcastMessage[]) => void;
-	private history: IBroadcastMessage[] = [];	// TODO: Assume signal override obsoletion?
+	private readonly history: {
+		dynamic: Map<string, string>,
+		static: IBroadcastMessage[]
+	} = {
+		dynamic: new Map(),
+		static: []
+	};	// TODO: Assume signal override obsoletion?
 
 	constructor(emitter?: ((message: IBroadcastMessage[]) => void)) {
 		this.emitter = emitter;
@@ -23,13 +29,23 @@ export class BroadcastEmitter {
 		
 		this.emitter(message);
 
-		this.history = this.history.concat([ message ].flat());
+		message.forEach((message: IBroadcastMessage) => {
+			this.history.dynamic.set(message.signal, message.data);
+		});
 
-		console.log("BC WITH hist: " + this.history.map(e => e.signal).join(", "));
+		const staticHistoryRepresentation: IBroadcastMessage[] = [];
+		this.history.dynamic
+		.forEach((data: string, signal: string) => {
+			staticHistoryRepresentation.push({
+				signal, data
+			});
+		});
+
+		this.history.static = staticHistoryRepresentation;
 	}
 	
 	public recoverHistory(): IBroadcastMessage[] {
-		return this.history;
+		return this.history.static;
 	}
 }
 
@@ -44,12 +60,13 @@ export class BroadcastAbsorber  {
 	public absorb(message: IBroadcastMessage|IBroadcastMessage[]) {
 		[ message ].flat()
 		.forEach((message: IBroadcastMessage) => {
-			if(message.signal !== devConfig.absorbAnySignal
-			&& !this.broadcastListeners.has(message.signal)) {
-				return;
+			if(!this.broadcastListeners.has(message.signal)
+			&& !this.broadcastListeners.has(devConfig.absorbAnySignal)) {
+				throw new RangeError(`Unhandled broadcast signal '${message.signal}'`);
 			}
 
-			this.broadcastListeners.get(message.signal)
+			(this.broadcastListeners.get(message.signal) ?? [])
+			.concat(this.broadcastListeners.get(devConfig.absorbAnySignal) ?? [])
 			.forEach((callback: TBroadcastCallback) => callback(message.data));
 		});
 	}

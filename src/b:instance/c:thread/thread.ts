@@ -9,37 +9,44 @@ import * as print from "../../print";
 const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-br");
 const broadcastAbsorber = new BroadcastAbsorber();
 
+let shellRequestHandler: (sReq: IRequest) => IResponse;
+const earlyRequests: IRequest[]= [];
+
 
 !MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
 
 
-broadcastAbsorber.on("ttt", (data: string) => {
-    /* console.log("Broadcast [ttt]:");
-    console.log(data); */
+broadcastAbsorber.on("bind-request-handler", async (requestHandlerModulePath: string) => {
+    shellRequestHandler = require(requestHandlerModulePath);
+
+    if(!(shellRequestHandler instanceof Function)) {
+        throw new TypeError(`Given request handler module must export request handler function as default 'Function: (IRequest) => IResponse' '${requestHandlerModulePath}`);
+    }
+
+    earlyRequests
+    .forEach((sReq: IRequest) => handleRequest(sReq));
 });
 
-
-parentPort.on("message", (sReq: IRequest) => {
-    // TODO: How to implement specific handler?
-    // const sRes = boundRequestHandler(sReq); // TODO: Overload return value?
-    // TODO: Accept promise return value?
-    // TODO: Format constraint?
-    const sRes: IResponse = {
-        status: 200,
-        message: sReq.url.hostname as string
-    }; // TODO: Overload return value?
-
-    // TODO: Wrap sReq properties with dynamic interfaces?
-    console.log(sReq);
-    parentPort.postMessage({
-        status: 200,
-        message: sReq.url.hostname as string
-    });
-});
-
+broadcastAbsorber.absorb(workerData);
 
 broadcastChannel.onmessage = (message: { data: IBroadcastMessage|IBroadcastMessage[] }) => {
     broadcastAbsorber.absorb(message.data);
 };
 
-//console.log(workerData);
+
+parentPort.on("message", (sReq: IRequest) => {
+    if(!shellRequestHandler) {
+        earlyRequests.push(sReq);
+
+        return;
+    }
+
+    handleRequest(sReq);
+});
+
+
+function handleRequest(sReq: IRequest) {
+    const sShellRes: IResponse = shellRequestHandler(sReq);
+    
+    parentPort.postMessage(sShellRes);
+}

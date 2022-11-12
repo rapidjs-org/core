@@ -1,11 +1,16 @@
-assert("Simple GET request (example.org)", {
-    url: "/foo.html"
+assert("Successful request", {
+    url: "/foo.bar"
+}, {
+    status: 200,
+    headers: {
+        "Content-Length": 3
+    },
+    message: "foo"
+});
+
+assert("Failing request", {
+    url: "/baz.qux"
 }, {
     status: 404,
-    headers: {
-        "Content-Length": 1256,
-        "Content-Type": "text/html; charset=UTF-8"
-    },
-    //message: "<!doctype html> <html> ABC </html>",
-    ignoreWhitespace: true
+    message: "baz"
 });
