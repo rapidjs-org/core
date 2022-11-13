@@ -54,7 +54,7 @@ const initialListeningEmission = () => {
 
     print.info(`${MODE.DEV ? "Instance" : "Cluster"} listening on port ${APP_CONFIG.port}`);
 	
-	EVENT_EMITTER.emit("listening");
+	setImmediate(() => EVENT_EMITTER.emit("listening"));
 
 	cluster.removeListener("listening", initialListeningEmission);
 };

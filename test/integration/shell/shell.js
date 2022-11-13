@@ -1,7 +1,7 @@
-const rJS = require("../../../debug/api");
+const rJS_core = require("../../../debug/api");
 
 
-rJS.bindRequestHandler("./request-handler"); // TODO: Typings
+rJS_core.shellAPI.bindRequestHandler("./request-handler"); // TODO: Typings
 
 
-module.exports = rJS;   // TODO: Exports passthrough
+module.exports = rJS_core.individualAPI;   // TODO: Exports passthrough

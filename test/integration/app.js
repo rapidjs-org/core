@@ -6,5 +6,5 @@ rJS.on("listening", _ => {
 });
 
 
-rJS.on("request", data => rJS.print.logToFile(data));
-rJS.on("response", data => rJS.print.logToFile(data));
+rJS.on("request", data => rJS.logToFile(data));
+rJS.on("response", data => rJS.logToFile(data));

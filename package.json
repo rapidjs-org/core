@@ -10,13 +10,16 @@
     "compile:dist": "node ./node_modules/@rapidjs.org/utilities/build.js",
     "compile:watch": "node ./scripts/compile-watch.js",
     "compile:watch:all": "node ./scripts/compile-watch.js --cpp",
-    "test:integration": "node ./test/integration/app.js --core-debug-output",
+    "test:integration": "node ./test/integration/app.js",
     "test:integration:prod": "node ./test/integration/app.js -L ./test/integration/logs/",
     "test:integration:dev": "node ./test/integration/app.js -D",
     "test:shm": "node ./scripts/test-shm.js",
     "test:network": "node ./node_modules/@rapidjs.org/utilities/test-network.js",
     "test:unit": "node ./node_modules/@rapidjs.org/utilities/test-unit.js",
     "test": "node ./scripts/test-shm.js && node ./node_modules/@rapidjs.org/utilities/test.js",
+    "benchmark:s": "node ./scripts/benchmark.js -s",
+    "benchmark:m": "node ./scripts/benchmark.js -s",
+    "benchmark:l": "node ./scripts/benchmark.js -s",
     "release": "npm run test && npm run compile:dist"
   },
   "files": [
@@ -41,6 +44,7 @@
     "@typescript-eslint/parser": "^5.4.0",
     "eslint": "^7.26.0",
     "eslint-plugin-typescript": "^0.14.0",
+    "loadtest": "^5.2.0",
     "node-addon-api": "^5.0.0",
     "node-gyp": "^9.1.0",
     "typescript": "^4.5.2"
