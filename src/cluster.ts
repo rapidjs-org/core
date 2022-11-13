@@ -52,7 +52,7 @@ const initialListeningEmission = () => {
 		return;
 	}
 
-    print.info(`Server listening on port ${APP_CONFIG.port}`);
+    print.info(`${MODE.DEV ? "Instance" : "Cluster"} listening on port ${APP_CONFIG.port}`);
 	
 	EVENT_EMITTER.emit("listening");
 
@@ -95,7 +95,7 @@ function create(listeningMessage?: string) {
 
 		cluster.on("listening", () => {
 			listeningMessage && print.info(listeningMessage);
-
+			
 			process.send(broadcastEmitter.recoverHistory());
 		});
 	});
@@ -106,7 +106,20 @@ export function init() {
 	Array.from({ length: baseSize }, create);
 
     // Enforce singleton usage
-    delete module.exports.initCluster;
+    delete module.exports.init;
+}
+
+export function destroy() {
+	Object.keys(cluster.workers)
+	.forEach((id: string) => {
+		const process: Process = cluster.workers[id];
+		process.disconnect();
+	});
+
+    print.info(`${MODE.DEV ? "Instance" : "Cluster"} has \x1b[38;2;224;0;0mshut down\x1b[0m`);
+
+    // Enforce singleton usage
+    delete module.exports.destroy;
 }
 
 export function broadcast(signal: string, data?: string) {

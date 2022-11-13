@@ -15,7 +15,7 @@ import { join, dirname } from "path";
 import { EVENT_EMITTER } from "./EVENT_EMITTER";
 import { MODE } from "./MODE";
 import { parseFlag } from "./args";
-import { init as initCluster } from "./cluster";
+import { init as initCluster, destroy as destroyCluster } from "./cluster";
 import { registerFree } from "./shared-memory/shared-memory-api";
 import { broadcast } from "./cluster";
 import * as print from "./print";
@@ -59,24 +59,36 @@ print.info(`Started server cluster running \x1b[1m${MODE.DEV ? "\x1b[38;2;224;0;
 // TODO: Display specific app name of implementation?
 
 
-export * as print from "./print";
+export const shellAPI = {
+    
+    print: print,
 
-export function on(event: string, callback: (...args: unknown[]) => void) {
-    EVENT_EMITTER.on(event, callback);
+    bindRequestHandler: function (handlerModulePath: string) {
+        const originalStackTrace: ((err: Error, stackTraces: NodeJS.CallSite[]) => void) = Error.prepareStackTrace;
+        
+        const err: Error = new Error();
+    
+        Error.prepareStackTrace = (_, stackTraces) => stackTraces;
+    
+        const callerModulePath: string = (err.stack[1] as unknown as { getFileName: (() => string) }).getFileName();
+        
+        Error.prepareStackTrace = originalStackTrace;
+    
+        const requestHandlerModulePath: string = join(dirname(callerModulePath), handlerModulePath);
+
+        broadcast("bind-request-handler", requestHandlerModulePath);
+    },
+
+    shutdown: destroyCluster
+
 }
 
-export function bindRequestHandler(handlerModulePath: string) {
-    const originalStackTrace: ((err: Error, stackTraces: NodeJS.CallSite[]) => void) = Error.prepareStackTrace;
-    
-    const err: Error = new Error();
+export const individualAPI = {
 
-    Error.prepareStackTrace = (_, stackTraces) => stackTraces;
+    on: function (event: string, callback: (...args: unknown[]) => void) {
+        EVENT_EMITTER.on(event, callback);
+    },
 
-    const callerModulePath: string = (err.stack[1] as unknown as { getFileName: (() => string) }).getFileName();
-    
-    Error.prepareStackTrace = originalStackTrace;
+    logToFile: print.logToFile
 
-    const requestHandlerModulePath: string = join(dirname(callerModulePath), handlerModulePath);
-    
-    broadcast("bind-request-handler", requestHandlerModulePath);
 }

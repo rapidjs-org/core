@@ -1,4 +1,5 @@
 import { Worker as Thread, SHARE_ENV, BroadcastChannel } from "worker_threads";
+import { cpus } from "os";
 import { join } from "path";
 
 import { IBroadcastMessage, IRequest, IResponse } from "../interfaces";
@@ -24,6 +25,7 @@ interface IActive {
 }
 
 
+const baseSize: number = MODE.DEV ? 1 : cpus().length;	// TODO: Use elaborate algorithm to determine root size
 const errorControl = new ErrorMonitor(() => {
 	print.error(new RangeError(`${MODE.DEV ? "Instance" : "Cluster"} has shut down due to heavy error density in thread`));
 	
@@ -58,7 +60,7 @@ broadcastChannel.onmessage = (message: IBroadcastMessage) => {
 
 // TODO: Size management
 
-create();
+Array.from({ length: baseSize }, create);
 
 
 function create() {

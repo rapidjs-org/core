@@ -17,17 +17,18 @@ const earlyRequests: IRequest[]= [];
 
 
 broadcastAbsorber.on("bind-request-handler", async (requestHandlerModulePath: string) => {
-    shellRequestHandler = require(requestHandlerModulePath);
+    shellRequestHandler = (await import(requestHandlerModulePath)).default;
 
     if(!(shellRequestHandler instanceof Function)) {
         throw new TypeError(`Given request handler module must export request handler function as default 'Function: (IRequest) => IResponse' '${requestHandlerModulePath}`);
     }
-
+    
     earlyRequests
     .forEach((sReq: IRequest) => handleRequest(sReq));
 });
 
 broadcastAbsorber.absorb(workerData);
+
 
 broadcastChannel.onmessage = (message: { data: IBroadcastMessage|IBroadcastMessage[] }) => {
     broadcastAbsorber.absorb(message.data);
