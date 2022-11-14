@@ -25,7 +25,7 @@ interface IActive {
 }
 
 
-const baseSize: number = MODE.DEV ? 1 : cpus().length;	// TODO: Use elaborate algorithm to determine root size
+const baseSize: number = MODE.DEV ? 1 : Math.round(cpus().length / 2);	// TODO: Use elaborate algorithm to determine root size
 const errorControl = new ErrorMonitor(() => {
 	print.error(new RangeError(`${MODE.DEV ? "Instance" : "Cluster"} has shut down due to heavy error density in thread`));
 	
@@ -34,11 +34,9 @@ const errorControl = new ErrorMonitor(() => {
     });
 });
 const threadMutex: AsyncMutex = new AsyncMutex();
-const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-br");
+const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-bc");
 const broadcastEmitter: BroadcastEmitter = new BroadcastEmitter(message => {
-    threadMutex.lock(() => {
-        broadcastChannel.postMessage(message);
-    });
+    threadMutex.lock(() => broadcastChannel.postMessage(message));
 });
 
 const pendingRequests: IPending[] = [];
@@ -49,9 +47,8 @@ const activeThreads: Map<number, IActive> = new Map();
 !MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
 
 
-process.on("message", (message: IBroadcastMessage|IBroadcastMessage[]) => {
-    broadcastEmitter.emit(message);
-});
+process.on("message", (message: IBroadcastMessage|IBroadcastMessage[]) => broadcastEmitter.emit(message));
+
 
 broadcastChannel.onmessage = (message: IBroadcastMessage) => {
     process.send(message);
@@ -59,46 +56,67 @@ broadcastChannel.onmessage = (message: IBroadcastMessage) => {
 
 
 // TODO: Size management
-
 Array.from({ length: baseSize }, create);
 
 
 function create() {
-    threadMutex.lock(() => {
+    threadMutex.lock(new Promise((resolve, reject) => {
         const thread = new Thread(join(__dirname, "./c:thread/thread"), {
-            env: SHARE_ENV,
+            //env: SHARE_ENV,
             workerData: broadcastEmitter.recoverHistory()
         });
 
-        thread.on("message", (sRes: IResponse) => {
-            activeThreads.get(thread.threadId).resolve(sRes);
-
-            deactivate(thread); 
-        });
+        const initialErrorHandler: ((err: Error) => void) = err => {
+            reject(err);
+        };
+        thread.on("error", initialErrorHandler);
         
-        // TODO: Error recovery offset
-        thread.on("error", err => {
-            print.error(err);
+        const intialReadyHandler: ((status: number) => void) = status => {
+            thread.removeListener("error", initialErrorHandler);
+            thread.removeListener("message", intialReadyHandler);
+            
+            resolve(null);
 
-            MODE.DEV
-            && setImmediate(() => process.send({
-                signal: "terminate"
-            }));
+            // TODO: Error recovery offset
+            thread.on("error", err => {
+                print.error(err);
+    
+                MODE.DEV
+                && setImmediate(() => process.send({
+                    signal: "terminate"
+                }));
+    
+                errorControl.feed();
+            });
 
-            errorControl.feed();
-        });
-        
-        thread.on("exit", (code: number) => {
-            if(code === 0 || MODE.DEV) {
-                return;
-            }
+            thread.on("message", (sRes: IResponse) => {
+                activeThreads.get(thread.threadId)
+                .resolve(sRes);
 
-            clean(thread.threadId);
+                deactivate(thread); 
+            });
 
-            create();
-        });
+            thread.on("exit", (code: number) => {
+                if(code === 0 || MODE.DEV) {
+                    return;
+                }
+    
+                clean(thread.threadId);
+    
+                create();
+            });
 
-        idleThreads.push(thread);
+            idleThreads.push(thread);
+        };
+        thread.on("message", intialReadyHandler);
+    }))
+    .catch((err: Error) => {
+        print.error("Error creating thread:");
+        print.error(err);
+
+        setImmediate(() => process.send({
+            signal: "terminate"
+        }));
     });
 }
 

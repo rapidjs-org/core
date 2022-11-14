@@ -17,18 +17,18 @@ export class AsyncMutex {
 	}
 
 	public lock(instructions: (() => void)|Promise<unknown>, prioritize = false): Promise<unknown> {
-		return new Promise(resolve => {
+		return new Promise((resolve, reject) => {
 			this.acquire(prioritize)
 			.then(() => {
 				(!(instructions instanceof Promise)
-				? new Promise<unknown>(resolve => resolve(instructions()))
+				? new Promise<unknown>(r => r(instructions()))
 				: instructions)
-                .then((result: unknown) => {
+                .then((result: unknown) => resolve(result))
+				.catch((err: Error) => reject(err))
+				.finally(() => {
 					this.acquireQueue.length
 					? this.acquireQueue.shift()()
 					: (this.isLocked = false);
-					
-					resolve(result);
 				});
 			});
 		});

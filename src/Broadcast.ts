@@ -25,13 +25,23 @@ export class BroadcastEmitter {
 	}
 
 	public emit(message: IBroadcastMessage|IBroadcastMessage[]) {
+		let hasUpdates: boolean = false;
+		
 		message = [ message ].flat();
 		
-		this.emitter(message);
-
 		message.forEach((message: IBroadcastMessage) => {
+			if(this.history.dynamic.get(message.signal) === message.data) {
+				return;
+			}
+
 			this.history.dynamic.set(message.signal, message.data);
+
+			hasUpdates = true;
 		});
+
+		if(!hasUpdates) {
+			return;
+		}
 
 		const staticHistoryRepresentation: IBroadcastMessage[] = [];
 		this.history.dynamic
@@ -42,6 +52,8 @@ export class BroadcastEmitter {
 		});
 
 		this.history.static = staticHistoryRepresentation;
+
+		this.emitter(message);
 	}
 	
 	public recoverHistory(): IBroadcastMessage[] {
@@ -52,14 +64,13 @@ export class BroadcastEmitter {
 export class BroadcastAbsorber  {
 
 	private readonly broadcastListeners: Map<string, TBroadcastCallback[]> = new Map();
-
+	
 	public on(signal: string, callback: TBroadcastCallback) {
 		this.broadcastListeners.set(signal, (this.broadcastListeners.get(signal) ?? []).concat([ callback ]));
 	}
 
-	public absorb(message: IBroadcastMessage|IBroadcastMessage[]) {
-		[ message ].flat()
-		.forEach((message: IBroadcastMessage) => {
+	public absorb(message: IBroadcastMessage[]) {
+		message.forEach((message: IBroadcastMessage) => {
 			if(!this.broadcastListeners.has(message.signal)
 			&& !this.broadcastListeners.has(devConfig.absorbAnySignal)) {
 				throw new RangeError(`Unhandled broadcast signal '${message.signal}'`);

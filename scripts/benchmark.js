@@ -11,19 +11,19 @@ let modeOptions;
 switch(mode) {
     case "-m":
         modeOptions = {
-            concurrency: 100,
+            concurrency: 10,
 	        maxRequests: 1000
         };
         break;
     case "-l":
         modeOptions = {
-            concurrency: 1000,
+            concurrency: 100,
             maxRequests: 10000
         };
         break;
     default:
         modeOptions = {
-            concurrency: 10,
+            concurrency: 1,
             maxRequests: 100
         };
         break;
@@ -46,16 +46,14 @@ process.on("exit", signal => {
         const color = [ ((count * 64) + 128) % 256, 0, 0 ];
         Array.from({ length: count }, _ => color.unshift(color.pop()));
         
-        console.log(`\x1b[38;2;${color.join(";")}m${count}. ${data.caption}\n${fence}\x1b[0m`);
+        console.log(`\x1b[38;2;${color.join(";")}m${count}. ${data.caption}\x1b[0m`);
         console.log(data.result);
-        console.log(`\x1b[38;2;${color.join(";")}m\n${Array.from({ length: 25 }, _ => "–").join("")}\x1b[0m`);
+        console.log(`\x1b[38;2;${color.join(";")}m${Array.from({ length: 35 }, _ => "–").join("")}\x1b[0m\n`);
     };
-
-    console.log("");
+    
     configurationData
     .sort((a, b) => { b.result.meanLatencyMs - a.result.meanLatencyMs })
     .forEach(data => printResult(data));
-    console.log("");
 });
 
 
@@ -88,8 +86,8 @@ async function runConfiguration(caption, serverSetupCallback) { // TODO: use dif
         configurationData.push({
             caption, result
         });
-
-        !(--openRuns) && process.exit();
+        
+        !(--openRuns) && process.exit(0);
     }));
 }
 

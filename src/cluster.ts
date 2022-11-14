@@ -25,6 +25,10 @@ const errorControl = new ErrorMonitor(() => {
 const processMutex = new AsyncMutex();
 const broadcastEmitter: BroadcastEmitter = new BroadcastEmitter((message: IBroadcastMessage|IBroadcastMessage[]) => {
 	processMutex.lock(() => {
+		if(hasBeenDestroyed) {
+			return;
+		}
+
 		Object.keys(cluster.workers)
 		.forEach((id: string) => {
 			const process: Process = cluster.workers[id];
@@ -33,6 +37,8 @@ const broadcastEmitter: BroadcastEmitter = new BroadcastEmitter((message: IBroad
 	});
 });
 const broadcastAbsorber: BroadcastAbsorber = new BroadcastAbsorber();
+
+let hasBeenDestroyed: boolean = false;
 
 
 cluster.settings.exec = join(__dirname, "./b:instance/instance");
@@ -47,7 +53,7 @@ broadcastAbsorber.on("terminate", () => setImmediate(() => process.exit(1)));
 
 // TODO: SHM custom-cluster with IP-hash distributed worker load
 let listeningNotfications: number = baseSize;
-const initialListeningEmission = () => {
+const initialListenerHandler: (() => void) = () => {
 	if(--listeningNotfications) {
 		return;
 	}
@@ -56,11 +62,11 @@ const initialListeningEmission = () => {
 	
 	setImmediate(() => EVENT_EMITTER.emit("listening"));
 
-	cluster.removeListener("listening", initialListeningEmission);
+	cluster.removeListener("listening", initialListenerHandler);
 };
-cluster.on("listening", initialListeningEmission);
+cluster.on("listening", initialListenerHandler);
 
-cluster.on("message", (_, message: IBroadcastMessage) => broadcastAbsorber.absorb(message));
+cluster.on("message", (_, message: IBroadcastMessage) => broadcastAbsorber.absorb([ message ]));
 
 // TODO: Error recovery offset
 cluster.on("error", err => {
@@ -69,17 +75,17 @@ cluster.on("error", err => {
 	errorControl.feed();
 });
 
-cluster.on("exit", (code: number) => {
+const exitHandler = (code: number) => {
 	if(code === 0 || MODE.DEV) {
 		return;
 	}
 
 	create(`${MODE.DEV ? "Instance" : "Cluster"} process has restarted after internal error`);
-});
-
+};
+cluster.on("exit", exitHandler);
 
 function create(listeningMessage?: string) {
-	processMutex.lock(() => {
+	processMutex.lock(new Promise((resolve, reject) => {
 		const process = cluster.fork({
 			dev: MODE.DEV,
 			wd: dirname(require.main.filename)
@@ -93,12 +99,27 @@ function create(listeningMessage?: string) {
 			print.error(err);
 		});
 
-		cluster.on("listening", () => {
+        const initialErrorHandler: ((err: Error) => void) = err => {
+            reject(err);
+        };
+        process.on("error", initialErrorHandler);
+
+		process.on("listening", () => {			
 			listeningMessage && print.info(listeningMessage);
-			
+
 			process.send(broadcastEmitter.recoverHistory());
+			
+            process.removeListener("error", initialErrorHandler);
+
+			resolve(null);
 		});
-	});
+	}))
+    .catch((err: Error) => {
+        print.error("Error creating process:");
+        print.error(err);
+		
+        setImmediate(() => process.exit(1));
+    });
 }
 
 
@@ -110,12 +131,18 @@ export function init() {
 }
 
 export function destroy() {
+	hasBeenDestroyed = true;
+	
+	cluster.removeListener("exit", exitHandler);
+
 	Object.keys(cluster.workers)
 	.forEach((id: string) => {
 		const process: Process = cluster.workers[id];
-		process.disconnect();
+		process.kill("SIGKILL");
 	});
-
+	
+	cluster.disconnect();
+	
     print.info(`${MODE.DEV ? "Instance" : "Cluster"} has \x1b[38;2;224;0;0mshut down\x1b[0m`);
 
     // Enforce singleton usage
