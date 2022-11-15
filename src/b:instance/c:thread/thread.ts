@@ -4,26 +4,45 @@ import { IBroadcastMessage, IRequest, IResponse } from "../../interfaces";
 import { MODE } from "../../MODE";
 import { BroadcastAbsorber } from "../../Broadcast";
 import * as print from "../../print";
+import * as shellAPI from "../../api/api.shell";
+
+import { EThreadStatus } from "../EThreadStatus";
+
+
+type TShellAdapterHandler = ((shellAPI: unknown) => TShellRequestHandler);
+type TShellRequestHandler = (sReq: IRequest) => IResponse;
 
 
 const broadcastChannel: BroadcastChannel = new BroadcastChannel("rapidjs-bc");
 const broadcastAbsorber = new BroadcastAbsorber();
 
-let shellRequestHandler: (sReq: IRequest) => IResponse;
+let shellRequestHandler: TShellRequestHandler;
 let earlyRequest: IRequest;
 
 
-!MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
+broadcastAbsorber.on("bind-request-handler", (requestHandlerModulePath: string) => {
+    const tryBind = <T>(instructions: () => T) => {
+        try {
+            const handler: T = instructions();
 
+            if(handler instanceof Function) {
+                return handler;
+            }
+        } catch(err) {
+            err && print.error(err);
+        }
 
-broadcastAbsorber.on("bind-request-handler", async (requestHandlerModulePath: string) => {
-    shellRequestHandler = (await import(requestHandlerModulePath)).default;
+        throw new TypeError(`Given request handler must export adapter function as default 'Function: (shellAPI) => (Function: (IRequest) => IResponse)' '${requestHandlerModulePath}`);
+    };
 
-    if(!(shellRequestHandler instanceof Function)) {
-        throw new TypeError(`Given request handler module must export request handler function as default 'Function: (IRequest) => IResponse' '${requestHandlerModulePath}`);
-    }
+    const shellAdapter = tryBind<TShellAdapterHandler>(() => require(requestHandlerModulePath));
+    shellRequestHandler = tryBind<TShellRequestHandler>(() => shellAdapter(shellAPI));
     
     earlyRequest && handleRequest(earlyRequest);
+    
+    !MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
+
+    parentPort.postMessage(EThreadStatus.BOUND);  // Bound status message
 });
 
 broadcastAbsorber.absorb(workerData);
@@ -34,7 +53,7 @@ broadcastChannel.onmessage = (message: { data: IBroadcastMessage[] }) => {
 }
 
 
-parentPort.postMessage(0);  // Ready status message
+parentPort.postMessage(EThreadStatus.READY);  // Ready status message
 
 
 parentPort.on("message", (sReq: IRequest) => {
@@ -49,7 +68,12 @@ parentPort.on("message", (sReq: IRequest) => {
 
 
 function handleRequest(sReq: IRequest) {
-    const sShellRes: IResponse = shellRequestHandler(sReq);
-    
-    parentPort.postMessage(sShellRes);
+    try {
+        const sShellRes: IResponse = shellRequestHandler(sReq);
+        
+        parentPort.postMessage(sShellRes);
+    } catch(err) {
+        
+        // TODO: Error (500)
+    }
 }

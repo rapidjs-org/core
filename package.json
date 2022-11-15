@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "",
   "author": "Thassilo Martin Schiepanski",
-  "main": "./dist/api.js",
+  "main": "./dist/>core.js",
   "scripts": {
     "init": "npm i && cd ./src/shared-memory/ && node-gyp configure",
     "lint": "./node_modules/.bin/eslint --ext .ts --fix ./src",

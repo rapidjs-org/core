@@ -10,6 +10,7 @@ import { AsyncMutex } from "../AsyncMutex";
 import { BroadcastEmitter } from "../Broadcast";
 import * as print from "../print";
 
+import { EThreadStatus } from "./EThreadStatus";
 
 
 type TRegisteredResponse = (value: (IResponse|number)|PromiseLike<IResponse|number>) => void;
@@ -44,9 +45,6 @@ const idleThreads: Thread[] = [];
 const activeThreads: Map<number, IActive> = new Map();
 
 
-!MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
-
-
 process.on("message", (message: IBroadcastMessage|IBroadcastMessage[]) => broadcastEmitter.emit(message));
 
 
@@ -60,23 +58,31 @@ Array.from({ length: baseSize }, create);
 
 
 function create() {
-    threadMutex.lock(new Promise((resolve, reject) => {
+    threadMutex.lock(new Promise(resolve => {
         const thread = new Thread(join(__dirname, "./c:thread/thread"), {
             //env: SHARE_ENV,
             workerData: broadcastEmitter.recoverHistory()
         });
 
         const initialErrorHandler: ((err: Error) => void) = err => {
-            reject(err);
+            print.error(err);
+            
+            process.send({
+                signal: "terminate"
+            });
         };
         thread.on("error", initialErrorHandler);
         
-        const intialReadyHandler: ((status: number) => void) = status => {
-            thread.removeListener("error", initialErrorHandler);
-            thread.removeListener("message", intialReadyHandler);
-            
-            resolve(null);
+        const intialMessageHandler: ((status: EThreadStatus) => void) = status => {
+            if(status === EThreadStatus.READY) {
+                resolve(null);
 
+                return;
+            }
+
+            thread.removeListener("error", intialMessageHandler);
+            thread.removeListener("message", intialMessageHandler);
+                        
             // TODO: Error recovery offset
             thread.on("error", err => {
                 print.error(err);
@@ -106,18 +112,12 @@ function create() {
                 create();
             });
 
+            !MODE.DEV && process.on("uncaughtException", (err: Error) => print.error(err));
+            
             idleThreads.push(thread);
         };
-        thread.on("message", intialReadyHandler);
-    }))
-    .catch((err: Error) => {
-        print.error("Error creating thread:");
-        print.error(err);
-
-        setImmediate(() => process.send({
-            signal: "terminate"
-        }));
-    });
+        thread.on("message", intialMessageHandler);
+    }));
 }
 
 function activate() {

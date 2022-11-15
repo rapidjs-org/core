@@ -10,14 +10,13 @@
 
 
 import { readFileSync } from "fs";
-import { join, dirname } from "path";
+import { join } from "path";
 
-import { EVENT_EMITTER } from "./EVENT_EMITTER";
 import { MODE } from "./MODE";
 import { parseFlag } from "./args";
-import { init as initCluster, destroy as destroyCluster } from "./cluster";
+import { init as initCluster } from "./cluster";
 import { registerFree } from "./shared-memory/shared-memory-api";
-import { broadcast } from "./cluster";
+import { bindRequestHandler } from "./api/api.bind";
 import * as print from "./print";
 
 
@@ -31,6 +30,7 @@ if(parseFlag("help", "H")) {    // TODO: Global bin?
     process.exit(0);
 
     // TODO: Make extensible
+    // TODO: Move to bin
 }
 
     // TODO: Solo node mode (flag)
@@ -59,38 +59,6 @@ print.info(`Started server cluster running \x1b[1m${MODE.DEV ? "\x1b[38;2;224;0;
 // TODO: Display specific app name of implementation?
 
 
-export const shellAPI = {
-    
-    print: print,
-
-    bindRequestHandler: function (handlerModulePath: string) {
-        const originalStackTrace: ((err: Error, stackTraces: NodeJS.CallSite[]) => void) = Error.prepareStackTrace;
-        
-        const err: Error = new Error();
-    
-        Error.prepareStackTrace = (_, stackTraces) => stackTraces;
-    
-        const callerModulePath: string = (err.stack[1] as unknown as { getFileName: (() => string) }).getFileName();
-        
-        Error.prepareStackTrace = originalStackTrace;
-    
-        const requestHandlerModulePath: string = join(dirname(callerModulePath), handlerModulePath);
-
-        broadcast("bind-request-handler", requestHandlerModulePath);
-    },
-
-    shutdown: destroyCluster
-
-}
-
-export const individualAPI = {
-
-    on: function (event: string, callback: (...args: unknown[]) => void) {
-        EVENT_EMITTER.on(event, callback);
-    },
-
-    logToFile: print.logToFile
-
-}
+module.exports = bindRequestHandler;
 
 // TODO: How to reset ENV?

@@ -48,8 +48,23 @@ cluster.settings.silent = true;
 
 broadcastAbsorber.on("reg:request", (sReqSerialized: string) => EVENT_EMITTER.emit("request", sReqSerialized));
 broadcastAbsorber.on("reg:response", (sResSerialized: string) => EVENT_EMITTER.emit("response", sResSerialized));
-broadcastAbsorber.on("terminate", () => setImmediate(() => process.exit(1)));
+broadcastAbsorber.on("terminate", () => process.exit(1));	// TODO: Race conditions with print?
 
+
+const exitHandler = (code: number) => {
+	if(code === 0 || MODE.DEV) {
+		return;
+	}
+
+	create(`${MODE.DEV ? "Instance" : "Cluster"} process has restarted after internal error`);
+};
+
+const initialErrorHandler: ((err: Error) => void) = err => {
+	print.error(err);
+	
+	process.exit(1);
+};
+cluster.on("error", initialErrorHandler);
 
 // TODO: SHM custom-cluster with IP-hash distributed worker load
 let listeningNotfications: number = baseSize;
@@ -63,63 +78,53 @@ const initialListenerHandler: (() => void) = () => {
 	setImmediate(() => EVENT_EMITTER.emit("listening"));
 
 	cluster.removeListener("listening", initialListenerHandler);
+	cluster.removeListener("error", initialErrorHandler)
+
+	cluster.on("error", err => {
+		print.error(err);
+		
+		errorControl.feed();
+	});
+	
+	cluster.on("exit", exitHandler);
 };
 cluster.on("listening", initialListenerHandler);
 
 cluster.on("message", (_, message: IBroadcastMessage) => broadcastAbsorber.absorb([ message ]));
 
-// TODO: Error recovery offset
-cluster.on("error", err => {
-	print.error(err);
-
-	errorControl.feed();
-});
-
-const exitHandler = (code: number) => {
-	if(code === 0 || MODE.DEV) {
-		return;
-	}
-
-	create(`${MODE.DEV ? "Instance" : "Cluster"} process has restarted after internal error`);
-};
-cluster.on("exit", exitHandler);
 
 function create(listeningMessage?: string) {
 	processMutex.lock(new Promise((resolve, reject) => {
-		const process = cluster.fork({
+		const subProcess = cluster.fork({
 			dev: MODE.DEV,
 			wd: dirname(require.main.filename)
 		});
 
 		// Pipe worker output to master (mem space A)
-		process.process.stdout.on("data", (message: string) => {
+		subProcess.process.stdout.on("data", (message: string) => {
 			print.info(String(message).replace(/\n$/, ""));
 		});
-		process.process.stderr.on("data", (err: string) => {
+		subProcess.process.stderr.on("data", (err: string) => {
 			print.error(err);
 		});
 
         const initialErrorHandler: ((err: Error) => void) = err => {
-            reject(err);
+			print.error(err);
+			
+			setImmediate(() => process.exit(1));
         };
-        process.on("error", initialErrorHandler);
+        subProcess.on("error", initialErrorHandler);
 
-		process.on("listening", () => {			
+		subProcess.on("listening", () => {			
 			listeningMessage && print.info(listeningMessage);
 
-			process.send(broadcastEmitter.recoverHistory());
+			subProcess.send(broadcastEmitter.recoverHistory());
 			
-            process.removeListener("error", initialErrorHandler);
+            subProcess.removeListener("error", initialErrorHandler);
 
 			resolve(null);
 		});
-	}))
-    .catch((err: Error) => {
-        print.error("Error creating process:");
-        print.error(err);
-		
-        setImmediate(() => process.exit(1));
-    });
+	}));
 }
 
 

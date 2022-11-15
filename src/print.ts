@@ -1,3 +1,7 @@
+/**
+ * Module containing application specific console print. 
+ */
+
 const devConfig = {
     "appNameShort": "rJS"
 };
@@ -13,7 +17,11 @@ import { MODE } from "./MODE";
 import { parseOption } from "./args";
 
 
+/*
+ * RGB color triple (4-tuple with optional coloring mode { FG, BG }).
+ */
 type TColor = [ number, number, number, EColorMode? ];
+
 
 enum EStdChannel {
     OUT = "stdout",
@@ -26,6 +34,7 @@ enum EColorMode {
 }
 
 
+// 
 const isRootContext: boolean = cluster.isPrimary && isMainThread;
 
 let lastMessage: {

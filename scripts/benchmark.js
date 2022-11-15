@@ -94,7 +94,7 @@ async function runConfiguration(caption, serverSetupCallback) { // TODO: use dif
 
 runConfiguration("Benchmark 1",
 _ => {
-    const rJS_core = require("../debug/api");
+    const rJS_core = require("../debug/>core");
 
     rJS_core.shellAPI.bindRequestHandler("../test/integration/shell/request-handler");
 
