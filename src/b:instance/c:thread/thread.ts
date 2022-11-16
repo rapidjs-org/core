@@ -1,10 +1,12 @@
+process.argv[1] = process.argv.pop();
+
+
 import { parentPort, workerData, BroadcastChannel } from "worker_threads";
 
 import { IBroadcastMessage, IRequest, IResponse } from "../../interfaces";
 import { MODE } from "../../MODE";
 import { BroadcastAbsorber } from "../../Broadcast";
 import * as print from "../../print";
-import * as shellAPI from "../../api/api.shell";
 
 import { EThreadStatus } from "../EThreadStatus";
 
@@ -35,6 +37,11 @@ broadcastAbsorber.on("bind-request-handler", (requestHandlerModulePath: string) 
         throw new TypeError(`Given request handler must export adapter function as default 'Function: (shellAPI) => (Function: (IRequest) => IResponse)' '${requestHandlerModulePath}`);
     };
 
+
+    const shellAPI = require("../../api/api.shell");
+
+    //process.argv[1] = requestHandlerModulePath;
+
     const shellAdapter = tryBind<TShellAdapterHandler>(() => require(requestHandlerModulePath));
     shellRequestHandler = tryBind<TShellRequestHandler>(() => shellAdapter(shellAPI));
     
@@ -54,7 +61,6 @@ broadcastChannel.onmessage = (message: { data: IBroadcastMessage[] }) => {
 
 
 parentPort.postMessage(EThreadStatus.READY);  // Ready status message
-
 
 parentPort.on("message", (sReq: IRequest) => {
     if(!shellRequestHandler) {

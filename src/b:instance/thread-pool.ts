@@ -1,4 +1,4 @@
-import { Worker as Thread, SHARE_ENV, BroadcastChannel } from "worker_threads";
+import { Worker as Thread, BroadcastChannel } from "worker_threads";
 import { cpus } from "os";
 import { join } from "path";
 
@@ -60,7 +60,7 @@ Array.from({ length: baseSize }, create);
 function create() {
     threadMutex.lock(new Promise(resolve => {
         const thread = new Thread(join(__dirname, "./c:thread/thread"), {
-            //env: SHARE_ENV,
+            argv: process.argv.slice(2).concat(process.argv[1]),
             workerData: broadcastEmitter.recoverHistory()
         });
 

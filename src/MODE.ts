@@ -1,7 +1,7 @@
 import { parseFlag } from "./args";
 
 
-const devFlagSet: boolean = (process.env.dev === "true") || parseFlag("dev", "D");
+const devFlagSet: boolean = parseFlag("dev", "D");
 
 
 export const MODE = {

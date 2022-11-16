@@ -42,7 +42,7 @@ let hasBeenDestroyed: boolean = false;
 
 
 cluster.settings.exec = join(__dirname, "./b:instance/instance");
-cluster.settings.args = process.argv.slice(2);
+cluster.settings.args = process.argv.slice(2).concat(process.argv[1]);
 cluster.settings.silent = true;
 
 
@@ -94,11 +94,8 @@ cluster.on("message", (_, message: IBroadcastMessage) => broadcastAbsorber.absor
 
 
 function create(listeningMessage?: string) {
-	processMutex.lock(new Promise((resolve, reject) => {
-		const subProcess = cluster.fork({
-			dev: MODE.DEV,
-			wd: dirname(require.main.filename)
-		});
+	processMutex.lock(new Promise(resolve => {
+		const subProcess = cluster.fork();
 
 		// Pipe worker output to master (mem space A)
 		subProcess.process.stdout.on("data", (message: string) => {

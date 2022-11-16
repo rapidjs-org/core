@@ -3,6 +3,9 @@ const devConfig = {
 };
 
 
+process.argv[1] = process.argv.pop();
+
+
 import { createServer as createServerHTTP, IncomingMessage, ServerResponse } from "http";
 import { createServer as createServerHTTPS } from "https";
 import { gzipSync, deflateSync, brotliCompressSync } from "zlib";
