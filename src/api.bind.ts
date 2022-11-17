@@ -1,6 +1,6 @@
 import { join, dirname } from "path";
 
-import { broadcast } from "../cluster";
+import { broadcast } from "./cluster";
 
 import * as individualAPI from "./api.individual";
 

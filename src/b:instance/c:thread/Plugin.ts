@@ -1,11 +1,11 @@
-import { join } from "path";
-
-import { PATH } from "../../PATH";
-
-
 const devConfig = {
     selfContextIdentifier: "$this"
 };
+
+
+import { join } from "path";
+
+import { PATH } from "../../PATH";
 
 
 export class Plugin {

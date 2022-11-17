@@ -16,7 +16,7 @@ import { MODE } from "./MODE";
 import { parseFlag } from "./args";
 import { init as initCluster } from "./cluster";
 import { registerFree } from "./shared-memory/shared-memory-api";
-import { bindRequestHandler } from "./api/api.bind";
+import { bindRequestHandler } from "./api.bind";
 import * as print from "./print";
 
 

@@ -38,7 +38,7 @@ broadcastAbsorber.on("bind-request-handler", (requestHandlerModulePath: string) 
     };
 
 
-    const shellAPI = require("../../api/api.shell");
+    const shellAPI = require("./api.shell");
 
     //process.argv[1] = requestHandlerModulePath;
 
